@@ -29,7 +29,7 @@
                 @endphp
                 <div class="budget-card-compact" onclick="selectDepartmentFromCard('{{ $dept->name }}')" style="cursor:pointer;" title="Click to select {{ $dept->name }}">
                     <div class="budget-card-header-compact" style="padding-bottom:8px;border-bottom:1px solid #e5e7eb;margin-bottom:10px;">
-                        <h4 style="font-size:13px;font-weight:700;color:#1e4575;margin:0;white-space:normal;word-break:break-word;">{{ $dept->name }}</h4>
+                        <h4 style="font-size:13px;font-weight:700;color:#fff;margin:0;white-space:normal;word-break:break-word;">{{ $dept->name }}</h4>
                         @if($dept->budget_from || $dept->budget_to)
                         <div style="font-size:11px;color:#6b7280;margin-top:4px;">
                             {{ $dept->budget_from?->format('M d, Y') ?? '—' }} → {{ $dept->budget_to?->format('M d, Y') ?? '—' }}
