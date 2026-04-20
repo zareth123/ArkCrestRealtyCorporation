@@ -848,11 +848,8 @@ function updateCategoryDropdown(dept) {
     const dropdown = document.getElementById('categoryDropdown');
     dropdown.innerHTML = '';
     
-    // Convert full name back to short name for category lookup
-    const shortDept = reverseDepartmentName(dept);
-    
-    if (shortDept && categories[shortDept]) {
-        categories[shortDept].forEach(cat => {
+    if (dept && categories[dept]) {
+        categories[dept].forEach(cat => {
             const item = document.createElement('div');
             item.className = 'dropdown-item';
             item.textContent = cat;
@@ -972,11 +969,8 @@ function updateEditCategoryDropdown(dept) {
     const dropdown = document.getElementById('editCategoryDropdown');
     dropdown.innerHTML = '';
     
-    // Convert full name back to short name for category lookup
-    const shortDept = reverseDepartmentName(dept);
-    
-    if (shortDept && categories[shortDept]) {
-        categories[shortDept].forEach(cat => {
+    if (dept && categories[dept]) {
+        categories[dept].forEach(cat => {
             const item = document.createElement('div');
             item.className = 'dropdown-item';
             item.textContent = cat;
