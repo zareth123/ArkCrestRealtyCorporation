@@ -415,94 +415,82 @@
 
       </button>
 
-      @if(auth()->user()->isAdmin())
+      @php $sHidden = $hiddenSections ?? []; $isAdmin = auth()->user()->isAdmin(); $canSeeS = fn($k) => $isAdmin || !in_array($k, $sHidden); @endphp
 
+      @if($isAdmin || array_filter(['settings.users','settings.visibility','settings.activity','settings.deleted','settings.permissions','settings.teams','settings.period-lock','settings.employee','settings.personnel'], fn($k) => !in_array($k, $sHidden)))
       <div class="st-nav-label">Admin</div>
+      @endif
 
+      @if($canSeeS('settings.users'))
       <button class="st-nav-btn" id="nav-users" onclick="showPanel('users')">
-
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-
         User Management
-
       </button>
+      @endif
 
+      @if($isAdmin || $canSeeS('settings.visibility'))
       <button class="st-nav-btn" id="nav-visibility" onclick="showPanel('visibility')">
-
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-
         Page Visibility
-
       </button>
+      @endif
 
+      @if($canSeeS('settings.activity'))
       <button class="st-nav-btn" id="nav-activity" onclick="showPanel('activity')">
-
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-
         Activity Log
-
       </button>
+      @endif
 
+      @if($canSeeS('settings.deleted'))
       <button class="st-nav-btn" id="nav-deleted" onclick="showPanel('deleted')">
-
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-
         Deleted Records
-
       </button>
+      @endif
 
+      @if($canSeeS('settings.permissions'))
       <button class="st-nav-btn" id="nav-permission-requests" onclick="showPanel('permission-requests')">
-
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-
         Permission Requests
-
         @php $pendingPerms = \App\Models\PermissionRequest::where('status','pending')->count(); @endphp
-
         @if($pendingPerms > 0)<span style="background:#ef4444;color:white;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto;">{{ $pendingPerms }}</span>@endif
-
       </button>
+      @endif
 
+      @if($canSeeS('settings.teams'))
       <button class="st-nav-btn" id="nav-teams" onclick="showPanel('teams')">
-
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-
         Team Management
-
       </button>
+      @endif
 
+      @if($canSeeS('settings.period-lock'))
       <button class="st-nav-btn" id="nav-period-lock" onclick="showPanel('period-lock')">
-
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-
         Period Lock
-
       </button>
+      @endif
 
+      @if($isAdmin)
       <button class="st-nav-btn" id="nav-rejected-trippings" onclick="showPanel('rejected-trippings')">
-
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-
         Rejected Trippings
-
       </button>
+      @endif
 
+      @if($canSeeS('settings.employee'))
       <button class="st-nav-btn" id="nav-employee-directory" onclick="showPanel('employee-directory')">
-
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-
         Employee Data
-
       </button>
+      @endif
 
+      @if($canSeeS('settings.personnel'))
       <button class="st-nav-btn" id="nav-personnel-contacts" onclick="showPanel('personnel-contacts')">
-
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-
         ARC Contact List
-
       </button>
-
       @endif
 
     </div>
