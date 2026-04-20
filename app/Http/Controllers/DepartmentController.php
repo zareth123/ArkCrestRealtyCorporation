@@ -55,6 +55,19 @@ class DepartmentController extends Controller
     }
     
     // API Methods
+    public function addDepartment(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $name = trim($request->name);
+        if (!$name) return response()->json(['success' => false, 'message' => 'Name is required.']);
+        $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '_', $name));
+        if (Department::where('slug', $slug)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Department already exists.']);
+        }
+        Department::create(['name' => $name, 'slug' => $slug, 'allowable_budget' => 0]);
+        return response()->json(['success' => true]);
+    }
+
     public function updateBudget(Request $request, $id)
     {
         $department = Department::findOrFail($id);

@@ -15,9 +15,9 @@ class AppServiceProvider extends ServiceProvider
         try {
             if (\App\Models\Department::count() === 0) {
                 $departments = [
-                    ['name' => 'Admin',             'slug' => 'admin'],
+                    ['name' => 'Administrative',    'slug' => 'admin'],
                     ['name' => 'Sales & Marketing', 'slug' => 'sales_and_marketing'],
-                    ['name' => 'HR',                'slug' => 'hr'],
+                    ['name' => 'Human Resource',    'slug' => 'hr'],
                     ['name' => 'Finance',           'slug' => 'finance'],
                     ['name' => 'Executive',         'slug' => 'executive'],
                 ];

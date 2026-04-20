@@ -5,9 +5,51 @@
 
 <div class="commission-requests-page">
     <!-- Page Title -->
-    <div class="page-header">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
         <h2 class="page-title">Departmental Expenses</h2>
+        @if(auth()->user()->isAdmin())
+        <button onclick="document.getElementById('addDeptModal').style.display='flex'" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:#1e4575;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add Department
+        </button>
+        @endif
     </div>
+
+    {{-- Add Department Modal --}}
+    <div id="addDeptModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:12px;padding:28px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="font-size:16px;font-weight:700;color:#1e4575;margin:0;">Add Department</h3>
+                <button onclick="document.getElementById('addDeptModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;">&times;</button>
+            </div>
+            <form id="addDeptForm">
+                @csrf
+                <div style="margin-bottom:14px;">
+                    <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Department Name <span style="color:#ef4444;">*</span></label>
+                    <input type="text" id="new_dept_name" required placeholder="e.g. Operations" style="width:100%;padding:9px 12px;border:1.5px solid #d0d5dd;border-radius:8px;font-size:13px;box-sizing:border-box;">
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" onclick="document.getElementById('addDeptModal').style.display='none'" style="padding:8px 16px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
+                    <button type="submit" style="padding:8px 16px;background:#1e4575;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+    document.getElementById('addDeptForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('new_dept_name').value.trim();
+        if (!name) return;
+        fetch('/api/departments/add', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},
+            body: JSON.stringify({name: name})
+        }).then(r => r.json()).then(d => {
+            if (d.success) { location.reload(); }
+            else { alert(d.message || 'Error adding department'); }
+        });
+    });
+    </script>
 
     <!-- Department Budget Overview -->
     @if(!in_array('departments.budget-cards', $hiddenSections))

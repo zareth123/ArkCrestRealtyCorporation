@@ -73,6 +73,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/departments/executive', [DepartmentController::class, 'executive'])->name('departments.executive');
 
     // API Routes for Department Operations
+    Route::post('/api/departments/add', [DepartmentController::class, 'addDepartment']);
     Route::post('/api/departments/{id}/budget', [DepartmentController::class, 'updateBudget']);
     Route::post('/api/departments/{id}/categories', [DepartmentController::class, 'addCategory']);
     Route::post('/api/departments/{id}/add-category-with-amount', [DepartmentController::class, 'addCategoryWithAmount']);
