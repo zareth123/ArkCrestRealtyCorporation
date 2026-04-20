@@ -1115,7 +1115,6 @@
           @endif
         </div>
 
-        @if($selectedUser)
         <form method="POST" action="{{ route('settings.visibility') }}" id="vis-form">@csrf
           <input type="hidden" name="visibility_submitted" value="1">
           <input type="hidden" name="visibility_user_id" id="vis_user_id" value="{{ $selectedUserId }}">
@@ -1137,11 +1136,11 @@
           </div>
 
           <div style="margin-top:16px;display:flex;align-items:center;gap:12px;">
-            <button type="submit" class="st-btn st-btn-primary">Save Visibility</button>
-            <span style="font-size:13px;color:#6b7280;">for {{ $selectedUser->name }}</span>
+            <button type="submit" class="st-btn st-btn-primary" {{ !$selectedUser ? 'disabled' : '' }}>Save Visibility</button>
+            @if($selectedUser)<span style="font-size:13px;color:#6b7280;">for {{ $selectedUser->name }}</span>
+            @else<span style="font-size:13px;color:#6b7280;">Select a user above to save</span>@endif
           </div>
         </form>
-        @endif
 
       </div></div>
 
