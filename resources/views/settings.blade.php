@@ -1064,12 +1064,6 @@
               'forms'                            => 'Forms',
             ],
             'Settings' => [
-              'settings.profile'                 => 'My Profile',
-              'settings.about'                   => 'About Me',
-              'settings.system'                  => 'System Info',
-              'settings.notes'                   => 'My Notes',
-              'settings.privacy'                 => 'Privacy & Policy',
-              'settings.notifications'           => 'Notifications',
               'settings.users'                   => 'User Management',
               'settings.employee'                => 'Employee Data',
               'settings.personnel'               => 'ARC Contact List',
