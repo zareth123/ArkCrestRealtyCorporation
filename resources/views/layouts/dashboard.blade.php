@@ -206,8 +206,7 @@
                 @php
                 $hiddenPages = [];
                 if (auth()->check() && !auth()->user()->isAdmin()) {
-                    $allHidden = array_values(json_decode(\DB::table('app_settings')->where('key','hidden_pages')->value('value') ?? '[]', true) ?: []);
-                    // Only page-level keys (no dot) affect sidebar visibility
+                    $allHidden = array_values(auth()->user()->hidden_pages ?? []);
                     $hiddenPages = array_filter($allHidden, fn($k) => strpos($k, '.') === false);
                 }
                 $canSee = fn($key) => !in_array($key, $hiddenPages);
