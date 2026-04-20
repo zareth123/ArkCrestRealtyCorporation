@@ -148,23 +148,16 @@ class DepartmentalExpensesController extends Controller
             }
         }
 
-        // Generate unique control number using DB lock
+        // Generate unique control number - reuse gaps from deleted records
         $date = $validated['date_requested'] ? Carbon::parse($validated['date_requested']) : Carbon::now();
         $month = $date->format('m');
         $year  = $date->format('y');
-        $key   = 'ctrl_num_' . $date->format('Y_m');
 
-        $controlNumber = \DB::transaction(function() use ($month, $year, $key) {
-            $current = (int)(\DB::table('app_settings')->where('key', $key)->value('value') ?? 0);
-            $count = $current + 1;
-            // Make sure it's truly unique
+        $controlNumber = \DB::transaction(function() use ($month, $year) {
+            $count = 1;
             while (CommissionRequest::where('control_number', sprintf('ARCS-%s-%03d-%s', $month, $count, $year))->exists()) {
                 $count++;
             }
-            \DB::table('app_settings')->updateOrInsert(
-                ['key' => $key],
-                ['value' => $count, 'created_at' => now(), 'updated_at' => now()]
-            );
             return sprintf('ARCS-%s-%03d-%s', $month, $count, $year);
         });
 
