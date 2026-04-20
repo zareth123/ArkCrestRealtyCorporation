@@ -11,6 +11,26 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Auto-seed departments if empty
+        try {
+            if (\App\Models\Department::count() === 0) {
+                $departments = [
+                    ['name' => 'Admin',             'slug' => 'admin'],
+                    ['name' => 'Sales & Marketing', 'slug' => 'sales_and_marketing'],
+                    ['name' => 'HR',                'slug' => 'hr'],
+                    ['name' => 'Finance',           'slug' => 'finance'],
+                    ['name' => 'Executive',         'slug' => 'executive'],
+                ];
+                foreach ($departments as $dept) {
+                    \App\Models\Department::firstOrCreate(
+                        ['slug' => $dept['slug']],
+                        ['name' => $dept['name'], 'allowable_budget' => 0]
+                    );
+                }
+            }
+        } catch (\Exception $e) {
+            // Table may not exist yet during migration
+        }
         View::composer('*', function ($view) {
             // Skip for public pages
             if (in_array($view->getName(), ['tripping', 'auth.login', 'auth.registered', 'auth.verify'])) {
