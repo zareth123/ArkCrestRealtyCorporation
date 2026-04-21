@@ -254,9 +254,11 @@
                         <th>Reservation Date</th>
                         <th>Project Name</th>
                         <th>Property Details (Block & Lot No.)</th>
+                        @if($isAdmin)
                         <th>Price/SQM</th>
                         <th>Lot Area</th>
                         <th>Discount</th>
+                        @endif
                         <th>Net TCP</th>
                         <th>Terms of Payment</th>
                         <th>Mode of Payment</th>
@@ -264,8 +266,8 @@
                         <th>Agent's Name</th>
                         <th>Date Requested</th>
                         <th>Units</th>
-                        <th>Commission %</th>
                         @if($isAdmin)
+                        <th>Commission %</th>
                         <th>Commission</th>
                         @endif
                         <th>Date Released</th>

@@ -28,18 +28,24 @@ class CommissionMonitoringController extends Controller
     {
         try {
             $validated = $request->validate([
-                'project_name'      => 'required|string|max:255',
-                'property_details'  => 'nullable|string|max:255',
-                'client_name'       => 'required|string|max:255',
-                'terms_of_payment'  => 'required|string|max:255',
-                'agent_name'        => 'required|string|max:255',
-                'number_of_units'   => 'nullable|integer|min:1',
-                'net_tcp'           => 'nullable|numeric',
-                'commission'        => 'nullable|numeric',
-                'mode_of_payment'   => 'nullable|string|max:255',
-                'date_requested'    => 'nullable|date',
-                'date_released'     => 'nullable|date',
-                'status'            => 'nullable|string|max:50',
+                'project_name'       => 'required|string|max:255',
+                'property_details'   => 'nullable|string|max:255',
+                'client_name'        => 'required|string|max:255',
+                'terms_of_payment'   => 'required|string|max:255',
+                'agent_name'         => 'required|string|max:255',
+                'number_of_units'    => 'nullable|integer|min:1',
+                'price_sqm'          => 'nullable|numeric',
+                'lot_area'           => 'nullable|numeric',
+                'discount'           => 'nullable|numeric',
+                'net_tcp'            => 'nullable|numeric',
+                'commission_percent' => 'nullable|numeric',
+                'commission'         => 'nullable|numeric',
+                'mode_of_payment'    => 'nullable|string|max:255',
+                'date_requested'     => 'nullable|date',
+                'reservation_date'   => 'nullable|date',
+                'date_released'      => 'nullable|date',
+                'status'             => 'nullable|string|max:50',
+                'remarks'            => 'nullable|string',
             ]);
 
             // Auto-generate control number for commission monitoring
