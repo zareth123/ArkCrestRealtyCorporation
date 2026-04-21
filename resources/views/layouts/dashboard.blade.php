@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="{{ asset('images/ArkCrest_Logo.png') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'ARCKREST REALTY CORPORATION') }} - @yield('title', 'Dashboard')</title>
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}?v={{ time() }}{{ rand(1000, 9999) }}">
