@@ -915,19 +915,22 @@
     }
 
     .modal-header {
-        background: linear-gradient(135deg, #1e4575, #2563eb);
+        background: #1e4575;
         color: white;
-        padding: 20px 24px;
+        padding: 18px 24px;
         border-radius: 16px 16px 0 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        border-bottom: 3px solid #A37929;
     }
 
     .modal-header h3 {
         margin: 0;
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 0.3px;
     }
 
     .modal-close {
