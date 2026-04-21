@@ -1211,50 +1211,68 @@
 
       <div class="st-page-header"><div class="st-page-title">Deleted Records</div><div class="st-page-sub">Restore or permanently delete records</div></div>
 
-      @php $deletedLogs = $activityLogs->where('action','delete'); @endphp
+      @php
+        $deletedExpenses = \App\Models\CommissionRequest::onlyTrashed()->orderBy('deleted_at','desc')->get();
+        $deletedLogs = $activityLogs->where('action','delete')->filter(fn($l) => $l->module !== 'Departmental Expenses');
+      @endphp
 
-      <div class="st-card"><div class="st-card-body">
-
-        @forelse($deletedLogs as $log)
-
-        <div class="del-rec-item">
-
-          <div>
-
-            <div style="font-size:13px;font-weight:600;color:#0f172a;">{{ $log->description }}</div>
-
-            <div style="font-size:11px;color:#94a3b8;">{{ $log->module }} &bull; {{ $log->created_at->format('M d, Y g:i A') }}</div>
-
-          </div>
-
-          <div style="display:flex;gap:8px;flex-shrink:0;">
-
-            @if($log->snapshot)
-
-            <form method="POST" action="{{ route('settings.deleted.restore', $log->id) }}">@csrf
-
-              <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
-
-            </form>
-
-            @endif
-
-            <form method="POST" action="{{ route('settings.deleted.purge', $log->id) }}" onsubmit="return confirm('Permanently delete?')">@csrf @method('DELETE')
-
-              <button type="submit" class="st-btn st-btn-danger st-btn-sm">Purge</button>
-
-            </form>
-
-          </div>
-
+      {{-- Soft-deleted Expenses --}}
+      @if($deletedExpenses->isNotEmpty())
+      <div class="st-card" style="margin-bottom:16px;">
+        <div class="st-card-hdr"><div class="st-card-hdr-text"><h3>Deleted Expenses</h3><p>Restore or permanently remove</p></div></div>
+        <div class="st-card-body" style="padding:0;overflow-x:auto;">
+          <table class="st-user-table" style="min-width:600px;">
+            <thead><tr><th>Control #</th><th>Requestor</th><th>Department</th><th>Amount</th><th>Deleted</th><th>Actions</th></tr></thead>
+            <tbody>
+            @foreach($deletedExpenses as $exp)
+            <tr>
+              <td>{{ $exp->control_number }}</td>
+              <td>{{ $exp->requestor_name }}</td>
+              <td>{{ $exp->department }}</td>
+              <td>₱{{ number_format($exp->requested_amount, 2) }}</td>
+              <td style="font-size:11px;color:#94a3b8;">{{ $exp->deleted_at->format('M d, Y') }}</td>
+              <td>
+                <div style="display:flex;gap:6px;">
+                  <form method="POST" action="{{ route('expenses.restore', $exp->id) }}">@csrf
+                    <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
+                  </form>
+                  <form method="POST" action="{{ route('expenses.purge', $exp->id) }}" onsubmit="return confirm('Permanently delete this record?')">@csrf @method('DELETE')
+                    <button type="submit" class="st-btn st-btn-danger st-btn-sm">Purge</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            @endforeach
+            </tbody>
+          </table>
         </div>
+      </div>
+      @endif
 
+      {{-- Other deleted records from activity log --}}
+      <div class="st-card"><div class="st-card-body">
+        @forelse($deletedLogs as $log)
+        <div class="del-rec-item">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#0f172a;">{{ $log->description }}</div>
+            <div style="font-size:11px;color:#94a3b8;">{{ $log->module }} &bull; {{ $log->created_at->format('M d, Y g:i A') }}</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            @if($log->snapshot)
+            <form method="POST" action="{{ route('settings.deleted.restore', $log->id) }}">@csrf
+              <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
+            </form>
+            @endif
+            <form method="POST" action="{{ route('settings.deleted.purge', $log->id) }}" onsubmit="return confirm('Permanently delete?')">@csrf @method('DELETE')
+              <button type="submit" class="st-btn st-btn-danger st-btn-sm">Purge</button>
+            </form>
+          </div>
+        </div>
         @empty
-
+        @if($deletedExpenses->isEmpty())
         <div class="st-empty">No deleted records.</div>
-
+        @endif
         @endforelse
-
       </div></div>
 
     </div>

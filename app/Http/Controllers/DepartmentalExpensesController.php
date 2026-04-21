@@ -315,6 +315,24 @@ class DepartmentalExpensesController extends Controller
         ]);
     }
 
+    public function restore($id)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $record = \App\Models\CommissionRequest::onlyTrashed()->findOrFail($id);
+        $record->restore();
+        ActivityLog::log('restore', 'Departmental Expenses', "Restored expense '{$record->control_number}'");
+        return redirect()->route('settings')->with('success', 'Record restored.')->with('open_section', 'deleted');
+    }
+
+    public function purge($id)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $record = \App\Models\CommissionRequest::onlyTrashed()->findOrFail($id);
+        $record->forceDelete();
+        ActivityLog::log('delete', 'Departmental Expenses', "Permanently deleted expense '{$record->control_number}'");
+        return redirect()->route('settings')->with('success', 'Record permanently deleted.')->with('open_section', 'deleted');
+    }
+
     public function destroy($id)
     {
         $commissionRequest = CommissionRequest::findOrFail($id);
