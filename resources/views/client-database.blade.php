@@ -3,9 +3,10 @@
 @section('content')
 <style>
 .cd-wrap{padding:0}
-.cd-header{background:linear-gradient(135deg,#1e4575 0%,#2563eb 100%);border-radius:16px;padding:32px;margin-bottom:30px;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(30,69,117,0.3)}
-.cd-header h1{font-size:28px;font-weight:700;color:white;margin:0 0 6px}
-.cd-header p{font-size:15px;color:rgba(255,255,255,0.85);margin:0}
+.cd-header{background:linear-gradient(135deg,#1e4575 0%,#2563eb 60%,#1e4575 100%);border-radius:20px;padding:36px 40px;margin-bottom:28px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(30,69,117,.25)}
+.cd-header-eyebrow{font-size:12px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
+.cd-header h1{font-size:28px;font-weight:700;color:white;margin:0 0 8px;position:relative;z-index:2}
+.cd-header p{font-size:14px;color:rgba(255,255,255,0.75);margin:0;position:relative;z-index:2}
 .add-commission-section{background:white;border-radius:12px;padding:32px;margin-bottom:30px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:2px solid #1e4575}
 .section-header-commission{padding:0 0 12px;border-bottom:1px solid #d0d5dd;margin-bottom:24px}
 .section-header-commission h2{color:#1e4575;font-size:18px;font-weight:700;margin:0;text-transform:uppercase}
@@ -27,8 +28,15 @@
 
 <div class="cd-wrap">
     <div class="cd-header">
-        <h1>Client Database</h1>
-        <p>Manage client records and commission requests</p>
+        <div style="position:relative;z-index:2;">
+            <div class="cd-header-eyebrow">Sales & Marketing</div>
+            <h1>Client Database</h1>
+            <p>Manage client records and commission requests</p>
+        </div>
+        <div style="position:absolute;top:0;right:0;width:300px;height:100%;pointer-events:none;">
+            <div style="position:absolute;width:220px;height:220px;top:-60px;right:-40px;border-radius:50%;background:rgba(255,255,255,.06);"></div>
+            <div style="position:absolute;width:140px;height:140px;top:40px;right:120px;border-radius:50%;background:rgba(255,255,255,.04);"></div>
+        </div>
     </div>
 
     <div class="add-commission-section">

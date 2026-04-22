@@ -2,10 +2,11 @@
 @section('title', 'Commission Dashboard')
 @section('content')
 <style>
-.cd-header{background:linear-gradient(135deg,#1e4575 0%,#2563eb 60%,#1e4575 100%);border-radius:16px;padding:28px 32px;margin-bottom:24px;position:relative;overflow:hidden;box-shadow:0 6px 24px rgba(30,69,117,.2)}
-.cd-header h1{font-size:22px;font-weight:700;color:white;margin:0 0 4px;position:relative;z-index:2}
-.cd-header p{font-size:13px;color:rgba(255,255,255,.7);margin:0;position:relative;z-index:2}
-.cd-deco{position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.05)}
+.cd-header{background:linear-gradient(135deg,#1e4575 0%,#2563eb 60%,#1e4575 100%);border-radius:20px;padding:36px 40px;margin-bottom:28px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(30,69,117,.25)}
+.cd-header h1{font-size:28px;font-weight:700;color:white;margin:0 0 8px;position:relative;z-index:2}
+.cd-header p{font-size:14px;color:rgba(255,255,255,.75);margin:0;position:relative;z-index:2}
+.cd-deco{position:absolute;top:-40px;right:-40px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.06)}
+.cd-deco2{position:absolute;top:40px;right:120px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.04)}
 .cd-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
 .cd-stat{background:white;border-radius:12px;padding:20px;border:1px solid #e8ecf0;box-shadow:0 1px 4px rgba(0,0,0,.05)}
 .cd-stat-val{font-size:22px;font-weight:800;color:#0f172a;line-height:1}
@@ -34,8 +35,12 @@
 
 <div class="cd-header">
     <div class="cd-deco"></div>
-    <h1>Commission Dashboard</h1>
-    <p>Per agent breakdown — released vs pending commissions</p>
+    <div class="cd-deco2"></div>
+    <div style="position:relative;z-index:2;">
+        <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Finance</div>
+        <h1>Commission Dashboard</h1>
+        <p>Per agent breakdown — released vs pending commissions</p>
+    </div>
 </div>
 
 @php
