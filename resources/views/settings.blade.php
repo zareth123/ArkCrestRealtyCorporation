@@ -1804,8 +1804,8 @@
       @endif
 
       {{-- Add New Group Modal --}}
-      <div id="contactAddModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)closeAddContactModal();">
-        <div class="contact-add-box" style="background:white;border-radius:12px;padding:20px 24px;width:460px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.2);border:1px solid #e2e8f0;">
+      <div id="contactAddModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeAddContactModal();">
+        <div class="contact-add-box" style="background:white;border-radius:12px;padding:20px 24px;width:460px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2);border:1px solid #e2e8f0;margin:auto;">
           <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">Add New Contact</div>
           <form method="POST" action="{{ route('settings.personnel-contacts.store') }}">@csrf
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
@@ -1933,6 +1933,7 @@ function toggleEdit(id) {
 }
 function openAddContactModal(company, btn) { 
     var modal = document.getElementById('contactAddModal');
+    modal.style.display = 'flex';
     var f = document.getElementById('addModalCompany'); 
     if(f) f.value = company || '';
     modal.style.display = 'flex';
