@@ -27,11 +27,11 @@ class Note extends Model
         return Carbon::parse($this->note_date->format('Y-m-d') . ' ' . $this->reminder_time);
     }
 
-    // Is this note due for reminder right now (within the current minute)?
+    // Is this note due for reminder right now (within the last 5 minutes, not yet sent)?
     public function isDueNow(): bool
     {
         $at = $this->reminder_at;
         if (!$at || $this->reminder_sent) return false;
-        return now()->between($at, $at->copy()->addMinutes(1));
+        return now()->greaterThanOrEqualTo($at) && now()->lessThanOrEqualTo($at->copy()->addMinutes(5));
     }
 }

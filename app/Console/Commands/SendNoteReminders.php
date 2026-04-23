@@ -14,14 +14,15 @@ class SendNoteReminders extends Command
 
     public function handle(): void
     {
-        // 1. Send reminders for notes due right now (exact time match)
+        // 1. Send reminders for notes due now OR overdue today (not yet sent)
         $due = Note::with('user')
             ->whereNotNull('note_date')
             ->whereNotNull('reminder_time')
             ->where('reminder_sent', false)
             ->whereNull('completed_at')
+            ->whereDate('note_date', '<=', now()->toDateString())
             ->get()
-            ->filter(fn($note) => $note->isDueNow());
+            ->filter(fn($note) => $note->reminder_at && now()->greaterThanOrEqualTo($note->reminder_at));
 
         foreach ($due as $note) {
             try {
