@@ -21,6 +21,9 @@ class SettingsController extends Controller
         'commission-monitoring.dashboard',
         'calendar',
     ];
+
+    public function index()
+    {
         return view('settings', $this->getSettingsData());
     }
 
