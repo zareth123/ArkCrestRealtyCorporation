@@ -215,3 +215,16 @@ Route::middleware('auth')->group(function () {
     })->name('api.online-users');
 
 }); // end auth middleware
+
+// External scheduler trigger (called by GitHub Actions)
+Route::post('/api/run-reminders', function (\Illuminate\Http\Request $request) {
+    $secret = config('app.scheduler_secret');
+    $token  = $request->bearerToken();
+    if (!$secret || $token !== $secret) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+    \Artisan::call('events:send-reminders');
+    \Artisan::call('notes:send-reminders');
+    \Artisan::call('commissions:send-reminders');
+    return response()->json(['ok' => true, 'output' => \Artisan::output()]);
+});

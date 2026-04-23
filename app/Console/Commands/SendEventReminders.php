@@ -22,6 +22,12 @@ class SendEventReminders extends Command
         $isEvening = ($currentTime >= '17:00' && $currentTime <= '17:05');
         $isDayBeforeMorning = ($currentTime >= '08:00' && $currentTime <= '08:05');
 
+        // For testing — force run if TEST_REMINDERS env is set
+        if (app()->environment('production') && request()->server('TEST_REMINDERS')) {
+            $isMorning = true;
+            $isDayBeforeMorning = true;
+        }
+
         // Get admin and sales admin emails
         $recipients = User::where(function($q) {
             $q->where('role', 'admin')

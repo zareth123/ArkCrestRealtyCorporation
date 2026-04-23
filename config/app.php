@@ -2,9 +2,9 @@
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Application Name
+    'scheduler_secret' => env('SCHEDULER_SECRET'),
+
+
     |--------------------------------------------------------------------------
     |
     | This value is the name of your application, which will be used when the
