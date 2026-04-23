@@ -834,6 +834,10 @@
     setTimeout(pollNotifications, 3000);
     </script>
     <style>
+    /* Hide scrollbars globally but keep scroll functionality */
+    * { scrollbar-width: none; }
+    *::-webkit-scrollbar { display: none; }
+
     @keyframes bellPulse {
         0%   { transform: scale(1); }
         30%  { transform: scale(1.2) rotate(-10deg); }
