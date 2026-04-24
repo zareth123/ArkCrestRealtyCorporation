@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\User;
+use App\Models\CommissionRequest;
 use App\Models\CommissionRequestSales;
 use App\Models\TripSchedule;
 use App\Models\Note;
@@ -64,12 +65,20 @@ class SendEventReminders extends Command
 
         $events = [];
 
-        // Commission releases tomorrow
+        // Commission releases tomorrow (from Client Database)
         CommissionRequestSales::whereDate('date_released', $tomorrow)
             ->where('status', 'Not Yet Released')->get()
             ->each(fn($c) => $events[] = [
                 'type'   => '💰 Commission Release Tomorrow',
                 'detail' => "{$c->client_name} — {$c->project_name} | Agent: {$c->agent_name} | ₱" . number_format($c->commission ?? 0, 2),
+            ]);
+
+        // Commission releases tomorrow (from Commission Monitoring)
+        CommissionRequest::whereDate('date_released', $tomorrow)
+            ->where('status', 'Not Yet Released')->get()
+            ->each(fn($c) => $events[] = [
+                'type'   => '💰 Commission Release Tomorrow',
+                'detail' => ($c->client_name ?? '—') . ' — ' . ($c->project_name ?? '—') . ' | Agent: ' . ($c->agent_name ?? '—') . ' | ₱' . number_format($c->commission ?? 0, 2),
             ]);
 
         // Downpayment due tomorrow (not Done)
@@ -111,12 +120,20 @@ class SendEventReminders extends Command
 
         $events = [];
 
-        // Commission releases today
+        // Commission releases today (from Client Database)
         CommissionRequestSales::whereDate('date_released', $today)
             ->where('status', 'Not Yet Released')->get()
             ->each(fn($c) => $events[] = [
                 'type'   => '💰 Commission Release Today',
                 'detail' => "{$c->client_name} — {$c->project_name} | Agent: {$c->agent_name} | ₱" . number_format($c->commission ?? 0, 2),
+            ]);
+
+        // Commission releases today (from Commission Monitoring)
+        CommissionRequest::whereDate('date_released', $today)
+            ->where('status', 'Not Yet Released')->get()
+            ->each(fn($c) => $events[] = [
+                'type'   => '💰 Commission Release Today',
+                'detail' => ($c->client_name ?? '—') . ' — ' . ($c->project_name ?? '—') . ' | Agent: ' . ($c->agent_name ?? '—') . ' | ₱' . number_format($c->commission ?? 0, 2),
             ]);
 
         // Downpayment due today (not Done)

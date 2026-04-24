@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\CommissionRequest;
 use App\Models\CommissionRequestSales;
 use App\Models\TripSchedule;
 
@@ -140,22 +141,34 @@ class CalendarController extends Controller
         $year  = $request->get('year', date('Y'));
         $view  = $request->get('view', 'month');
 
-        // All releases for the selected month/year
-        $releases = CommissionRequestSales::whereNotNull('date_released')
+        // All releases for the selected month/year (from both Client Database and Commission Monitoring)
+        $clientReleases = CommissionRequestSales::whereNotNull('date_released')
             ->whereYear('date_released', $year)
             ->whereMonth('date_released', $month)
-            ->orderBy('date_released')
             ->get();
+        
+        $commissionReleases = CommissionRequest::whereNotNull('date_released')
+            ->whereYear('date_released', $year)
+            ->whereMonth('date_released', $month)
+            ->get();
+
+        $releases = $clientReleases->merge($commissionReleases)->sortBy('date_released');
 
         // Group by day for easy lookup in the view
         $releasesByDay = $releases->groupBy(fn($r) => $r->date_released->day);
 
         // Available years from data
-        $availableYears = CommissionRequestSales::whereNotNull('date_released')
+        $clientYears = CommissionRequestSales::whereNotNull('date_released')
             ->selectRaw('YEAR(date_released) as year')
             ->distinct()
-            ->orderBy('year', 'desc')
             ->pluck('year');
+        
+        $commissionYears = CommissionRequest::whereNotNull('date_released')
+            ->selectRaw('YEAR(date_released) as year')
+            ->distinct()
+            ->pluck('year');
+
+        $availableYears = $clientYears->merge($commissionYears)->unique()->sortDesc()->values();
 
         if (!$availableYears->contains((int)$year)) {
             $availableYears->prepend((int)$year);
