@@ -100,8 +100,8 @@
                         <input type="text" name="project_name" placeholder="Enter project name" required>
                     </div>
                     <div class="form-group">
-                        <label>PROPERTY DETAILS (BLOCK & LOT NO.) <span class="required">*</span></label>
-                        <input type="text" name="property_details" placeholder="e.g., Block 3 Lot 12, Tower A" required>
+                        <label>PROPERTY DETAILS (BLOCK & LOT NO.)</label>
+                        <input type="text" name="property_details" placeholder="e.g., Block 3 Lot 12, Tower A">
                     </div>
                     <div class="form-group">
                         <label>PRICE / SQM</label>
@@ -1225,10 +1225,10 @@ function closeCmModal(id) {
     document.getElementById(id).classList.remove('active');
 }
 
-// Combobox for add form
 function computeAddCommission() {
     const netTcp = parseFloat(document.getElementById('cm_add_net_tcp').value) || 0;
-    const pct    = parseFloat(document.getElementById('cm_add_commission_percent').value) || 0;
+    const pctEl  = document.getElementById('cm_add_commission_percent');
+    const pct    = pctEl ? (parseFloat(pctEl.value) || 0) : 0;
     const result = netTcp * (pct / 100);
     document.getElementById('cm_add_commission').value = result > 0 ? result.toFixed(2) : '';
     const display = document.getElementById('cm_add_commission_display');
@@ -1242,6 +1242,16 @@ function computeAddCommissionFromValue() {
     const pctEl = document.getElementById('cm_add_commission_percent');
     if (pctEl) pctEl.value = pct > 0 ? pct.toFixed(4).replace(/\.?0+$/, '') : '';
 }
+
+// Ensure commission is computed before form submit
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('cmAddForm');
+    if (form) {
+        form.addEventListener('submit', function() {
+            computeAddCommission();
+        });
+    }
+});
 
 function toggleCmTermsDropdown() {
     const dd = document.getElementById('cmTermsDropdown');
