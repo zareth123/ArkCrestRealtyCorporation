@@ -45,9 +45,9 @@ class SummaryReportController extends Controller
         
         // Get expenses by department for selected month/year
         $departments = [
-            'Admin' => 'Administrative Expenses',
+            'Administrative' => 'Administrative Expenses',
             'Sales & Marketing' => 'Sales & Marketing Expenses',
-            'HR' => 'Human Resource Expenses',
+            'Human Resource' => 'Human Resource Expenses',
             'Finance' => 'Finance Expenses',
             'Executive' => 'Executive Expenses',
             'CAPEX' => 'CAPEX'
@@ -60,7 +60,7 @@ class SummaryReportController extends Controller
             $expenses = CommissionRequest::where('department', $deptKey)
                 ->whereYear('date_requested', $selectedYear)
                 ->whereMonth('date_requested', $selectedMonth)
-                ->sum('total_expenses');
+                ->sum('requested_amount');
             
             $departmentExpenses[$deptKey] = $expenses;
             $totalExpenses += $expenses;
@@ -136,9 +136,9 @@ class SummaryReportController extends Controller
         // Get all months data for the selected year
         $monthlyData = [];
         $departments = [
-            'Admin' => 'Administrative Expenses',
+            'Administrative' => 'Administrative Expenses',
             'Sales & Marketing' => 'Sales & Marketing Expenses',
-            'HR' => 'Human Resource Expenses',
+            'Human Resource' => 'Human Resource Expenses',
             'Finance' => 'Finance Expenses',
             'Executive' => 'Executive Expenses',
             'CAPEX' => 'CAPEX'
@@ -181,7 +181,7 @@ class SummaryReportController extends Controller
                 $expenses = CommissionRequest::where('department', $deptKey)
                     ->whereYear('date_requested', $selectedYear)
                     ->whereMonth('date_requested', $month)
-                    ->sum('total_expenses');
+                    ->sum('requested_amount');
                 
                 $departmentExpenses[$deptKey] = $expenses;
                 $monthTotalExpenses += $expenses;
