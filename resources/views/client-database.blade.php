@@ -174,7 +174,7 @@
             <table style="width:100%;border-collapse:collapse;font-size:13px">
                 <thead style="background:linear-gradient(135deg,#1e4575,#2563eb)">
                     <tr>
-                        @foreach(['Developer','Project','Block & Lot','Client','Lot Area','Price/SQM','TCP','Discount (%)','Discount Value','Net TCP','Terms','Reservation Date','Downpayment Date','Agent','Status','Actions'] as $h)
+                        @foreach(['Developer','Project','Block & Lot','Client','Lot Area','Price/SQM','TCP','Discount (%)','Discount Value','Net TCP','Terms','Reservation Date','Downpayment Date','Agent','Downpayment Status','Actions'] as $h)
                         <th style="padding:14px 12px;text-align:left;font-weight:600;color:white;text-transform:uppercase;font-size:11px;white-space:nowrap">{{ $h }}</th>
                         @endforeach
                     </tr>
