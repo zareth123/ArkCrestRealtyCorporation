@@ -221,20 +221,6 @@
                                 {{ $req->downpayment_status ?: '— Set —' }}
                             </button>
                         </td>
-                        <td style="padding:10px 12px;white-space:nowrap">
-                            <form method="POST" action="{{ route('client-database.status', $req->id) }}">
-                                @csrf @method('PATCH')
-                                <select name="client_status" onchange="this.form.submit()"
-                                    data-client-status="{{ strtolower($req->client_status ?? '') }}"
-                                    style="padding:5px 10px;border-radius:20px;font-size:12px;font-weight:600;border:none;cursor:pointer;outline:none;
-                                    background:{{ $req->client_status === 'Done' ? '#dcfce7' : ($req->client_status === 'Cancelled' ? '#fee2e2' : '#f1f5f9') }};
-                                    color:{{ $req->client_status === 'Done' ? '#166534' : ($req->client_status === 'Cancelled' ? '#991b1b' : '#64748b') }};">
-                                    <option value="" {{ !$req->client_status ? 'selected' : '' }}>— Set Status —</option>
-                                    <option value="Done" {{ $req->client_status === 'Done' ? 'selected' : '' }} style="background:#dcfce7;color:#166534;">Done</option>
-                                    <option value="Cancelled" {{ $req->client_status === 'Cancelled' ? 'selected' : '' }} style="background:#fee2e2;color:#991b1b;">Cancelled</option>
-                                </select>
-                            </form>
-                        </td>
                         <td style="padding:14px 12px;white-space:nowrap">
                             <div style="display:flex;gap:6px">
                                 <button onclick="viewRow({{ $req->id }})" style="width:60px;height:28px;background:#1e4575;color:white;border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">VIEW</button>
