@@ -313,6 +313,23 @@ class SalesMarketingController extends Controller
     {
         $record = CommissionRequestSales::findOrFail($id);
         $oldStatus = $record->client_status;
+
+        // Block Done if downpayment is not fully paid
+        if ($request->client_status === 'Done') {
+            $dpStatus = $record->downpayment_status;
+            $isFullyPaid = $dpStatus === 'Spot Paid' || $dpStatus === 'Paid';
+
+            // Also check installments if any
+            $installments = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $id)->get();
+            if ($installments->count() > 0) {
+                $isFullyPaid = $installments->every(fn($i) => $i->is_paid);
+            }
+
+            if (!$isFullyPaid) {
+                return back()->with('error', 'Cannot set to Done — downpayment is not fully paid yet.');
+            }
+        }
+
         $record->update(['client_status' => $request->client_status ?: null]);
 
         // Fire notification when status is set to Done (downpayment received)

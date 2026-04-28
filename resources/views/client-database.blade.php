@@ -27,6 +27,12 @@
 </style>
 
 <div class="cd-wrap">
+    @if(session('error'))
+    <div style="background:#fee2e2;color:#dc2626;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600;">⚠ {{ session('error') }}</div>
+    @endif
+    @if(session('success'))
+    <div style="background:#dcfce7;color:#166534;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600;">✓ {{ session('success') }}</div>
+    @endif
     <div class="cd-header">
         <div style="position:relative;z-index:2;">
             <div class="cd-header-eyebrow">Sales & Marketing</div>
