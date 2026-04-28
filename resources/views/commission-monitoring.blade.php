@@ -117,7 +117,8 @@
                     </div>
                     <div class="form-group">
                         <label>NET TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
-                        <input type="number" id="cm_add_net_tcp" name="net_tcp" placeholder="0.00" step="0.01" min="0" oninput="computeAddCommission()">
+                        <input type="text" id="cm_add_net_tcp_display" placeholder="0.00" readonly style="background:#f3f4f6;cursor:not-allowed;color:#374151;">
+                        <input type="hidden" id="cm_add_net_tcp" name="net_tcp">
                     </div>
                     @if($isAdmin)
                     <div class="form-group">
@@ -1225,6 +1226,8 @@ function closeCmModal(id) {
     document.getElementById(id).classList.remove('active');
 }
 
+function fmtComma(n) { return n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
 function computeAddTCP() {
     const priceSqm = parseFloat(document.getElementById('cm_add_price_sqm').value) || 0;
     const lotArea  = parseFloat(document.getElementById('cm_add_lot_area').value) || 0;
@@ -1232,6 +1235,7 @@ function computeAddTCP() {
     const discPct  = parseFloat(document.getElementById('cm_add_discount').value) || 0;
     const netTcp   = tcp - (tcp * discPct / 100);
     document.getElementById('cm_add_net_tcp').value = netTcp > 0 ? netTcp.toFixed(2) : '';
+    document.getElementById('cm_add_net_tcp_display').value = netTcp > 0 ? fmtComma(netTcp) : '';
     computeAddCommission();
 }
 function computeAddNetTCP() {
@@ -1241,6 +1245,7 @@ function computeAddNetTCP() {
     const discPct  = parseFloat(document.getElementById('cm_add_discount').value) || 0;
     const netTcp   = tcp - (tcp * discPct / 100);
     document.getElementById('cm_add_net_tcp').value = netTcp > 0 ? netTcp.toFixed(2) : '';
+    document.getElementById('cm_add_net_tcp_display').value = netTcp > 0 ? fmtComma(netTcp) : '';
     computeAddCommission();
 }
 function computeAddCommission() {
@@ -1250,7 +1255,7 @@ function computeAddCommission() {
     const result = netTcp * (pct / 100);
     document.getElementById('cm_add_commission').value = result > 0 ? result.toFixed(2) : '';
     const display = document.getElementById('cm_add_commission_display');
-    if (display) display.value = result > 0 ? result.toFixed(2) : '';
+    if (display) display.value = result > 0 ? fmtComma(result) : '';
 }
 function computeAddCommissionFromValue() {
     const netTcp = parseFloat(document.getElementById('cm_add_net_tcp').value) || 0;
