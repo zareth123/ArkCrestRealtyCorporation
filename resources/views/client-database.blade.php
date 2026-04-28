@@ -689,7 +689,6 @@ function cdFilter() {
 
         <div style="padding:16px 24px;border-top:1px solid #e5e7eb;flex-shrink:0">
             <div id="dp_footer_type" style="display:flex">
-                <button onclick="document.getElementById('dpModal').style.display='none'" style="width:100%;padding:10px;background:#f3f4f6;color:#374151;border:2px solid #d0d5dd;border-radius:8px;font-weight:600;cursor:pointer">Cancel</button>
             </div>
             <div id="dp_footer_spot" style="display:none;gap:10px">
                 <button onclick="selectDPType('spot'); document.getElementById('dp_step_type').style.display='flex';" style="flex:1;padding:10px;background:#f3f4f6;color:#374151;border:2px solid #d0d5dd;border-radius:8px;font-weight:600;cursor:pointer">Back</button>
