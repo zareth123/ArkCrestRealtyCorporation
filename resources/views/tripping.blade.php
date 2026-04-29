@@ -82,7 +82,10 @@ body{display:flex;align-items:center;justify-content:center;background:linear-gr
             <div class="brand-logo"><img src="{{ asset('images/ArkCrest_Logo.png') }}" alt="ArkCrest"></div>
             <div class="brand-name">ARCKREST REALTY CORPORATION</div>
         </div>
-        <div id="greetingText" style="font-size:16px;font-weight:700;color:white;text-align:center;margin:10px 0 0;padding:0 20px;">Happy ArkCrest Morning!</div>
+        <div id="greetingText" style="font-size:16px;font-weight:700;color:white;text-align:center;margin:10px 0 0;padding:0 20px;">
+            @php $h = (int)now()->format('H'); $tod = $h < 12 ? 'Morning' : ($h < 18 ? 'Afternoon' : 'Evening'); @endphp
+            Happy ArkCrest {{ $tod }}@if(auth()->check()), {{ explode(' ', auth()->user()->name)[0] }}@endif!
+        </div>
         <div class="ov-body">
             <div class="ov-tag">Site Visit</div>
             <div class="ov-title">Schedule a Property Visit</div>
@@ -178,6 +181,12 @@ body{display:flex;align-items:center;justify-content:center;background:linear-gr
         </form>
                 @auth
         <div class="logout-row">
+            @if(auth()->check())
+            <a href="{{ url()->previous() !== url()->current() ? url()->previous() : route('dashboard') }}" class="btn-signout" style="color:#1e4575;border-color:#bfdbfe;margin-right:8px;">
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                Back
+            </a>
+            @endif
             <form method="POST" action="{{ route('logout') }}" style="display:inline">
                 @csrf
                 <button type="submit" class="btn-signout">
@@ -263,8 +272,10 @@ var greetTimer;
 function updateGreeting(){
     var empId=document.querySelector('[name="agent_name"]').value.trim();
     var g=document.getElementById('greetingText');
+    var h=new Date().getHours();
+    var tod=h<12?'Morning':h<18?'Afternoon':'Evening';
     if(!g) return;
-    if(!empId){g.textContent='Happy ArkCrest Morning!';return;}
+    if(!empId){g.textContent='Happy ArkCrest '+tod+'!';return;}
     clearTimeout(greetTimer);
     greetTimer=setTimeout(function(){
         fetch('/api/tripping/agent-details?employee_id='+encodeURIComponent(empId))
@@ -272,11 +283,11 @@ function updateGreeting(){
         .then(function(d){
             if(d.found){
                 var display=(d.salutation?d.salutation+' ':'')+d.name;
-                g.textContent='Happy ArkCrest Morning, '+display+'!';
+                g.textContent='Happy ArkCrest '+tod+', '+display+'!';
             } else {
-                g.textContent='Happy ArkCrest Morning!';
+                g.textContent='Happy ArkCrest '+tod+'!';
             }
-        }).catch(function(){g.textContent='Happy ArkCrest Morning!';});
+        }).catch(function(){g.textContent='Happy ArkCrest '+tod+'!';});
     },400);
 }
 document.querySelector('[name="agent_name"]').addEventListener('input',updateGreeting);
