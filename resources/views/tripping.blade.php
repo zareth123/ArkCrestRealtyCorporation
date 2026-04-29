@@ -287,18 +287,12 @@ document.getElementById('propertyNameInput').addEventListener('blur',function(){
 document.getElementById('clientNameInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();revealClientFields();checkDuplicate();}});
 document.getElementById('clientNameInput').addEventListener('blur',function(){setTimeout(function(){if(document.getElementById('clientNameInput').value.trim()){revealClientFields();checkDuplicate();}},300);});
 var greetTimer;
+var _defaultGreeting = 'Happy ArkCrest Morning@auth, {{ explode(' ', auth()->user()->name)[0] }}@endauth!';
 function updateGreeting(){
     var empId=document.querySelector('[name="agent_name"]').value.trim();
     var g=document.getElementById('greetingText');
     if(!g) return;
-    if(!empId){
-        @auth
-        g.textContent='Happy ArkCrest Morning, {{ explode(' ', auth()->user()->name)[0] }}!';
-        @else
-        g.textContent='Happy ArkCrest Morning!';
-        @endauth
-        return;
-    }
+    if(!empId){g.textContent=_defaultGreeting;return;}
     clearTimeout(greetTimer);
     greetTimer=setTimeout(function(){
         fetch('/api/tripping/agent-details?employee_id='+encodeURIComponent(empId))
@@ -308,9 +302,9 @@ function updateGreeting(){
                 var display=(d.salutation?d.salutation+' ':'')+d.name;
                 g.textContent='Happy ArkCrest Morning, '+display+'!';
             } else {
-                g.textContent='Happy ArkCrest Morning!';
+                g.textContent=_defaultGreeting;
             }
-        }).catch(function(){g.textContent='Happy ArkCrest Morning!';});
+        }).catch(function(){g.textContent=_defaultGreeting;});
     },400);
 }
 document.querySelector('[name="agent_name"]').addEventListener('input',updateGreeting);
