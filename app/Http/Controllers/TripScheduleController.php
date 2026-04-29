@@ -10,9 +10,6 @@ class TripScheduleController extends Controller
 {
     public function show()
     {
-        if (auth()->check() && auth()->user()->role === 'admin') {
-            return redirect()->route('dashboard');
-        }
         return view('tripping');
     }
 
