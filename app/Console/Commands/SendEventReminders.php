@@ -35,15 +35,17 @@ class SendEventReminders extends Command
 
         if (!empty($events)) {
             $rows = implode('', array_map(fn($e) => "<b>{$e['type']}</b><br>{$e['detail']}<br><br>", $events));
-            \App\Services\AdminEmailNotifier::send(
-                "ArkCrest Reminder: Events on {$displayDate}",
-                "Tomorrow's Important Events — {$displayDate}",
-                $rows
-            );
-            $this->info("Day-before reminder sent for {$displayDate}.");
+            $body = $rows;
         } else {
-            $this->info("No events for tomorrow ({$displayDate}).");
+            $body = "<i style='color:#94a3b8;'>No scheduled events for tomorrow.</i>";
         }
+
+        \App\Services\AdminEmailNotifier::send(
+            "ArkCrest Reminder: Events on {$displayDate}",
+            "Tomorrow's Events — {$displayDate}",
+            $body
+        );
+        $this->info("Day-before reminder sent for {$displayDate}.");
     }
 
     private function sendSameDayReminders(): void
@@ -54,15 +56,17 @@ class SendEventReminders extends Command
 
         if (!empty($events)) {
             $rows = implode('', array_map(fn($e) => "<b>{$e['type']}</b><br>{$e['detail']}<br><br>", $events));
-            \App\Services\AdminEmailNotifier::send(
-                "ArkCrest Reminder: Events TODAY — {$displayDate}",
-                "Today's Important Events — {$displayDate}",
-                $rows
-            );
-            $this->info("Same-day reminder sent for {$displayDate}.");
+            $body = $rows;
         } else {
-            $this->info("No events for today ({$displayDate}).");
+            $body = "<i style='color:#94a3b8;'>No scheduled events for today.</i>";
         }
+
+        \App\Services\AdminEmailNotifier::send(
+            "ArkCrest Reminder: Events TODAY — {$displayDate}",
+            "Today's Events — {$displayDate}",
+            $body
+        );
+        $this->info("Same-day reminder sent for {$displayDate}.");
     }
 
     private function collectEvents(string $date, string $when): array
