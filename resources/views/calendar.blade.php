@@ -188,7 +188,7 @@
             </tr></thead>
             <tbody>
             @foreach($releases as $r)
-            <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;" onclick="showEventDetail({{ $r->id }})" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+            <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;" onclick="showEventDetail('{{ $r->_type }}', {{ $r->id }})" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                 <td style="padding:11px 16px;font-size:13px;font-weight:600;color:#059669;white-space:nowrap;">{{ $r->date_released ? $r->date_released->format('M d, Y') : '—' }}</td>
                 <td style="padding:11px 16px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->agent_name ?? '—' }}</td>
                 <td style="padding:11px 16px;font-size:13px;color:#374151;">{{ $r->client_name ?? '—' }}</td>
@@ -226,7 +226,7 @@
             <div class="cal-cell {{ $cls }}">
                 <span class="cal-day-num">{{ $day }}</span>
                 @foreach($events->take(2) as $event)
-                <div class="cal-event" onclick="showEventDetail({{ $event->id }})" title="{{ $event->client_name }}">
+                <div class="cal-event" onclick="showEventDetail('{{ $event->_type }}', {{ $event->id }})" title="{{ $event->client_name }}">
                     {{ $event->client_name }}
                 </div>
                 @endforeach
@@ -263,9 +263,9 @@
 </div>
 
 <script>
-const calEvents = @json($releases);
-function showEventDetail(id) {
-    const ev = calEvents.find(e => e.id == id);
+const calEvents = @json($releases->values());
+function showEventDetail(type, id) {
+    const ev = calEvents.find(e => e.id == id && e._type == type);
     if (!ev) return;
     const fmt = v => v ? '\u20B1' + parseFloat(v).toLocaleString('en-US',{minimumFractionDigits:2}) : '—';
     const fmtDate = v => { if(!v) return '—'; try { return new Date(v).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}); } catch(e){ return v; } };

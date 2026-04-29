@@ -145,12 +145,14 @@ class CalendarController extends Controller
         $clientReleases = CommissionRequestSales::whereNotNull('date_released')
             ->whereYear('date_released', $year)
             ->whereMonth('date_released', $month)
-            ->get();
+            ->get()
+            ->each(fn($r) => $r->_type = 'sales');
         
         $commissionReleases = CommissionRequest::whereNotNull('date_released')
             ->whereYear('date_released', $year)
             ->whereMonth('date_released', $month)
-            ->get();
+            ->get()
+            ->each(fn($r) => $r->_type = 'commission');
 
         $releases = $clientReleases->merge($commissionReleases)->sortBy('date_released');
 
