@@ -181,17 +181,30 @@ body{display:flex;align-items:center;justify-content:center;background:linear-gr
         </form>
                 @auth
         <div class="logout-row">
-            @if(auth()->check())
-            {{-- Logged in via system: show Back only, no Sign Out --}}
+            @php
+                $u = auth()->user();
+                // Show Back if user has access to the main system (admin or staff with forms access)
+                $hasSystemAccess = $u->isAdmin() || !in_array('forms', $u->hidden_pages ?? []);
+            @endphp
+            @if($hasSystemAccess)
+            {{-- Staff/Admin with system access: Back only --}}
             <a href="{{ url()->previous() !== url()->current() ? url()->previous() : route('dashboard') }}" class="btn-signout" style="color:#1e4575;border-color:#bfdbfe;">
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Back
             </a>
+            @else
+            {{-- Sales persons with limited access: Sign Out only --}}
+            <form method="POST" action="{{ route('logout') }}" style="display:inline">
+                @csrf
+                <button type="submit" class="btn-signout">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    Sign Out
+                </button>
+            </form>
             @endif
         </div>
         @endauth
         @guest
-        {{-- Not logged in (external agents): Sign Out only --}}
         <div class="logout-row">
             <form method="POST" action="{{ route('logout') }}" style="display:inline">
                 @csrf
