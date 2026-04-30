@@ -28,8 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->alias([
             'page.visible' => \App\Http\Middleware\CheckPageVisibility::class,
+            'sales.only'   => \App\Http\Middleware\RestrictSalesPersons::class,
         ]);
-        $middleware->append(\App\Http\Middleware\RestrictSalesPersons::class);
+        $middleware->appendToGroup('web', \App\Http\Middleware\RestrictSalesPersons::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Redirect back to login on CSRF token expiry
