@@ -60,10 +60,8 @@ class AdminEmailNotifier
 
     public static function buildPublicHtml(string $title, string $body, string $recipientName = ''): string
     {
-        $hour = (int) now()->format('H');
-        $timeOfDay = $hour < 12 ? 'Morning' : ($hour < 18 ? 'Afternoon' : 'Evening');
         $firstName = $recipientName ? explode(' ', trim($recipientName))[0] : '';
-        $salutation = $firstName ? "Happy ArkCrest {$timeOfDay}, {$firstName}! 👋" : "Happy ArkCrest {$timeOfDay}! 👋";
+        $salutation = $firstName ? "Happy ArkCrest Morning, {$firstName}! 👋" : "Happy ArkCrest Morning! 👋";
         $time = now()->format('F j, Y g:i A');
 
         return "<!DOCTYPE html>
