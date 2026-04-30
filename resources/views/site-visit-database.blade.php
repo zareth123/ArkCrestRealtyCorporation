@@ -162,6 +162,19 @@
         <div class="section-head-left">
             <h2>Scheduled Tripping</h2>
             <span class="status-pill confirmed">{{ $confirmedCount }} record{{ $confirmedCount != 1 ? 's' : '' }}</span>
+            <form method="GET" action="<?php echo route('print.trips.search'); ?>" target="_blank">
+
+                <input type="text" name="keyword" placeholder="Search..." required>
+
+                <button type="submit">Search & Print</button>
+
+            </form>
+            <?php if (!empty($keyword)): ?>
+                <h3>Search Result for: <?php echo $keyword; ?></h3>
+            <?php endif; ?>
+            <a href="<?php echo route('print.trips.search', ['keyword' => 'confirmed']); ?>" target="_blank">
+                Print Confirmed Trips
+            </a>
         </div>
     </div>
     <div class="tbl-wrap">
