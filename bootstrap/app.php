@@ -16,13 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
         } catch (\Exception $e) {
             $time = '08:00';
         }
-        $schedule->command('commissions:send-reminders')->dailyAt($time)->timezone('Asia/Manila');
+        $schedule->command('commissions:send-reminders')->dailyAt($time)->timezone('Asia/Manila')->appendOutputTo(storage_path('logs/scheduler.log'));
         $schedule->command('notes:send-reminders')->everyMinute();
         // Day-before reminders at 8AM and 5PM Manila time
-        $schedule->command('events:send-reminders --trigger=day_before')->dailyAt('08:00')->timezone('Asia/Manila');
-        $schedule->command('events:send-reminders --trigger=day_before')->dailyAt('17:00')->timezone('Asia/Manila');
+        $schedule->command('events:send-reminders --trigger=day_before')->dailyAt('08:00')->timezone('Asia/Manila')->appendOutputTo(storage_path('logs/scheduler.log'))->evenInMaintenanceMode();
+        $schedule->command('events:send-reminders --trigger=day_before')->dailyAt('17:00')->timezone('Asia/Manila')->appendOutputTo(storage_path('logs/scheduler.log'))->evenInMaintenanceMode();
         // Same-day reminders at 6AM Manila time
-        $schedule->command('events:send-reminders --trigger=same_day')->dailyAt('06:00')->timezone('Asia/Manila');
+        $schedule->command('events:send-reminders --trigger=same_day')->dailyAt('06:00')->timezone('Asia/Manila')->appendOutputTo(storage_path('logs/scheduler.log'))->evenInMaintenanceMode();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(fn () => route('login'));
