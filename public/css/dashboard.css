@@ -333,7 +333,7 @@ body {
 .toggle-icon {
     width: 12px;
     height: 12px;
-    color: rgba(255,255,255,.6);
+    color: rgba(255,255,255,.9);
     transition: transform .3s;
 }
 
@@ -3941,7 +3941,7 @@ button#notificationToggle:hover {
     width: 13px;
     height: 13px;
     margin-left: auto;
-    color: rgba(255,255,255,.35);
+    color: rgba(255,255,255,.85);
     transition: transform .25s ease;
     flex-shrink: 0;
 }
@@ -4057,7 +4057,7 @@ button#notificationToggle:hover {
 .dropdown-toggle-btn .dropdown-arrow {
     width: 13px;
     height: 13px;
-    color: rgba(255,255,255,.35);
+    color: rgba(255,255,255,.85);
     transition: transform .25s ease;
 }
 
@@ -4161,3 +4161,5 @@ button#notificationToggle:hover {
 .sidebar-collapsed .nav-submenu {
     display: none;
 }
+
+
