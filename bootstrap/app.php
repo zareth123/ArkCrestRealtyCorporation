@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'page.visible' => \App\Http\Middleware\CheckPageVisibility::class,
         ]);
+        $middleware->append(\App\Http\Middleware\RestrictSalesPersons::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Redirect back to login on CSRF token expiry
