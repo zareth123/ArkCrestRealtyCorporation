@@ -80,8 +80,13 @@ class DashboardController extends Controller
         // Total Reservation = units + pending - cancelled
         $totalReservation = $units + $pendingReservation - $cancelledReservation;
 
-        // Yearly total sales from summary reports
-        $yearlySales = SummaryReport::where('year', $currentYear)->sum('gross_sales');
+        // Yearly total sales = net_tcp of clients who have made a downpayment this year (from Client Database)
+        $yearStart = now()->startOfYear()->toDateString();
+        $yearEnd   = now()->endOfYear()->toDateString();
+        $yearlySales = CommissionRequestSales::whereNotNull('date_of_downpayment')
+            ->whereBetween('date_of_downpayment', [$yearStart, $yearEnd])
+            ->where('client_status', '!=', 'Cancelled')
+            ->sum('net_tcp');
 
         // Monthly sales trend for chart (all 12 months of current year)
         $monthlySales = [];
