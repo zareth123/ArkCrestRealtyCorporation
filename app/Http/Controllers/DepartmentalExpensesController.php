@@ -54,7 +54,7 @@ class DepartmentalExpensesController extends Controller
 
     public function index()
     {
-        $requests = DepartmentalExpense::orderBy('date_requested', 'asc')->orderBy('id', 'asc')->get();
+        $requests = DepartmentalExpense::orderBy('control_number', 'asc')->orderBy('id', 'asc')->get();
         
         // Get departments with their expenses
         $departments = \App\Models\Department::with('expenses', 'categories')->get();
