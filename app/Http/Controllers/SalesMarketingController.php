@@ -19,7 +19,7 @@ class SalesMarketingController extends Controller
         $totalClients = CommissionRequestSales::whereBetween('date_requested', [$dateFrom, $dateTo])->distinct('client_name')->count('client_name');
         $totalRecords = CommissionRequestSales::whereBetween('date_requested', [$dateFrom, $dateTo])->count();
 
-        // Units, Pending, Cancelled, Total Reservation for the date range
+        // Units, Pending, Cancelled, Total Reservation for the date range (based on date_of_downpayment)
         $units = CommissionRequestSales::whereNotNull('date_of_downpayment')
             ->whereBetween('date_of_downpayment', [$dateFrom, $dateTo])
             ->where('client_status', '!=', 'Cancelled')
@@ -47,10 +47,12 @@ class SalesMarketingController extends Controller
             // All members = leader + agents
             $memberNames = $team->agents->pluck('name')->push($team->leader_name)->toArray();
 
-            // Per-agent sales from commission monitoring data
+            // Per-agent sales from client database — only records with downpayment
             $rawAgentSales = CommissionRequestSales::selectRaw('agent_name, SUM(net_tcp) as total_sales, SUM(commission) as total_commission, COUNT(*) as deals')
                 ->whereIn('agent_name', $memberNames)
-                ->whereBetween('date_requested', [$dateFrom, $dateTo])
+                ->whereNotNull('date_of_downpayment')
+                ->whereBetween('date_of_downpayment', [$dateFrom, $dateTo])
+                ->where('client_status', '!=', 'Cancelled')
                 ->groupBy('agent_name')
                 ->get();
 
@@ -88,7 +90,9 @@ class SalesMarketingController extends Controller
         // Fetch raw then normalize agent names in PHP to merge typo variants
         $rawPerformers = CommissionRequestSales::selectRaw('agent_name, SUM(net_tcp) as total_sales, SUM(commission) as total_commission, COUNT(*) as deals')
             ->whereNotNull('agent_name')
-            ->whereBetween('date_requested', [$dateFrom, $dateTo])
+            ->whereNotNull('date_of_downpayment')
+            ->whereBetween('date_of_downpayment', [$dateFrom, $dateTo])
+            ->where('client_status', '!=', 'Cancelled')
             ->groupBy('agent_name')
             ->orderByDesc('total_sales')
             ->get();
