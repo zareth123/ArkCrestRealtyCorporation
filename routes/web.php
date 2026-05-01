@@ -56,6 +56,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/summary-report-yearly', [App\Http\Controllers\SummaryReportController::class, 'yearly'])->name('summary-report.yearly')->middleware('page.visible');
     Route::post('/api/summary-report/update', [App\Http\Controllers\SummaryReportController::class, 'update']);
 
+    // ArkCrest Sales (Commission Income)
+    Route::get('/arkcrest-sales', [App\Http\Controllers\ArkcrestSalesController::class, 'index'])->name('arkcrest-sales');
+    Route::post('/api/arkcrest-sales/{id}/rate', [App\Http\Controllers\ArkcrestSalesController::class, 'saveRate'])->name('arkcrest-sales.rate');
+
     // Departments (Departmental Expenses)
     Route::get('/departments', [App\Http\Controllers\DepartmentalExpensesController::class, 'index'])->name('departments.admin')->middleware('page.visible');
     Route::get('/liquidation-print', [App\Http\Controllers\DepartmentalExpensesController::class, 'printLiquidation'])->name('liquidation.print');

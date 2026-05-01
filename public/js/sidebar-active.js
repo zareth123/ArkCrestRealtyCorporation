@@ -41,6 +41,8 @@
                 isActive = true;
             } else if (page === 'forms-site-visit' && currentPath.includes('/forms/site-visit')) {
                 isActive = true;
+            } else if (page === 'arkcrest-sales' && currentPath.includes('/arkcrest-sales')) {
+                isActive = true;
             } else if (page === 'forms' && currentPath === '/forms') {
                 isActive = true;
             } else if (page === 'settings' && currentPath.includes('/settings')) {
