@@ -158,13 +158,13 @@
                     <tr class="editable-row header-row">
                         <td class="label-cell">Units</td>
                         <td class="value-cell">
-                            <input type="text" id="units" class="form-control-inline" value="{{ $summaryReport->units }}">
+                            <input type="text" id="units" class="form-control-inline" value="{{ $summaryReport->units ?: $units }}" oninput="recalcNetSales()">
                         </td>
                     </tr>
                     <tr class="editable-row header-row">
                         <td class="label-cell">Gross Sales</td>
                         <td class="value-cell">
-                            <input type="text" id="gross_sales" class="form-control-inline" value="{{ $summaryReport->gross_sales }}">
+                            <input type="text" id="gross_sales" class="form-control-inline" value="{{ $summaryReport->gross_sales ?: $grossSalesFromClient }}" oninput="recalcNetSales()">
                         </td>
                     </tr>
                     <tr class="divider-row">
@@ -181,7 +181,7 @@
                     </tr>
                     <tr class="total-row">
                         <td class="label-cell">Total Expenses</td>
-                        <td class="value-cell">₱ {{ number_format($totalExpenses, 2) }}</td>
+                        <td class="value-cell" id="total_expenses_display">₱ {{ number_format($totalExpenses, 2) }}</td>
                     </tr>
                     <tr class="net-sales-row">
                         <td class="label-cell">Net Sales</td>
@@ -917,6 +917,11 @@ function calculateNetSales() {
     const grossSales = parseFloat(grossSalesValue) || 0;
     const netSales = grossSales - totalExpenses;
     document.getElementById('net_sales').textContent = '₱ ' + netSales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function recalcNetSales() {
+    calculateNetSales();
+    updateSummaryCards();
 }
 
 function loadPeriod() {
