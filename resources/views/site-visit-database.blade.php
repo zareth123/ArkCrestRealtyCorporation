@@ -196,6 +196,18 @@
         </div>
         <div><div class="stat-val">{{ $cancelled_count }}</div><div class="stat-lbl">Cancelled Tripping</div></div>
     </div>
+    <div class="search-wrapper">
+        <form method="GET" action="<?php echo route('print.trips.search'); ?>" target="_blank" class="print-search-form">
+            <input type="text" name="keyword" placeholder="Search client or property..." required>
+            <button type="submit">Search & Print</button>
+        </form>
+    
+        <?php if (!empty($keyword)): ?>
+            <div class="search-results-header">
+                Search Result for: <span>"<?php echo htmlspecialchars($keyword); ?>"</span>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
 @if(session('success'))
@@ -209,18 +221,6 @@
         <div class="section-head-left">
             <h2>Scheduled Tripping</h2>
             <span class="status-pill confirmed">{{ $confirmedCount }} record{{ $confirmedCount != 1 ? 's' : '' }}</span>
-            <div class="search-wrapper">
-                <form method="GET" action="<?php echo route('print.trips.search'); ?>" target="_blank" class="print-search-form">
-                    <input type="text" name="keyword" placeholder="Search client or property..." required>
-                    <button type="submit">Search & Print</button>
-                </form>
-            
-                <?php if (!empty($keyword)): ?>
-                    <div class="search-results-header">
-                        Search Result for: <span>"<?php echo htmlspecialchars($keyword); ?>"</span>
-                    </div>
-                <?php endif; ?>
-            </div>
         </div>
     </div>
     <div class="tbl-wrap">
