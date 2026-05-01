@@ -98,17 +98,6 @@
                 </div>
             </div>
 
-            {{-- Card 3: Net TCP --}}
-            <div class="summary-card">
-                <div class="card-icon" style="background: #8b5cf6;">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                </div>
-                <div class="card-content">
-                    <div class="card-label">Net TCP</div>
-                    <div class="card-value"><span style="font-size:20px;margin-right:4px;">&#8369;</span>{{ number_format($netTcp, 2) }}</div>
-                </div>
-            </div>
-
             {{-- Card 4: Net Sales --}}
             <div class="summary-card">
                 <div class="card-icon" style="background: #f59e0b;">
