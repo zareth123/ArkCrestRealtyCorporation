@@ -104,6 +104,53 @@
 .svd-tab-active{background:white;color:#1e4575;border-color:white;}
 .svd-tab-badge{background:rgba(255,255,255,.25);color:white;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;}
 .svd-tab-active .svd-tab-badge{background:#1e4575;color:white;}
+/* Container for the search area */
+.search-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+/* Form Layout */
+.print-search-form {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    max-width: 450px;
+}
+
+.print-search-form:focus-within {
+    border-color: #1a2a40;
+    box-shadow: 0 4px 20px rgba(26, 42, 64, 0.15);
+}
+
+/* Input Styling */
+.print-search-form input[type="text"] {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 10px 15px;
+    font-size: 14px;
+    color: #1a2a40;
+    background: transparent;
+}
+
+.print-search-form input::placeholder {
+    color: #94a3b8;
+}
+
+/* Button Styling */
+.print-search-form button {background: #1a2a40;color: #ffffff;border: none;padding: 10px 20px;border-radius: 8px;font-weight: 600;font-size: 13px;cursor: pointer;transition: background 0.2s ease;white-space: nowrap;}
+.print-search-form button:hover {background: #c5a059;}
+
+.search-results-header {font-size: 14px;color: #64748b;padding-left: 5px;border-left: 3px solid #c5a059;margin-top: 10px;}
+.search-results-header span {color: #1a2a40;font-weight: bold;}
 </style>
 
 <div class="svd-header">
@@ -162,19 +209,18 @@
         <div class="section-head-left">
             <h2>Scheduled Tripping</h2>
             <span class="status-pill confirmed">{{ $confirmedCount }} record{{ $confirmedCount != 1 ? 's' : '' }}</span>
-            <form method="GET" action="<?php echo route('print.trips.search'); ?>" target="_blank">
-
-                <input type="text" name="keyword" placeholder="Search..." required>
-
-                <button type="submit">Search & Print</button>
-
-            </form>
-            <?php if (!empty($keyword)): ?>
-                <h3>Search Result for: <?php echo $keyword; ?></h3>
-            <?php endif; ?>
-            <a href="<?php echo route('print.trips.search', ['keyword' => 'confirmed']); ?>" target="_blank">
-                Print Confirmed Trips
-            </a>
+            <div class="search-wrapper">
+                <form method="GET" action="<?php echo route('print.trips.search'); ?>" target="_blank" class="print-search-form">
+                    <input type="text" name="keyword" placeholder="Search client or property..." required>
+                    <button type="submit">Search & Print</button>
+                </form>
+            
+                <?php if (!empty($keyword)): ?>
+                    <div class="search-results-header">
+                        Search Result for: <span>"<?php echo htmlspecialchars($keyword); ?>"</span>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
     <div class="tbl-wrap">
