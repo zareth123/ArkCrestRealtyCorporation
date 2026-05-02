@@ -166,12 +166,12 @@
                         <label>MODE OF PAYMENT <span class="required">*</span></label>
                         <select name="mode_of_payment" required>
                             <option value="">Select mode of payment</option>
-                            <option value="CASH PAYMENT">CASH PAYMENT</option>
+                            <option value="BANK DEPOSIT">BANK DEPOSIT</option>
                             <option value="BANK TRANSFER">BANK TRANSFER</option>
+                            <option value="CASH PAYMENT">CASH PAYMENT</option>
                             <option value="MANAGER'S CHECK">MANAGER'S CHECK</option>
                             <option value="PERSONAL CHECK">PERSONAL CHECK</option>
                             <option value="POST-DATED CHECK">POST-DATED CHECK</option>
-                            <option value="BANK DEPOSIT">BANK DEPOSIT</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -1555,12 +1555,12 @@ function submitCmPermRequest() {
                         <label>Mode of Payment</label>
                         <select id="cm_edit_mode_of_payment" name="mode_of_payment">
                             <option value="">Select mode</option>
-                            <option value="CASH PAYMENT">CASH PAYMENT</option>
+                            <option value="BANK DEPOSIT">BANK DEPOSIT</option>
                             <option value="BANK TRANSFER">BANK TRANSFER</option>
+                            <option value="CASH PAYMENT">CASH PAYMENT</option>
                             <option value="MANAGER'S CHECK">MANAGER'S CHECK</option>
                             <option value="PERSONAL CHECK">PERSONAL CHECK</option>
                             <option value="POST-DATED CHECK">POST-DATED CHECK</option>
-                            <option value="BANK DEPOSIT">BANK DEPOSIT</option>
                         </select>
                     </div>
                     <div class="modal-field">
