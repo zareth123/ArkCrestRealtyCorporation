@@ -171,6 +171,7 @@
                             <option value="MANAGER'S CHECK">MANAGER'S CHECK</option>
                             <option value="PERSONAL CHECK">PERSONAL CHECK</option>
                             <option value="POST-DATED CHECK">POST-DATED CHECK</option>
+                            <option value="BANK DEPOSIT">BANK DEPOSIT</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -1559,6 +1560,7 @@ function submitCmPermRequest() {
                             <option value="MANAGER'S CHECK">MANAGER'S CHECK</option>
                             <option value="PERSONAL CHECK">PERSONAL CHECK</option>
                             <option value="POST-DATED CHECK">POST-DATED CHECK</option>
+                            <option value="BANK DEPOSIT">BANK DEPOSIT</option>
                         </select>
                     </div>
                     <div class="modal-field">
