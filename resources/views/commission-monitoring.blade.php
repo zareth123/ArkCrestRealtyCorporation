@@ -83,7 +83,7 @@
             @csrf
             <div class="form-section">
                 <div class="section-title-bar">
-                    <span class="section-icon">≡ƒôï</span>
+                    <span class="section-icon">📋</span>
                     COMMISSION REQUEST INFORMATION
                 </div>
                 <div class="form-grid">
