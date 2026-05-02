@@ -658,6 +658,11 @@ function cdFilter() {
                     📅 Installment Downpayment
                 </button>
             </div>
+            <div style="display:flex;gap:12px">
+                <button onclick="selectDPType('others')" style="flex:1;padding:14px;border:2px solid #e2e8f0;border-radius:10px;background:white;cursor:pointer;font-size:14px;font-weight:600;color:#374151;transition:all .2s" onmouseover="this.style.background='#eff6ff';this.style.borderColor='#1e4575'" onmouseout="this.style.background='white';this.style.borderColor='#e2e8f0'">
+                    📝 Others
+                </button>
+            </div>
         </div>
 
         {{-- Spot DP --}}
@@ -695,6 +700,20 @@ function cdFilter() {
             </div>
         </div>
 
+        {{-- Others DP --}}
+        <div id="dp_others_section" style="display:none;padding:0 24px 24px;flex-direction:column;gap:12px">
+            <div>
+                <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Amount</label>
+                <input type="number" id="dp_others_amount" step="0.01" min="0" placeholder="Enter amount"
+                    style="width:100%;padding:10px 12px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;box-sizing:border-box">
+            </div>
+            <div>
+                <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Notes <span style="font-weight:400;color:#94a3b8">(e.g. 3 payments over 18 months)</span></label>
+                <textarea id="dp_others_notes" rows="3" placeholder="Describe the payment arrangement..."
+                    style="width:100%;padding:10px 12px;border:2px solid #d0d5dd;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+            </div>
+        </div>
+
         <div style="padding:16px 24px;border-top:1px solid #e5e7eb;flex-shrink:0">
             <div id="dp_footer_type" style="display:flex">
             </div>
@@ -705,6 +724,10 @@ function cdFilter() {
             <div id="dp_footer_installment" style="display:none;gap:10px">
                 <button onclick="document.getElementById('dp_step_type').style.display='flex';document.getElementById('dp_installment_section').style.display='none';" style="flex:1;padding:10px;background:#f1f5f9;color:#374151;border:1.5px solid #e2e8f0;border-radius:8px;font-weight:600;cursor:pointer">Back</button>
                 <button onclick="document.getElementById('dpModal').style.display='none'" style="flex:1;padding:10px;background:linear-gradient(135deg,#A37929,#d4a03a);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer">Done</button>
+            </div>
+            <div id="dp_footer_others" style="display:none;gap:10px">
+                <button onclick="document.getElementById('dp_step_type').style.display='flex';document.getElementById('dp_others_section').style.display='none';document.getElementById('dp_footer_others').style.display='none';document.getElementById('dp_footer_type').style.display='flex';" style="flex:1;padding:10px;background:#f1f5f9;color:#374151;border:1.5px solid #e2e8f0;border-radius:8px;font-weight:600;cursor:pointer">Back</button>
+                <button onclick="saveOthersDP()" style="flex:1;padding:10px;background:linear-gradient(135deg,#A37929,#d4a03a);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer">Save</button>
             </div>
         </div>
     </div>
@@ -742,11 +765,20 @@ function openDPModal(id, amount, terms, perTerm, status) {
 function selectDPType(type) {
     document.getElementById('dp_step_type').style.display = 'none';
     document.getElementById('dp_footer_type').style.display = 'none';
+    document.getElementById('dp_others_section').style.display = 'none';
+    document.getElementById('dp_footer_others').style.display = 'none';
     if (type === 'spot') {
         document.getElementById('dp_spot_section').style.display = 'flex';
         document.getElementById('dp_installment_section').style.display = 'none';
         document.getElementById('dp_footer_spot').style.display = 'flex';
         document.getElementById('dp_footer_installment').style.display = 'none';
+    } else if (type === 'others') {
+        document.getElementById('dp_spot_section').style.display = 'none';
+        document.getElementById('dp_installment_section').style.display = 'none';
+        document.getElementById('dp_others_section').style.display = 'flex';
+        document.getElementById('dp_footer_spot').style.display = 'none';
+        document.getElementById('dp_footer_installment').style.display = 'none';
+        document.getElementById('dp_footer_others').style.display = 'flex';
     } else {
         document.getElementById('dp_spot_section').style.display = 'none';
         document.getElementById('dp_installment_section').style.display = 'flex';
@@ -768,6 +800,16 @@ function saveSpotDP() {
         form.innerHTML = `<input name="_token" value="${_dpCsrf}"><input name="_method" value="PATCH"><input name="downpayment_status" value="Spot Paid"><input name="downpayment_amount" value="${amount}">`;
         document.body.appendChild(form); form.submit();
     });
+}
+
+function saveOthersDP() {
+    const amount = document.getElementById('dp_others_amount').value;
+    const notes  = document.getElementById('dp_others_notes').value;
+    const status = 'Others' + (notes ? ': ' + notes.substring(0, 40) : '');
+    const form = document.createElement('form');
+    form.method = 'POST'; form.action = `/client-database/${_dpRecordId}/downpayment-status`;
+    form.innerHTML = `<input name="_token" value="${_dpCsrf}"><input name="_method" value="PATCH"><input name="downpayment_status" value="${status}"><input name="downpayment_amount" value="${amount}">`;
+    document.body.appendChild(form); form.submit();
 }
 
 function loadInstallments() {
