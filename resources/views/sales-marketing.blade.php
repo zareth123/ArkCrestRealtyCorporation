@@ -137,6 +137,100 @@
     </div>
     @endif
 
+    @if(!in_array('sales-marketing.charts', $hiddenSections) && $teamPerformance->isNotEmpty())
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:30px;">
+
+        {{-- Bar Chart: Team Sales --}}
+        <div style="background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            <div style="font-size:13px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;">Team Sales Performance</div>
+            <canvas id="teamBarChart" height="220"></canvas>
+        </div>
+
+        {{-- Pie Chart: Team Share --}}
+        <div style="background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            <div style="font-size:13px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;">Team Sales Share</div>
+            <canvas id="teamPieChart" height="220"></canvas>
+        </div>
+
+    </div>
+
+    {{-- Bar Chart: Top Members per Team --}}
+    <div style="background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:30px;">
+        <div style="font-size:13px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;">Top Members by Team</div>
+        <canvas id="memberBarChart" height="120"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+    (function() {
+        const teamData = @json($teamPerformance->map(fn($t) => [
+            'team'    => $t['team']->team_name,
+            'total'   => $t['teamTotal'],
+            'members' => collect($t['agentSales'])->map(fn($a) => ['name' => $a->agent_name, 'sales' => $a->total_sales])->values(),
+        ]));
+
+        const colors = ['#1e4575','#A37929','#2563eb','#16a34a','#dc2626','#7c3aed','#0891b2','#d97706'];
+
+        // Bar Chart - Teams
+        new Chart(document.getElementById('teamBarChart'), {
+            type: 'bar',
+            data: {
+                labels: teamData.map(t => t.team),
+                datasets: [{
+                    label: 'Net TCP Sales',
+                    data: teamData.map(t => t.total),
+                    backgroundColor: teamData.map((_, i) => colors[i % colors.length]),
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { ticks: { callback: v => '₱' + Number(v).toLocaleString() } } }
+            }
+        });
+
+        // Pie Chart - Teams
+        new Chart(document.getElementById('teamPieChart'), {
+            type: 'pie',
+            data: {
+                labels: teamData.map(t => t.team),
+                datasets: [{
+                    data: teamData.map(t => t.total),
+                    backgroundColor: teamData.map((_, i) => colors[i % colors.length]),
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { position: 'right' }, tooltip: { callbacks: { label: ctx => ' ₱' + Number(ctx.raw).toLocaleString() } } }
+            }
+        });
+
+        // Bar Chart - Members
+        const allMembers = [], allSales = [], allColors = [];
+        teamData.forEach((t, ti) => {
+            t.members.forEach(m => {
+                allMembers.push(m.name + ' (' + t.team + ')');
+                allSales.push(m.sales);
+                allColors.push(colors[ti % colors.length]);
+            });
+        });
+        new Chart(document.getElementById('memberBarChart'), {
+            type: 'bar',
+            data: {
+                labels: allMembers,
+                datasets: [{ label: 'Sales', data: allSales, backgroundColor: allColors, borderRadius: 6 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { ticks: { callback: v => '₱' + Number(v).toLocaleString() } } }
+            }
+        });
+    })();
+    </script>
+    @endif
+
     @if(!in_array('sales-marketing.top-performers', $hiddenSections))
     <div class="dashboard-card">
         <div class="card-header-modern">
