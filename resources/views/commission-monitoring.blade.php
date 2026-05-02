@@ -112,8 +112,15 @@
                         <input type="number" id="cm_add_lot_area" name="lot_area" placeholder="0.0000" step="0.0001" min="0" oninput="computeAddTCP()">
                     </div>
                     <div class="form-group">
-                        <label>DISCOUNT (%)</label>
+                        <label style="display:flex;align-items:center;gap:8px;">
+                            DISCOUNT
+                            <span style="display:inline-flex;border:1px solid #d1d5db;border-radius:6px;overflow:hidden;font-size:11px;font-weight:700;">
+                                <button type="button" id="cm_add_disc_pct_btn" onclick="setAddDiscountType('percent')" style="padding:2px 10px;background:#1e457c;color:#fff;border:none;cursor:pointer;">%</button>
+                                <button type="button" id="cm_add_disc_val_btn" onclick="setAddDiscountType('value')" style="padding:2px 10px;background:#fff;color:#374151;border:none;cursor:pointer;">VALUE</button>
+                            </span>
+                        </label>
                         <input type="number" id="cm_add_discount" name="discount" placeholder="0.00" step="0.01" min="0" max="100" oninput="computeAddNetTCP()">
+                        <input type="hidden" id="cm_add_discount_type" name="discount_type" value="percent">
                     </div>
                     <div class="form-group">
                         <label>NET TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
@@ -1258,12 +1265,35 @@ function computeAddTCP() {
     computeAddCommission();
     computeValueOfPaymentTerms();
 }
+function setAddDiscountType(type) {
+    document.getElementById('cm_add_discount_type').value = type;
+    const input = document.getElementById('cm_add_discount');
+    if (type === 'percent') {
+        input.max = 100;
+        input.placeholder = '0.00';
+        document.getElementById('cm_add_disc_pct_btn').style.background = '#1e457c';
+        document.getElementById('cm_add_disc_pct_btn').style.color = '#fff';
+        document.getElementById('cm_add_disc_val_btn').style.background = '#fff';
+        document.getElementById('cm_add_disc_val_btn').style.color = '#374151';
+    } else {
+        input.removeAttribute('max');
+        input.placeholder = '0.00';
+        document.getElementById('cm_add_disc_val_btn').style.background = '#1e457c';
+        document.getElementById('cm_add_disc_val_btn').style.color = '#fff';
+        document.getElementById('cm_add_disc_pct_btn').style.background = '#fff';
+        document.getElementById('cm_add_disc_pct_btn').style.color = '#374151';
+    }
+    computeAddNetTCP();
+}
+
 function computeAddNetTCP() {
-    const priceSqm = parseFloat(document.getElementById('cm_add_price_sqm').value) || 0;
-    const lotArea  = parseFloat(document.getElementById('cm_add_lot_area').value) || 0;
-    const tcp      = priceSqm * lotArea;
-    const discPct  = parseFloat(document.getElementById('cm_add_discount').value) || 0;
-    const netTcp   = tcp - (tcp * discPct / 100);
+    const priceSqm   = parseFloat(document.getElementById('cm_add_price_sqm').value) || 0;
+    const lotArea    = parseFloat(document.getElementById('cm_add_lot_area').value) || 0;
+    const tcp        = priceSqm * lotArea;
+    const discVal    = parseFloat(document.getElementById('cm_add_discount').value) || 0;
+    const discType   = document.getElementById('cm_add_discount_type')?.value || 'percent';
+    const discAmount = discType === 'percent' ? (tcp * discVal / 100) : discVal;
+    const netTcp     = tcp - discAmount;
     document.getElementById('cm_add_net_tcp').value = netTcp > 0 ? netTcp.toFixed(2) : '';
     document.getElementById('cm_add_net_tcp_display').value = netTcp > 0 ? fmtComma(netTcp) : '';
     computeAddCommission();
