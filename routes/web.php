@@ -241,3 +241,15 @@ Route::post('/api/run-reminders', function (\Illuminate\Http\Request $request) {
     \Artisan::call('commissions:send-reminders');
     return response()->json(['ok' => true, 'output' => \Artisan::output()]);
 });
+
+
+
+
+use App\Http\Controllers\PrintController;
+
+Route::get('/print/trips/search', [PrintController::class, 'searchAndPrint'])
+    ->name('print.trips.search');
+Route::get('/print', function () {
+    // This looks for resources/views/print/print.blade.php
+    return view('print.print');
+});
