@@ -843,13 +843,13 @@
     }
 
     .status-pending {
-        background: #fff3cd;
-        color: #856404;
+        background: #fee2e2;
+        color: #991b1b;
     }
 
     .status-released {
-        background: #d1ecf1;
-        color: #0c5460;
+        background: #dcfce7;
+        color: #166534;
     }
 
     /* Action Buttons */
