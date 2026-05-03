@@ -175,7 +175,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/settings/quotas/{id}', [App\Http\Controllers\SettingsController::class, 'destroyQuota'])->name('settings.quotas.destroy');
     Route::post('/settings/agents', [App\Http\Controllers\SettingsController::class, 'storeAgent'])->name('settings.agents.store');
     Route::delete('/settings/agents/{id}', [App\Http\Controllers\SettingsController::class, 'destroyAgent'])->name('settings.agents.destroy');
-    Route::patch('/api/settings/agents/{id}', [App\Http\Controllers\SettingsController::class, 'updateAgent'])->name('settings.agents.update');
+    Route::patch('/settings/agents/{id}', [App\Http\Controllers\SettingsController::class, 'updateAgent'])->name('settings.agents.update');
 
     // Permission Requests
     Route::post('/api/permission-requests', [App\Http\Controllers\PermissionRequestController::class, 'store'])->name('permission-requests.store');

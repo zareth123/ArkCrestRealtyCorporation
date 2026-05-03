@@ -1939,7 +1939,8 @@ function saveEditAgent() {
 function toggleAgentStatus(id, btn) {
     var isActive = btn.getAttribute('data-active') === '1';
     var newActive = !isActive;
-    fetch('/api/settings/agents/' + id, {
+    btn.disabled = true;
+    fetch('/settings/agents/' + id, {
         method: 'PATCH',
         headers: {'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content},
         body: JSON.stringify({is_active: newActive})
@@ -1950,7 +1951,8 @@ function toggleAgentStatus(id, btn) {
             btn.style.background = newActive ? '#dcfce7' : '#fee2e2';
             btn.style.color = newActive ? '#166534' : '#991b1b';
         }
-    });
+        btn.disabled = false;
+    }).catch(() => { btn.disabled = false; });
 }
 function openContactModal(id, name, company, phone, email, facebook, btn) {
     document.getElementById('contactEditForm').action = '/settings/personnel-contacts/' + id;
