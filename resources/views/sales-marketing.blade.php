@@ -194,10 +194,15 @@
 
             memberBar = new Chart(document.getElementById('memberBarChart'), {
                 type: 'bar',
-                data: { labels: labels, datasets: [{ label: 'Net TCP', data: values, backgroundColor: colors, borderRadius: 6 }] },
+                data: { labels: labels, datasets: [{ label: 'Net TCP', data: values, backgroundColor: colors, borderRadius: 6, maxBarThickness: 60 }] },
                 options: { responsive:true, plugins:{ legend:{display:false} },
                     scales:{ y:{ ticks:{ callback: function(v) { return '₱'+Number(v).toLocaleString(); } } } } }
             });
+
+            // Limit canvas width so bars don't stretch when few members
+            var barCanvas = document.getElementById('memberBarChart');
+            var maxWidth = Math.max(labels.length * 100, 200);
+            barCanvas.style.maxWidth = maxWidth + 'px';
 
             memberPie = new Chart(document.getElementById('memberPieChart'), {
                 type: 'doughnut',
