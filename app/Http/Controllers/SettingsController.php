@@ -264,10 +264,18 @@ class SettingsController extends Controller
         if ($request->has('name')) {
             $agent->update(['name' => $request->name]);
         }
-        if ($request->has('is_active')) {
-            $agent->update(['is_active' => $request->boolean('is_active')]);
+        if ($request->exists('is_active')) {
+            $agent->update(['is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN)]);
         }
-        return response()->json(['success' => true]);
+        return response()->json(['success' => true, 'is_active' => (bool) $agent->fresh()->is_active]);
+    }
+
+    public function toggleAgentStatus($id)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $agent = \App\Models\SalesAgent::findOrFail($id);
+        $agent->update(['is_active' => !$agent->is_active]);
+        return response()->json(['success' => true, 'is_active' => (bool) $agent->fresh()->is_active]);
     }
 
     public function updateEmployeeInfo(Request $request)

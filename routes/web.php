@@ -176,6 +176,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/settings/agents', [App\Http\Controllers\SettingsController::class, 'storeAgent'])->name('settings.agents.store');
     Route::delete('/settings/agents/{id}', [App\Http\Controllers\SettingsController::class, 'destroyAgent'])->name('settings.agents.destroy');
     Route::patch('/settings/agents/{id}', [App\Http\Controllers\SettingsController::class, 'updateAgent'])->name('settings.agents.update');
+    Route::post('/settings/agents/{id}/toggle', [App\Http\Controllers\SettingsController::class, 'toggleAgentStatus'])->name('settings.agents.toggle');
 
     // Permission Requests
     Route::post('/api/permission-requests', [App\Http\Controllers\PermissionRequestController::class, 'store'])->name('permission-requests.store');

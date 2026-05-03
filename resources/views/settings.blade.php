@@ -1937,22 +1937,30 @@ function saveEditAgent() {
     });
 }
 function toggleAgentStatus(id, btn) {
-    var isActive = btn.getAttribute('data-active') === '1';
-    var newActive = !isActive;
     btn.disabled = true;
-    fetch('/settings/agents/' + id, {
-        method: 'PATCH',
-        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content},
-        body: JSON.stringify({is_active: newActive})
-    }).then(r => r.json()).then(d => {
+    btn.style.opacity = '0.6';
+    var csrf = document.querySelector('meta[name=csrf-token]').content;
+    fetch('/settings/agents/' + id + '/toggle', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN': csrf},
+        body: '{}'
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
         if (d.success) {
-            btn.setAttribute('data-active', newActive ? '1' : '0');
-            btn.textContent = newActive ? 'Active' : 'Inactive';
-            btn.style.background = newActive ? '#dcfce7' : '#fee2e2';
-            btn.style.color = newActive ? '#166534' : '#991b1b';
+            var active = d.is_active;
+            btn.setAttribute('data-active', active ? '1' : '0');
+            btn.textContent = active ? 'Active' : 'Inactive';
+            btn.style.background = active ? '#dcfce7' : '#fee2e2';
+            btn.style.color = active ? '#166534' : '#991b1b';
         }
         btn.disabled = false;
-    }).catch(() => { btn.disabled = false; });
+        btn.style.opacity = '1';
+    })
+    .catch(function(){
+        btn.disabled = false;
+        btn.style.opacity = '1';
+    });
 }
 function openContactModal(id, name, company, phone, email, facebook, btn) {
     document.getElementById('contactEditForm').action = '/settings/personnel-contacts/' + id;
