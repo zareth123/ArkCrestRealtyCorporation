@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class SalesAgent extends Model
 {
-    protected $fillable = ['team_id', 'name'];
+    protected $fillable = ['team_id', 'name', 'is_active'];
+    protected $casts = ['is_active' => 'boolean'];
 
     public function team()
     {

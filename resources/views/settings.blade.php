@@ -1339,117 +1339,155 @@
 
       <div class="st-page-header"><div class="st-page-title">Team Management</div><div class="st-page-sub">Manage sales teams, agents, and quotas</div></div>
 
-      <div class="st-card"><div class="st-card-hdr"><div class="st-card-hdr-text"><h3>Add New Team</h3></div></div>
-
-      <div class="st-card-body">
-
-        <form method="POST" action="{{ route('settings.teams.store') }}">@csrf
-
-          <div class="st-form-grid">
-
-            <div class="st-form-group"><label class="st-label">Team Name</label><input class="st-input" type="text" name="team_name" required></div>
-
-            <div class="st-form-group"><label class="st-label">Sales Manager <span style="font-weight:400;color:#94a3b8;font-size:11px">(optional)</span></label><input class="st-input" type="text" name="sales_manager"></div>
-
-            <div class="st-form-group"><label class="st-label">Team Leader</label><input class="st-input" type="text" name="leader_name"></div>
-
-          </div>
-
-          <div style="margin-top:14px;"><button type="submit" class="st-btn st-btn-primary">Add Team</button></div>
-
-        </form>
-
-      </div></div>
-
-      @foreach($salesTeams as $team)
-
-      <div class="team-card">
-
-        <div class="team-card-hdr">
-
-          <div>
-
-            <div class="team-name">{{ $team->team_name }}</div>
-
-            <div style="font-size:12px;color:#64748b;">Manager: {{ $team->sales_manager }} &bull; Leader: {{ $team->leader_name }}</div>
-
-          </div>
-
-          <form method="POST" action="{{ route('settings.teams.destroy', $team->id) }}" onsubmit="return confirm('Delete team?')">@csrf @method('DELETE')
-
-            <button type="submit" class="st-btn st-btn-danger st-btn-sm">Delete</button>
-
+      {{-- Add New Team --}}
+      <div class="st-card" style="margin-bottom:20px;">
+        <div class="st-card-hdr"><div class="st-card-hdr-text"><h3>Add New Team</h3></div></div>
+        <div class="st-card-body">
+          <form method="POST" action="{{ route('settings.teams.store') }}">@csrf
+            <div class="st-form-grid">
+              <div class="st-form-group"><label class="st-label">Team Name</label><input class="st-input" type="text" name="team_name" required></div>
+              <div class="st-form-group"><label class="st-label">Sales Manager <span style="font-weight:400;color:#94a3b8;font-size:11px">(optional)</span></label><input class="st-input" type="text" name="sales_manager"></div>
+              <div class="st-form-group"><label class="st-label">Team Leader</label><input class="st-input" type="text" name="leader_name"></div>
+            </div>
+            <div style="margin-top:14px;"><button type="submit" class="st-btn st-btn-primary">Add Team</button></div>
           </form>
-
         </div>
-
-        <div style="margin-bottom:10px;">
-
-          @foreach($team->agents as $agent)
-
-          <span class="agent-chip">{{ $agent->name }}
-
-            <form method="POST" action="{{ route('settings.agents.destroy', $agent->id) }}" style="display:inline;" onsubmit="return confirm('Remove agent?')">@csrf @method('DELETE')
-
-              <button type="submit" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:11px;padding:0 0 0 4px;">&times;</button>
-
-            </form>
-
-          </span>
-
-          @endforeach
-
-        </div>
-
-        <form method="POST" action="{{ route('settings.agents.store') }}" style="display:flex;gap:8px;">@csrf
-
-          <input type="hidden" name="team_id" value="{{ $team->id }}">
-
-          <input class="st-input" type="text" name="name" placeholder="Add agent name" style="flex:1;">
-
-          <button type="submit" class="st-btn st-btn-primary st-btn-sm">Add</button>
-
-        </form>
-
-        <div style="margin-top:10px;border-top:1px solid #f1f5f9;padding-top:10px;">
-
-          <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Monthly Quota</div>
-
-          @foreach($team->quotas->take(3) as $q)
-
-          <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#374151;margin-bottom:4px;">
-
-            <span>{{ \Carbon\Carbon::parse($q->date_from)->format('M Y') }} – {{ \Carbon\Carbon::parse($q->date_to)->format('M Y') }}</span>
-
-            <span style="font-weight:700;">&#8369;{{ number_format($q->quota_amount,0) }}</span>
-
-            <form method="POST" action="{{ route('settings.quotas.destroy', $q->id) }}" onsubmit="return confirm('Delete quota?')">@csrf @method('DELETE')
-
-              <button type="submit" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:12px;">&times;</button>
-
-            </form>
-
-          </div>
-
-          @endforeach
-
-          <form method="POST" action="{{ route('settings.teams.quota', $team->id) }}" style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">@csrf
-
-            <input class="st-input" type="date" name="date_from" style="flex:1;min-width:120px;">
-
-            <input class="st-input" type="date" name="date_to" style="flex:1;min-width:120px;">
-
-            <input class="st-input" type="number" name="quota_amount" placeholder="Amount" style="flex:1;min-width:100px;">
-
-            <button type="submit" class="st-btn st-btn-primary st-btn-sm">Set</button>
-
-          </form>
-
-        </div>
-
       </div>
 
+      @foreach($salesTeams as $team)
+      <div style="background:white;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;border:1px solid #e2e8f0;">
+
+        {{-- Team Header --}}
+        <div style="background:linear-gradient(135deg,#0f2444,#1e4575);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:white;">{{ $team->team_name }}</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:3px;">
+              @if($team->sales_manager)<span>Manager: {{ $team->sales_manager }}</span> &bull; @endif
+              <span>Leader: {{ $team->leader_name ?: '—' }}</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <button type="button" onclick="openEditTeam({{ $team->id }}, '{{ addslashes($team->team_name) }}', '{{ addslashes($team->leader_name) }}', '{{ addslashes($team->sales_manager) }}')"
+              style="padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">
+              Edit
+            </button>
+            <form method="POST" action="{{ route('settings.teams.destroy', $team->id) }}" onsubmit="return confirm('Delete team?')" style="display:inline;">@csrf @method('DELETE')
+              <button type="submit" style="padding:6px 14px;background:rgba(239,68,68,.2);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Delete</button>
+            </form>
+          </div>
+        </div>
+
+        <div style="padding:16px 20px;">
+
+          {{-- Agents Table --}}
+          <div style="margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">
+              Agents ({{ $team->agents->count() }})
+            </div>
+            @if($team->agents->isEmpty())
+              <div style="color:#94a3b8;font-size:13px;padding:8px 0;">No agents yet.</div>
+            @else
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+              <thead><tr style="background:#f8fafc;">
+                <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Name</th>
+                <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Status</th>
+                <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Actions</th>
+              </tr></thead>
+              <tbody>
+                @foreach($team->agents as $agent)
+                <tr style="border-bottom:1px solid #f1f5f9;" id="agent-row-{{ $agent->id }}">
+                  <td style="padding:10px 12px;font-weight:600;color:#0f172a;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1e4575,#2563eb);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0;">{{ strtoupper(substr($agent->name,0,1)) }}</div>
+                      <span id="agent-name-{{ $agent->id }}">{{ $agent->name }}</span>
+                    </div>
+                  </td>
+                  <td style="padding:10px 12px;text-align:center;">
+                    <button type="button" onclick="toggleAgentStatus({{ $agent->id }}, this)"
+                      data-active="{{ $agent->is_active ? '1' : '0' }}"
+                      style="padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;border:none;cursor:pointer;
+                      background:{{ $agent->is_active ? '#dcfce7' : '#fee2e2' }};
+                      color:{{ $agent->is_active ? '#166534' : '#991b1b' }};">
+                      {{ $agent->is_active ? 'Active' : 'Inactive' }}
+                    </button>
+                  </td>
+                  <td style="padding:10px 12px;text-align:right;white-space:nowrap;">
+                    <button type="button" onclick="openEditAgent({{ $agent->id }}, '{{ addslashes($agent->name) }}')"
+                      style="padding:4px 10px;background:#eff6ff;color:#1e4575;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px;">Edit</button>
+                    <form method="POST" action="{{ route('settings.agents.destroy', $agent->id) }}" style="display:inline;" onsubmit="return confirm('Remove agent?')">@csrf @method('DELETE')
+                      <button type="submit" style="padding:4px 10px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                @endforeach
+              </tbody>
+            </table>
+            @endif
+
+            {{-- Add Agent --}}
+            <form method="POST" action="{{ route('settings.agents.store') }}" style="display:flex;gap:8px;margin-top:10px;">@csrf
+              <input type="hidden" name="team_id" value="{{ $team->id }}">
+              <input class="st-input" type="text" name="name" placeholder="Add agent name" style="flex:1;">
+              <button type="submit" class="st-btn st-btn-primary st-btn-sm">+ Add</button>
+            </form>
+          </div>
+
+          {{-- Monthly Quota --}}
+          <div style="border-top:1px solid #f1f5f9;padding-top:14px;">
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Monthly Quota</div>
+            @foreach($team->quotas->take(3) as $q)
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#374151;margin-bottom:6px;background:#f8fafc;padding:8px 12px;border-radius:8px;">
+              <span style="color:#64748b;">{{ \Carbon\Carbon::parse($q->date_from)->format('M d, Y') }} – {{ \Carbon\Carbon::parse($q->date_to)->format('M d, Y') }}</span>
+              <span style="font-weight:700;color:#1e4575;">&#8369;{{ number_format($q->quota_amount,0) }}</span>
+              <form method="POST" action="{{ route('settings.quotas.destroy', $q->id) }}" onsubmit="return confirm('Delete quota?')" style="display:inline;">@csrf @method('DELETE')
+                <button type="submit" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;line-height:1;">&times;</button>
+              </form>
+            </div>
+            @endforeach
+            <form method="POST" action="{{ route('settings.teams.quota', $team->id) }}" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">@csrf
+              <input class="st-input" type="date" name="date_from" style="flex:1;min-width:120px;">
+              <input class="st-input" type="date" name="date_to" style="flex:1;min-width:120px;">
+              <input class="st-input" type="number" name="quota_amount" placeholder="Amount" style="flex:1;min-width:100px;">
+              <button type="submit" class="st-btn st-btn-primary st-btn-sm">Set</button>
+            </form>
+          </div>
+
+        </div>
+      </div>
       @endforeach
+
+      {{-- Edit Team Modal --}}
+      <div id="editTeamModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)closeEditTeam();">
+        <div style="background:white;border-radius:14px;padding:24px 28px;width:440px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;">Edit Team</div>
+          <form id="editTeamForm" method="POST">@csrf @method('PUT')
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px;">
+              <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Team Name</label><input class="st-input" type="text" id="edit_team_name" name="team_name" required></div>
+              <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Team Leader</label><input class="st-input" type="text" id="edit_leader_name" name="leader_name"></div>
+              <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Sales Manager <span style="font-weight:400;color:#94a3b8;">(optional)</span></label><input class="st-input" type="text" id="edit_sales_manager" name="sales_manager"></div>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button type="submit" class="st-btn st-btn-primary" style="flex:1;">Save Changes</button>
+              <button type="button" onclick="closeEditTeam()" style="flex:1;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#f1f5f9;color:#374151;border:none;">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {{-- Edit Agent Modal --}}
+      <div id="editAgentModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)closeEditAgent();">
+        <div style="background:white;border-radius:14px;padding:24px 28px;width:380px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+          <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;">Edit Agent</div>
+          <div style="margin-bottom:18px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Name</label>
+            <input class="st-input" type="text" id="edit_agent_name_input">
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button type="button" onclick="saveEditAgent()" class="st-btn st-btn-primary" style="flex:1;">Save</button>
+            <button type="button" onclick="closeEditAgent()" style="flex:1;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#f1f5f9;color:#374151;border:none;">Cancel</button>
+          </div>
+        </div>
+      </div>
 
     </div>
 
@@ -1864,6 +1902,56 @@ function toggleInlineAdd(slug) {
     }
 }
 function closeAddContactModal() { document.getElementById('contactAddModal').style.display = 'none'; }
+
+// Team Management JS
+var _editTeamId = null, _editAgentId = null;
+function openEditTeam(id, name, leader, manager) {
+    _editTeamId = id;
+    document.getElementById('editTeamForm').action = '/settings/teams/' + id;
+    document.getElementById('edit_team_name').value = name;
+    document.getElementById('edit_leader_name').value = leader;
+    document.getElementById('edit_sales_manager').value = manager;
+    document.getElementById('editTeamModal').style.display = 'flex';
+}
+function closeEditTeam() { document.getElementById('editTeamModal').style.display = 'none'; }
+
+function openEditAgent(id, name) {
+    _editAgentId = id;
+    document.getElementById('edit_agent_name_input').value = name;
+    document.getElementById('editAgentModal').style.display = 'flex';
+}
+function closeEditAgent() { document.getElementById('editAgentModal').style.display = 'none'; }
+function saveEditAgent() {
+    var name = document.getElementById('edit_agent_name_input').value.trim();
+    if (!name) return;
+    fetch('/api/settings/agents/' + _editAgentId, {
+        method: 'PATCH',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content},
+        body: JSON.stringify({name: name})
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            var el = document.getElementById('agent-name-' + _editAgentId);
+            if (el) el.textContent = name;
+            closeEditAgent();
+        }
+    });
+}
+function toggleAgentStatus(id, btn) {
+    var isActive = btn.getAttribute('data-active') === '1';
+    var newActive = !isActive;
+    fetch('/api/settings/agents/' + id, {
+        method: 'PATCH',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content},
+        body: JSON.stringify({is_active: newActive})
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            btn.setAttribute('data-active', newActive ? '1' : '0');
+            btn.textContent = newActive ? 'Active' : 'Inactive';
+            btn.style.background = newActive ? '#dcfce7' : '#fee2e2';
+            btn.style.color = newActive ? '#166534' : '#991b1b';
+        }
+    });
+}
 function openContactModal(id, name, company, phone, email, facebook, btn) {
     document.getElementById('contactEditForm').action = '/settings/personnel-contacts/' + id;
     document.getElementById('edit_name').value = name;

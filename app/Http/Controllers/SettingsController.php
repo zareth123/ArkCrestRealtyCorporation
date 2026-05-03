@@ -245,6 +245,31 @@ class SettingsController extends Controller
         return redirect()->route('settings')->with('success', 'Agent removed.')->with('open_section', 'teams');
     }
 
+    public function updateTeam(Request $request, $id)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $request->validate([
+            'leader_name'   => 'nullable|string|max:255',
+            'sales_manager' => 'nullable|string|max:255',
+            'team_name'     => 'nullable|string|max:255',
+        ]);
+        \App\Models\SalesTeam::findOrFail($id)->update($request->only('team_name', 'leader_name', 'sales_manager'));
+        return redirect()->route('settings')->with('success', 'Team updated.')->with('open_section', 'teams');
+    }
+
+    public function updateAgent(Request $request, $id)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $agent = \App\Models\SalesAgent::findOrFail($id);
+        if ($request->has('name')) {
+            $agent->update(['name' => $request->name]);
+        }
+        if ($request->has('is_active')) {
+            $agent->update(['is_active' => $request->boolean('is_active')]);
+        }
+        return response()->json(['success' => true]);
+    }
+
     public function updateEmployeeInfo(Request $request)
     {
         $request->validate([

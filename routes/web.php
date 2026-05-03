@@ -170,10 +170,12 @@ Route::middleware('auth')->group(function () {
     // Team Management (admin only)
     Route::post('/settings/teams', [App\Http\Controllers\SettingsController::class, 'storeTeam'])->name('settings.teams.store');
     Route::delete('/settings/teams/{id}', [App\Http\Controllers\SettingsController::class, 'destroyTeam'])->name('settings.teams.destroy');
+    Route::put('/settings/teams/{id}', [App\Http\Controllers\SettingsController::class, 'updateTeam'])->name('settings.teams.update');
     Route::post('/settings/teams/{id}/quota', [App\Http\Controllers\SettingsController::class, 'setTeamQuota'])->name('settings.teams.quota');
     Route::delete('/settings/quotas/{id}', [App\Http\Controllers\SettingsController::class, 'destroyQuota'])->name('settings.quotas.destroy');
     Route::post('/settings/agents', [App\Http\Controllers\SettingsController::class, 'storeAgent'])->name('settings.agents.store');
     Route::delete('/settings/agents/{id}', [App\Http\Controllers\SettingsController::class, 'destroyAgent'])->name('settings.agents.destroy');
+    Route::patch('/api/settings/agents/{id}', [App\Http\Controllers\SettingsController::class, 'updateAgent'])->name('settings.agents.update');
 
     // Permission Requests
     Route::post('/api/permission-requests', [App\Http\Controllers\PermissionRequestController::class, 'store'])->name('permission-requests.store');
