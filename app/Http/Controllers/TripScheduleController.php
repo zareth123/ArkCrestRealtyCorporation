@@ -164,7 +164,7 @@ class TripScheduleController extends Controller
 
     public function database()
     {
-        $records = TripSchedule::orderBy('created_at', 'asc')->get();
+        $records = TripSchedule::orderBy('tripping_date', 'asc')->orderBy('tripping_time', 'asc')->get();
 
         $userMap = \App\Models\User::whereNotNull('employee_id')->pluck('name', 'employee_id');
         $records->each(function ($r) use ($userMap) {

@@ -137,6 +137,95 @@
     </div>
     @endif
 
+    @if(!in_array('sales-marketing.charts', $hiddenSections) && $teamPerformance->isNotEmpty())
+    <div style="background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:20px;">
+
+        {{-- Team Buttons --}}
+        <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">View by Team</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;" id="teamBtns">
+            @foreach($teamPerformance as $i => $tp)
+            <button onclick="showTeam({{ $i }})"
+                id="tbtn-{{ $i }}"
+                style="padding:7px 16px;border-radius:20px;border:2px solid #1e4575;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;
+                {{ $i === 0 ? 'background:#1e4575;color:white;' : 'background:white;color:#1e4575;' }}">
+                {{ $tp['team']->team_name }}
+            </button>
+            @endforeach
+        </div>
+
+        {{-- Member Charts --}}
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;align-items:start;">
+            <div>
+                <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:10px;" id="memberBarLabel">Members</div>
+                <canvas id="memberBarChart" height="140"></canvas>
+            </div>
+            <div>
+                <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:10px;" id="memberPieLabel">Share</div>
+                <canvas id="memberPieChart" height="140"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+    (function() {
+        const teamData = {!! json_encode($chartTeamData) !!};
+        const palette = ['#1e4575','#A37929','#2563eb','#16a34a','#dc2626','#7c3aed','#0891b2','#d97706','#db2777','#059669'];
+
+        let memberBar = null, memberPie = null;
+
+        function showTeam(idx) {
+            document.querySelectorAll('[id^="tbtn-"]').forEach(function(b, i) {
+                b.style.background = i === idx ? '#1e4575' : 'white';
+                b.style.color      = i === idx ? 'white'   : '#1e4575';
+            });
+
+            const team    = teamData[idx];
+            const members = team.members;
+            const labels  = members.map(function(m) { return m.name; });
+            const values  = members.map(function(m) { return m.sales; });
+            const colors  = members.map(function(_, i) { return palette[i % palette.length]; });
+
+            document.getElementById('memberBarLabel').textContent = team.team + ' — Members';
+            document.getElementById('memberPieLabel').textContent = team.team + ' — Share';
+
+            if (memberBar) memberBar.destroy();
+            if (memberPie) memberPie.destroy();
+
+            memberBar = new Chart(document.getElementById('memberBarChart'), {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ label: 'Net TCP', data: values, backgroundColor: colors, borderRadius: 6, maxBarThickness: 60 }] },
+                options: { responsive:true, plugins:{ legend:{display:false} },
+                    scales:{ y:{ ticks:{ callback: function(v) { return '₱'+Number(v).toLocaleString(); } } } } }
+            });
+
+            // Limit canvas width so bars don't stretch when few members
+            var barCanvas = document.getElementById('memberBarChart');
+            var maxWidth = Math.max(labels.length * 100, 200);
+            barCanvas.style.maxWidth = maxWidth + 'px';
+
+            memberPie = new Chart(document.getElementById('memberPieChart'), {
+                type: 'doughnut',
+                data: { labels: labels, datasets: [{ data: values, backgroundColor: colors }] },
+                options: { responsive:true,
+                    plugins:{
+                        legend:{ position:'bottom', labels:{ font:{ size:11 } } },
+                        tooltip:{ callbacks:{ label: function(ctx) {
+                            var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+                            var pct = total > 0 ? ((ctx.raw/total)*100).toFixed(1) : 0;
+                            return ' ' + ctx.label + ': ' + pct + '%';
+                        }}}
+                    }
+                }
+            });
+        }
+
+        window.showTeam = showTeam;
+        if (teamData.length > 0) showTeam(0);
+    })();
+    </script>
+    @endif
+
     @if(!in_array('sales-marketing.top-performers', $hiddenSections))
     <div class="dashboard-card">
         <div class="card-header-modern">

@@ -131,11 +131,47 @@ class SalesMarketingController extends Controller
             $q->whereDate('reservation_date', $today)->orWhereDate('date_of_downpayment', $today);
         })->count();
 
+        // Chart data for team performance
+        $chartTeamData = $teamPerformance->map(function($t) use ($topPerformers) {
+            // Try to match members from topPerformers by name (loose match)
+            $memberSales = collect($t['agentSales']);
+
+            // If no agent sales found via team membership, try matching from topPerformers
+            if ($memberSales->isEmpty() || $memberSales->sum('total_sales') == 0) {
+                $allMemberNames = $t['team']->agents->pluck('name')
+                    ->push($t['team']->leader_name)
+                    ->filter()
+                    ->map(fn($n) => strtolower(trim($n)))
+                    ->toArray();
+
+                $memberSales = $topPerformers->filter(function($p) use ($allMemberNames) {
+                    $normalized = strtolower(trim($p->agent_name));
+                    foreach ($allMemberNames as $m) {
+                        if ($normalized === $m || str_contains($normalized, $m) || str_contains($m, $normalized)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                })->map(function($p) {
+                    return (object)['agent_name' => $p->agent_name, 'total_sales' => $p->total_sales];
+                })->values();
+            }
+
+            return [
+                'team'    => $t['team']->team_name,
+                'total'   => (float) $memberSales->sum('total_sales') ?: (float) $t['teamTotal'],
+                'members' => $memberSales->map(function($a) {
+                    return ['name' => $a->agent_name, 'sales' => (float) $a->total_sales];
+                })->values()->toArray(),
+            ];
+        })->values()->toArray();
+
         return view('sales-marketing', compact(
             'totalNetTcp', 'totalClients', 'totalRecords',
             'topPerformers', 'teamPerformance', 'dateFrom', 'dateTo', 'teams',
             'todayTrips', 'todayReleases', 'todayEvents',
-            'units', 'grossSalesFromClient', 'pendingReservation', 'cancelledReservation', 'totalReservation'
+            'units', 'grossSalesFromClient', 'pendingReservation', 'cancelledReservation', 'totalReservation',
+            'chartTeamData'
         ));
     }
 

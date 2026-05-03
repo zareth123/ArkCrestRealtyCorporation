@@ -1227,6 +1227,10 @@ function editCommission(id) {
             document.getElementById('cm_edit_lot_area').value = data.lot_area ?? '';
             document.getElementById('cm_edit_discount').value = data.discount ?? '';
             document.getElementById('cm_edit_net_tcp').value = data.net_tcp ?? '';
+            document.getElementById('cm_edit_net_tcp_display').value = data.net_tcp ? parseFloat(data.net_tcp).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
+            if (document.getElementById('cm_edit_payment_type')) document.getElementById('cm_edit_payment_type').value = data.payment_type ?? '';
+            if (document.getElementById('cm_edit_value_of_payment_terms')) document.getElementById('cm_edit_value_of_payment_terms').value = data.value_of_payment_terms ?? '';
+            if (document.getElementById('cm_edit_vopt_display')) document.getElementById('cm_edit_vopt_display').value = data.value_of_payment_terms ? parseFloat(data.value_of_payment_terms).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
             document.getElementById('cm_edit_terms_of_payment').value = data.terms_of_payment ?? '';
             document.getElementById('cm_edit_mode_of_payment').value = data.mode_of_payment ?? '';
             document.getElementById('cm_edit_agent_name').value = data.agent_name ?? '';
@@ -1314,6 +1318,45 @@ function computeValueOfPaymentTerms() {
     if (type === '3 Months Commission')  result = fullPayment / 3;
     document.getElementById('cm_add_value_of_payment_terms').value = result > 0 ? result.toFixed(2) : '';
     document.getElementById('cm_add_vopt_display').value = result > 0 ? fmtComma(result) : '';
+}
+
+function setEditDiscountType(type) {
+    document.getElementById('cm_edit_discount_type').value = type;
+    const input = document.getElementById('cm_edit_discount');
+    if (type === 'percent') {
+        input.max = 100;
+        document.getElementById('cm_edit_disc_pct_btn').style.background = '#1e457c';
+        document.getElementById('cm_edit_disc_pct_btn').style.color = '#fff';
+        document.getElementById('cm_edit_disc_val_btn').style.background = '#fff';
+        document.getElementById('cm_edit_disc_val_btn').style.color = '#374151';
+    } else {
+        input.removeAttribute('max');
+        document.getElementById('cm_edit_disc_val_btn').style.background = '#1e457c';
+        document.getElementById('cm_edit_disc_val_btn').style.color = '#fff';
+        document.getElementById('cm_edit_disc_pct_btn').style.background = '#fff';
+        document.getElementById('cm_edit_disc_pct_btn').style.color = '#374151';
+    }
+    computeEditNetTCP();
+}
+
+function computeEditNetTCP() {
+    const priceSqm = parseFloat(document.getElementById('cm_edit_price_sqm').value) || 0;
+    const lotArea  = parseFloat(document.getElementById('cm_edit_lot_area').value) || 0;
+    const tcp      = priceSqm * lotArea;
+    const discType = document.getElementById('cm_edit_discount_type')?.value || 'percent';
+    const input    = document.getElementById('cm_edit_discount');
+    let discVal    = parseFloat(input.value) || 0;
+    if (discType === 'percent') {
+        if (discVal > 100) { discVal = 100; input.value = 100; }
+        if (discVal < 0)   { discVal = 0;   input.value = 0; }
+    }
+    const discAmount = discType === 'percent' ? (tcp * discVal / 100) : discVal;
+    const netTcp     = tcp - discAmount;
+    const display    = document.getElementById('cm_edit_net_tcp_display');
+    const hidden     = document.getElementById('cm_edit_net_tcp');
+    if (display) display.value = netTcp > 0 ? netTcp.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
+    if (hidden)  hidden.value  = netTcp > 0 ? netTcp.toFixed(2) : '';
+    computeEditValueOfPaymentTerms();
 }
 
 function computeEditValueOfPaymentTerms() {
@@ -1567,12 +1610,20 @@ function submitCmPermRequest() {
                         <input type="number" id="cm_edit_lot_area" name="lot_area" step="0.0001" min="0" placeholder="0.0000">
                     </div>
                     <div class="modal-field">
-                        <label>Discount</label>
-                        <input type="number" id="cm_edit_discount" name="discount" step="0.01" min="0" placeholder="0.00">
+                        <label style="display:flex;align-items:center;gap:8px;">
+                            Discount
+                            <span style="display:inline-flex;border:1px solid #d1d5db;border-radius:6px;overflow:hidden;font-size:11px;font-weight:700;">
+                                <button type="button" id="cm_edit_disc_pct_btn" onclick="setEditDiscountType('percent')" style="padding:2px 10px;background:#1e457c;color:#fff;border:none;cursor:pointer;">%</button>
+                                <button type="button" id="cm_edit_disc_val_btn" onclick="setEditDiscountType('value')" style="padding:2px 10px;background:#fff;color:#374151;border:none;cursor:pointer;">VALUE</button>
+                            </span>
+                        </label>
+                        <input type="number" id="cm_edit_discount" name="discount" step="0.01" min="0" max="100" placeholder="0.00" oninput="computeEditNetTCP()">
+                        <input type="hidden" id="cm_edit_discount_type" name="discount_type" value="percent">
                     </div>
                     <div class="modal-field">
-                        <label>Net TCP</label>
-                        <input type="number" id="cm_edit_net_tcp" name="net_tcp" step="0.01" min="0" placeholder="0.00" oninput="computeCommission()">
+                        <label>Net TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
+                        <input type="text" id="cm_edit_net_tcp_display" placeholder="0.00" readonly style="background:#f3f4f6;cursor:not-allowed;color:#374151;">
+                        <input type="hidden" id="cm_edit_net_tcp" name="net_tcp">
                     </div>
                     <div class="modal-field">
                         <label>% of Commission</label>
@@ -1581,6 +1632,20 @@ function submitCmPermRequest() {
                     <div class="modal-field">
                         <label>Commission (Auto-computed)</label>
                         <input type="number" id="cm_edit_commission" name="commission" step="1" placeholder="0.00" style="background:#fff;">
+                    </div>
+                    <div class="modal-field">
+                        <label>Commission Terms</label>
+                        <select id="cm_edit_payment_type" name="payment_type" onchange="computeEditValueOfPaymentTerms()">
+                            <option value="">— Select —</option>
+                            <option value="Full Payment">Full Payment</option>
+                            <option value="2 Months Commission">2 Months Commission</option>
+                            <option value="3 Months Commission">3 Months Commission</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Value of Commission Terms <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
+                        <input type="text" id="cm_edit_vopt_display" placeholder="0.00" readonly style="background:#f3f4f6;cursor:not-allowed;color:#374151;">
+                        <input type="hidden" id="cm_edit_value_of_payment_terms" name="value_of_payment_terms">
                     </div>
                     <div class="modal-field">
                         <label>Terms of Payment <span style="color:#ef4444">*</span></label>
