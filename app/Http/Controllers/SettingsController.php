@@ -274,12 +274,25 @@ class SettingsController extends Controller
     {
         if (!auth()->user()->isAdmin()) abort(403);
         $agent = \App\Models\SalesAgent::findOrFail($id);
+
+        // Ensure column exists before updating
+        if (!\Schema::hasColumn('sales_agents', 'is_active')) {
+            \Schema::table('sales_agents', function ($table) {
+                $table->boolean('is_active')->default(true)->after('name');
+            });
+        }
+
         if ($request->has('set_active')) {
-            $agent->update(['is_active' => filter_var($request->input('set_active'), FILTER_VALIDATE_BOOLEAN)]);
+            $val = $request->input('set_active');
+            // Handle both JSON boolean and string
+            $active = ($val === true || $val === 'true' || $val === 1 || $val === '1');
+            $agent->update(['is_active' => $active]);
         } else {
             $agent->update(['is_active' => !$agent->is_active]);
         }
-        return response()->json(['success' => true, 'is_active' => (bool) $agent->fresh()->is_active]);
+
+        $agent->refresh();
+        return response()->json(['success' => true, 'is_active' => (bool) $agent->is_active]);
     }
 
     public function updateEmployeeInfo(Request $request)

@@ -1970,7 +1970,7 @@ function setAgentStatus(id, active) {
     fetch('/settings/agents/' + id + '/toggle', {
         method: 'POST',
         headers: {'Content-Type':'application/json','X-CSRF-TOKEN': csrf},
-        body: JSON.stringify({set_active: active})
+        body: JSON.stringify({set_active: active ? 1 : 0})
     })
     .then(function(r){ return r.json(); })
     .then(function(d){
