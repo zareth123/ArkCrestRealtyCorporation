@@ -202,7 +202,25 @@ class SettingsController extends Controller
     public function destroyTeam($id)
     {
         if (!auth()->user()->isAdmin()) abort(403);
-        \App\Models\SalesTeam::findOrFail($id)->delete();
+        $team = \App\Models\SalesTeam::findOrFail($id);
+
+        // Clear team_name on all users linked to this team's agents
+        try {
+            $agentNames = $team->agents->pluck('name')->toArray();
+            $userIds = [];
+            if (\Schema::hasColumn('sales_agents', 'user_id')) {
+                $userIds = $team->agents->pluck('user_id')->filter()->toArray();
+            }
+            if (!empty($userIds)) {
+                \App\Models\User::whereIn('id', $userIds)->update(['team_name' => null]);
+            } elseif (!empty($agentNames)) {
+                foreach ($agentNames as $name) {
+                    \App\Models\User::whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($name))])->update(['team_name' => null]);
+                }
+            }
+        } catch (\Exception $e) {}
+
+        $team->delete();
         return redirect()->route('settings')->with('success', 'Team deleted.')->with('open_section', 'teams');
     }
 
@@ -241,7 +259,21 @@ class SettingsController extends Controller
     public function destroyAgent($id)
     {
         if (!auth()->user()->isAdmin()) abort(403);
-        \App\Models\SalesAgent::findOrFail($id)->delete();
+        $agent = \App\Models\SalesAgent::findOrFail($id);
+
+        // Clear team_name on the linked user
+        try {
+            $cleared = false;
+            if (\Schema::hasColumn('sales_agents', 'user_id') && $agent->user_id) {
+                \App\Models\User::where('id', $agent->user_id)->update(['team_name' => null]);
+                $cleared = true;
+            }
+            if (!$cleared) {
+                \App\Models\User::whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($agent->name))])->update(['team_name' => null]);
+            }
+        } catch (\Exception $e) {}
+
+        $agent->delete();
         return redirect()->route('settings')->with('success', 'Agent removed.')->with('open_section', 'teams');
     }
 
