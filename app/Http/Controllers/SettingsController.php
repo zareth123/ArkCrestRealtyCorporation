@@ -261,22 +261,34 @@ class SettingsController extends Controller
     {
         if (!auth()->user()->isAdmin()) abort(403);
         $agent = \App\Models\SalesAgent::findOrFail($id);
+
+        $updates = [];
+
         if ($request->has('name')) {
-            $agent->update(['name' => $request->name]);
+            $updates['name'] = $request->name;
         }
-        if ($request->has('employee_id')) {
+
+        if ($request->has('employee_id') && \Schema::hasColumn('sales_agents', 'employee_id')) {
             $empId = trim($request->input('employee_id'));
-            $updates = ['employee_id' => $empId ?: null];
+            $updates['employee_id'] = $empId ?: null;
             if ($empId) {
                 $user = \App\Models\User::where('employee_id', $empId)->first();
-                if ($user) $updates['user_id'] = $user->id;
+                if ($user && \Schema::hasColumn('sales_agents', 'user_id')) {
+                    $updates['user_id'] = $user->id;
+                }
             }
+        }
+
+        if ($request->exists('is_active') && \Schema::hasColumn('sales_agents', 'is_active')) {
+            $updates['is_active'] = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if (!empty($updates)) {
             $agent->update($updates);
         }
-        if ($request->exists('is_active')) {
-            $agent->update(['is_active' => filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN)]);
-        }
-        return response()->json(['success' => true, 'is_active' => (bool) $agent->fresh()->is_active]);
+
+        $isActive = \Schema::hasColumn('sales_agents', 'is_active') ? (bool) $agent->fresh()->is_active : true;
+        return response()->json(['success' => true, 'is_active' => $isActive]);
     }
 
     public function toggleAgentStatus(Request $request, $id)
