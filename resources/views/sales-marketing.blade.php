@@ -91,7 +91,17 @@
 </style>
 
 <div class="sales-dashboard">
-    {{-- SHARED DATE FILTER removed, now inside Top Performers --}}
+    {{-- SHARED DATE FILTER --}}
+    <form method="GET" action="{{ route('sales-marketing') }}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:20px;background:white;padding:12px 18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+        <svg fill="none" stroke="#1e4575" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span style="font-size:12px;font-weight:700;color:#1e4575;">Date Range</span>
+        <label style="font-size:12px;color:#6b7280;font-weight:500">From</label>
+        <input type="date" name="date_from" value="{{ $dateFrom }}" style="padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;color:#374151;outline:none">
+        <label style="font-size:12px;color:#6b7280;font-weight:500">To</label>
+        <input type="date" name="date_to" value="{{ $dateTo }}" style="padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;color:#374151;outline:none">
+        <button type="submit" style="padding:7px 16px;background:#1e4575;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Filter</button>
+        <span style="font-size:11px;color:#94a3b8;margin-left:4px;">Applies to all cards, charts &amp; top performers</span>
+    </form>
 
     @if(!in_array('sales-marketing.cards', $hiddenSections))
     <div class="metrics-grid">
@@ -236,15 +246,8 @@
             </div>
             <div style="flex:1">
                 <h3 class="card-title-modern">Top Performers</h3>
-                <p class="card-subtitle-modern">Based on client database records</p>
+                <p class="card-subtitle-modern">Based on client database records &mdash; {{ \Carbon\Carbon::parse($dateFrom)->format('M d') }} – {{ \Carbon\Carbon::parse($dateTo)->format('M d, Y') }}</p>
             </div>
-            <form method="GET" action="{{ route('sales-marketing') }}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <label style="font-size:12px;color:#6b7280;font-weight:500">From</label>
-                <input type="date" name="date_from" value="{{ $dateFrom }}" style="padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;color:#374151;outline:none">
-                <label style="font-size:12px;color:#6b7280;font-weight:500">To</label>
-                <input type="date" name="date_to" value="{{ $dateTo }}" style="padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;color:#374151;outline:none">
-                <button type="submit" style="padding:7px 14px;background:#1e4575;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Filter</button>
-            </form>
         </div>
         <div class="card-body-modern">
             {{-- Always show flat top performers from client database --}}

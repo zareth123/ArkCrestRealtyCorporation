@@ -112,11 +112,31 @@ class SalesMarketingController extends Controller
             $merged[$key]['deals']              += $row->deals;
         }
 
-        // Look up position from users table
+        // Look up position from users table AND team management roles
         $agentNames = collect($merged)->pluck('agent_name');
         $userPositions = \App\Models\User::whereIn('name', $agentNames)->pluck('position', 'name');
+
+        // Build role map from Team Management (leader_name → Team Leader, sales_manager → Sales Manager)
+        $allTeams = \App\Models\SalesTeam::all();
+        $teamRoleMap = [];
+        foreach ($allTeams as $t) {
+            if ($t->leader_name) {
+                $teamRoleMap[strtolower(trim($t->leader_name))] = 'Team Leader';
+            }
+            if ($t->sales_manager) {
+                // Sales Manager overrides Team Leader if same person
+                $teamRoleMap[strtolower(trim($t->sales_manager))] = 'Sales Manager';
+            }
+        }
+
         foreach ($merged as $key => &$agent) {
-            $agent['position'] = $userPositions[$agent['agent_name']] ?? null;
+            $nameKey = strtolower(trim($agent['agent_name']));
+            // Team Management role takes priority over users.position
+            if (isset($teamRoleMap[$nameKey])) {
+                $agent['position'] = $teamRoleMap[$nameKey];
+            } else {
+                $agent['position'] = $userPositions[$agent['agent_name']] ?? null;
+            }
         }
         unset($agent);
 
