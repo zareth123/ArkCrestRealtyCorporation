@@ -37,17 +37,25 @@ class AuthController extends Controller
         }
 
         // Check if user is an inactive sales agent in team management
-        if (\Schema::hasColumn('sales_agents', 'is_active')) {
-            $inactiveAgent = \App\Models\SalesAgent::where(function($q) use ($user) {
-                    $q->where('user_id', $user->id)
-                      ->orWhereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($user->name))]);
-                })
-                ->where('is_active', false)
-                ->first();
-            if ($inactiveAgent) {
-                Auth::logout();
-                return back()->with('inactive_agent', true)->withInput($request->only('email'));
+        try {
+            if (\Schema::hasColumn('sales_agents', 'is_active')) {
+                $query = \App\Models\SalesAgent::where('is_active', false);
+                if (\Schema::hasColumn('sales_agents', 'user_id')) {
+                    $query->where(function($q) use ($user) {
+                        $q->where('user_id', $user->id)
+                          ->orWhereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($user->name))]);
+                    });
+                } else {
+                    $query->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($user->name))]);
+                }
+                $inactiveAgent = $query->first();
+                if ($inactiveAgent) {
+                    Auth::logout();
+                    return back()->with('inactive_agent', true)->withInput($request->only('email'));
+                }
             }
+        } catch (\Exception $e) {
+            // Don't block login if agent check fails
         }
 
         Auth::login($user, $request->boolean('remember'));
