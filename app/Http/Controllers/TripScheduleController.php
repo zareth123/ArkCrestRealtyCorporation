@@ -99,7 +99,7 @@ class TripScheduleController extends Controller
             $teams = collect();
         }
         try {
-            $properties = \App\Models\Property::orderBy('name')->get();
+            $properties = \Schema::hasTable('properties') ? \App\Models\Property::orderBy('name')->get() : collect();
         } catch (\Exception $e) {
             $properties = collect();
         }
