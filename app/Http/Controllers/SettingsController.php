@@ -168,6 +168,7 @@ class SettingsController extends Controller
             'activityLogs'       => ActivityLog::with('user')->orderBy('created_at', 'desc')->limit(200)->get(),
             'hiddenSections'     => array_values(json_decode(\DB::table('app_settings')->where('key', 'hidden_pages')->value('value') ?? '[]', true) ?: []),
             'salesTeams'         => \App\Models\SalesTeam::with(['agents.user', 'quotas' => fn($q) => $q->orderBy('date_from', 'desc')])->orderBy('leader_name')->get(),
+            'properties'         => \App\Models\Property::orderBy('name')->get(),
             'privacyContent'     => \DB::table('app_settings')->where('key', 'privacy_policy')->value('value') ?? "Data Privacy Notice\n\nArckrest Realty Corporation is committed to protecting the privacy and confidentiality of all personal information collected through this system.\n\nInformation We Collect\n\nWe collect your full name, email address, employee ID, position, and date hired for account management and system access purposes.\n\nHow We Use Your Information\n\n- To manage and authenticate your system account\n- To track activity logs for security and audit purposes\n- To send email notifications related to your account\n- To generate internal reports and analytics\n\nSystem Usage Policy\n\n- Keep your login credentials confidential at all times.\n- Unauthorized access or sharing of credentials is strictly prohibited.\n- All data entered must be accurate and truthful.\n- Misuse may result in account suspension or termination.\n- This system is for authorized Arckrest Realty Corporation employees only.",
             'periodLocks'        => \App\Models\PeriodLock::getLocked(),
             'rejectedTrippings'  => \App\Models\TripSchedule::where('status', 'rejected')->orderBy('updated_at', 'desc')->get()->each(function($r) {
@@ -183,8 +184,27 @@ class SettingsController extends Controller
         ];
     }
 
-    public function storeTeam(Request $request)
+    public function getProperties()
     {
+        return response()->json(\App\Models\Property::orderBy('name')->get());
+    }
+
+    public function storeProperty(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $request->validate(['name' => 'required|string|max:255', 'developer' => 'nullable|string|max:255']);
+        \App\Models\Property::create(['name' => $request->name, 'developer' => $request->developer]);
+        return redirect()->route('settings')->with('success', 'Property added.')->with('open_section', 'properties');
+    }
+
+    public function destroyProperty($id)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        \App\Models\Property::findOrFail($id)->delete();
+        return redirect()->route('settings')->with('success', 'Property removed.')->with('open_section', 'properties');
+    }
+
+    public function storeTeam(Request $request)    {
         if (!auth()->user()->isAdmin()) abort(403);
         $request->validate([
             'team_name'     => 'required|string|max:255',

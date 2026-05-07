@@ -457,6 +457,13 @@
       </button>
       @endif
 
+      @if($isAdmin)
+      <button class="st-nav-btn" id="nav-properties" onclick="showPanel('properties')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Property Management
+      </button>
+      @endif
+
       @if($canSeeS('settings.period-lock'))
       <button class="st-nav-btn" id="nav-period-lock" onclick="showPanel('period-lock')">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
@@ -1518,6 +1525,50 @@
     @endif
 
     @if($isAdmin || $canSeeS('settings.period-lock'))
+
+    {{-- PROPERTIES PANEL --}}
+    <div class="st-panel" id="panel-properties">
+      <div class="st-page-header"><div class="st-page-title">Property Management</div><div class="st-page-sub">Manage the property dropdown list for site visit forms</div></div>
+
+      <div class="st-card">
+        <div class="st-card-hdr"><div class="st-card-hdr-text"><h3>Add Property</h3></div></div>
+        <div class="st-card-body">
+          <form method="POST" action="{{ route('settings.properties.store') }}">@csrf
+            <div class="st-form-grid">
+              <div class="st-form-group"><label class="st-label">Property Name <span style="color:#ef4444">*</span></label><input class="st-input" type="text" name="name" required placeholder="e.g. Sunshine Village"></div>
+              <div class="st-form-group"><label class="st-label">Developer <span style="font-weight:400;color:#94a3b8;font-size:11px">(optional)</span></label><input class="st-input" type="text" name="developer" placeholder="e.g. Figtree Properties"></div>
+            </div>
+            <div style="margin-top:14px;"><button type="submit" class="st-btn st-btn-primary">Add Property</button></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="st-card" style="margin-top:16px;">
+        <div class="st-card-hdr"><div class="st-card-hdr-text"><h3>Property List</h3><p>{{ $properties->count() }} properties</p></div></div>
+        <div class="st-card-body" style="padding:0;overflow-x:auto;">
+          @if($properties->isEmpty())
+            <div class="st-empty" style="padding:20px;">No properties yet. Add one above.</div>
+          @else
+          <table class="st-user-table" style="min-width:400px;">
+            <thead><tr><th>Property Name</th><th>Developer</th><th style="text-align:right">Actions</th></tr></thead>
+            <tbody>
+              @foreach($properties as $prop)
+              <tr>
+                <td style="font-weight:600;color:#0f172a;">{{ $prop->name }}</td>
+                <td style="color:#64748b;font-size:12px;">{{ $prop->developer ?: '—' }}</td>
+                <td style="text-align:right;">
+                  <form method="POST" action="{{ route('settings.properties.destroy', $prop->id) }}" style="display:inline;" data-confirm="Remove {{ addslashes($prop->name) }}?">@csrf @method('DELETE')
+                    <button type="submit" class="st-btn st-btn-danger st-btn-sm">Remove</button>
+                  </form>
+                </td>
+              </tr>
+              @endforeach
+            </tbody>
+          </table>
+          @endif
+        </div>
+      </div>
+    </div>
 
     {{-- PERIOD LOCK PANEL --}}
 

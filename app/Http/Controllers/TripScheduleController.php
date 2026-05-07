@@ -98,7 +98,12 @@ class TripScheduleController extends Controller
         } catch (\Exception $e) {
             $teams = collect();
         }
-        return view('tripping', compact('teams'));
+        try {
+            $properties = \App\Models\Property::orderBy('name')->get();
+        } catch (\Exception $e) {
+            $properties = collect();
+        }
+        return view('tripping', compact('teams', 'properties'));
     }
 
     public function store(Request $request)

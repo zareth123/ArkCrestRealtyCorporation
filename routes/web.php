@@ -179,6 +179,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/agents/{id}', [App\Http\Controllers\SettingsController::class, 'updateAgent'])->name('settings.agents.update');
     Route::post('/settings/agents/{id}/toggle', [App\Http\Controllers\SettingsController::class, 'toggleAgentStatus'])->name('settings.agents.toggle');
 
+    // Property Management (admin only)
+    Route::post('/settings/properties', [App\Http\Controllers\SettingsController::class, 'storeProperty'])->name('settings.properties.store');
+    Route::delete('/settings/properties/{id}', [App\Http\Controllers\SettingsController::class, 'destroyProperty'])->name('settings.properties.destroy');
+    Route::get('/api/settings/properties', [App\Http\Controllers\SettingsController::class, 'getProperties'])->name('settings.properties.index');
+
     // Permission Requests
     Route::post('/api/permission-requests', [App\Http\Controllers\PermissionRequestController::class, 'store'])->name('permission-requests.store');
     Route::post('/api/permission-requests/{id}/review', [App\Http\Controllers\PermissionRequestController::class, 'review'])->name('permission-requests.review');
