@@ -193,6 +193,17 @@ class SettingsController extends Controller
     {
         if (!auth()->user()->isAdmin()) abort(403);
         $request->validate(['name' => 'required|string|max:255', 'developer' => 'nullable|string|max:255']);
+
+        // Auto-create table if migration hasn't run yet
+        if (!\Schema::hasTable('properties')) {
+            \Schema::create('properties', function ($table) {
+                $table->id();
+                $table->string('name');
+                $table->string('developer')->nullable();
+                $table->timestamps();
+            });
+        }
+
         \App\Models\Property::create(['name' => $request->name, 'developer' => $request->developer]);
         return redirect()->route('settings')->with('success', 'Property added.')->with('open_section', 'properties');
     }
