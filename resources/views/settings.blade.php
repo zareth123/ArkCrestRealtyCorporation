@@ -975,12 +975,12 @@
             ],
             'Settings' => [
               'settings.users'                   => 'User Management',
-              'settings.teams'                   => 'Team Management',
-              'settings.period-lock'             => 'Period Lock',
               'settings.visibility'              => 'Page Visibility',
               'settings.activity'                => 'Activity Log',
               'settings.deleted'                 => 'Deleted Records',
               'settings.permissions'             => 'Permission Requests',
+              'settings.teams'                   => 'Team Management',
+              'settings.period-lock'             => 'Period Lock',
             ],
           ];
           $staffUsers = $activeUsers->whereNotIn('status', ['pre_registered'])->where('role', '!=', 'admin');
