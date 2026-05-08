@@ -102,6 +102,7 @@
         <div id="hrFormHeader" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">
             <span id="hrFormTitle" style="font-size:14px;font-weight:700;color:white;"></span>
             <div style="display:flex;gap:8px;">
+                <button onclick="saveHrForm()" style="padding:6px 14px;background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">💾 Save</button>
                 <button onclick="printHrForm()" style="padding:6px 14px;background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">🖨 Print</button>
                 <button onclick="closeHrForm()" style="padding:6px 12px;background:rgba(255,255,255,.15);color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">&times;</button>
             </div>
@@ -112,11 +113,15 @@
 
 <script>
 var _hrLogo = "{{ asset('images/ArkCrest_Logo.png') }}";
+var _hrCsrf = document.querySelector('meta[name=csrf-token]').content;
+var _hrFormType = null;
+
 function openHrForm(type) {
     var modal = document.getElementById('hrFormModal');
     var content = document.getElementById('hrFormContent');
     var title = document.getElementById('hrFormTitle');
     var header = document.getElementById('hrFormHeader');
+    modal.setAttribute('data-type', type);
     var colors = {dayoff:'linear-gradient(135deg,#1e4575,#2563eb)', absences:'linear-gradient(135deg,#A37929,#d4a03a)', voucher:'linear-gradient(135deg,#0f2444,#1e4575)'};
     header.style.background = colors[type] || colors.dayoff;
     modal.style.display = 'flex';
@@ -125,6 +130,26 @@ function openHrForm(type) {
     else if (type==='voucher')  { title.textContent='Allowance Voucher ARCS'; content.innerHTML=hrFormVoucher(); }
 }
 function closeHrForm() { document.getElementById('hrFormModal').style.display='none'; }
+function saveHrForm() {
+    var type = document.getElementById('hrFormModal').getAttribute('data-type');
+    var fields = {};
+    document.querySelectorAll('#hrFormContent input, #hrFormContent textarea').forEach(function(el, i) {
+        fields['field_'+i] = el.value;
+    });
+    var csrf = document.querySelector('meta[name=csrf-token]').content;
+    fetch('/api/hr-forms', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':csrf},
+        body: JSON.stringify({type: type, data: fields})
+    }).then(function(r){return r.json();}).then(function(d){
+        if (d.success) {
+            // Show saved toast
+            var btn = document.querySelector('[onclick="saveHrForm()"]');
+            if (btn) { btn.textContent = '✓ Saved!'; btn.style.background='rgba(34,197,94,.3)'; setTimeout(function(){ btn.textContent='💾 Save'; btn.style.background='rgba(255,255,255,.2)'; },2000); }
+            loadSavedForms();
+        }
+    });
+}
 function printHrForm() {
     var content = document.getElementById('hrFormContent').innerHTML;
     var win = window.open('','_blank');
@@ -204,6 +229,104 @@ function hrFormVoucher(){
         '<hr style="margin:16px 0;border:none;border-top:1px dashed #999;">'+
         c("Employee\'s Copy");
 }
+</script>
+
+{{-- Saved Forms Section --}}
+<div style="margin-top:32px;">
+    <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+        Saved Forms
+    </div>
+
+    {{-- Folder Tabs --}}
+    <div style="display:flex;gap:4px;margin-bottom:0;border-bottom:2px solid #e2e8f0;">
+        @foreach(['dayoff'=>'Change Day-Off','absences'=>'Absences Report','voucher'=>'Allowance Voucher'] as $ftype => $flabel)
+        <button onclick="switchFolder('{{ $ftype }}')" id="folder-tab-{{ $ftype }}"
+            style="padding:8px 18px;border:none;border-radius:8px 8px 0 0;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;
+            {{ $ftype === 'dayoff' ? 'background:#1e4575;color:white;' : 'background:#f1f5f9;color:#64748b;' }}">
+            {{ $flabel }}
+        </button>
+        @endforeach
+    </div>
+
+    {{-- Folder Content --}}
+    @foreach(['dayoff','absences','voucher'] as $ftype)
+    <div id="folder-{{ $ftype }}" style="{{ $ftype === 'dayoff' ? '' : 'display:none;' }}background:white;border-radius:0 8px 8px 8px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;">
+        <div id="saved-list-{{ $ftype }}" style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Loading...</div>
+    </div>
+    @endforeach
+</div>
+
+<script>
+var _csrf2 = document.querySelector('meta[name=csrf-token]').content;
+var _activeFolder = 'dayoff';
+
+function switchFolder(type) {
+    _activeFolder = type;
+    ['dayoff','absences','voucher'].forEach(function(t) {
+        var tab = document.getElementById('folder-tab-'+t);
+        var folder = document.getElementById('folder-'+t);
+        if (t === type) {
+            tab.style.background = '#1e4575'; tab.style.color = 'white';
+            folder.style.display = 'block';
+        } else {
+            tab.style.background = '#f1f5f9'; tab.style.color = '#64748b';
+            folder.style.display = 'none';
+        }
+    });
+    loadSavedForms(type);
+}
+
+function loadSavedForms(type) {
+    type = type || _activeFolder;
+    var container = document.getElementById('saved-list-'+type);
+    if (!container) return;
+    fetch('/api/hr-forms?type='+type)
+    .then(function(r){return r.json();})
+    .then(function(list){
+        if (!list.length) {
+            container.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">No saved forms yet.</div>';
+            return;
+        }
+        container.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+            '<thead><tr style="background:#f8fafc;"><th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Title</th>'+
+            '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Saved By</th>'+
+            '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Date</th>'+
+            '<th style="padding:8px 12px;border-bottom:1px solid #e2e8f0;"></th></tr></thead><tbody>'+
+            list.map(function(f){
+                return '<tr style="border-bottom:1px solid #f1f5f9;">'+
+                    '<td style="padding:10px 12px;font-weight:600;color:#0f172a;">'+f.title+'</td>'+
+                    '<td style="padding:10px 12px;color:#64748b;">'+f.created_by+'</td>'+
+                    '<td style="padding:10px 12px;color:#94a3b8;font-size:12px;">'+f.created_at+'</td>'+
+                    '<td style="padding:10px 12px;text-align:right;white-space:nowrap;">'+
+                    '<button onclick="openSavedForm(\''+f.type+'\','+JSON.stringify(f.data).replace(/'/g,"\\'")+',\''+f.title+'\')" style="padding:4px 10px;background:#eff6ff;color:#1e4575;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px;">Open</button>'+
+                    '@if(auth()->user()->isAdmin())<button onclick="deleteSavedForm('+f.id+',\''+type+'\')" style="padding:4px 10px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Delete</button>@endif'+
+                    '</td></tr>';
+            }).join('')+'</tbody></table>';
+    });
+}
+
+function openSavedForm(type, data, title) {
+    openHrForm(type);
+    document.getElementById('hrFormTitle').textContent = title;
+    // Fill in saved data after a short delay for DOM to render
+    setTimeout(function() {
+        var inputs = document.querySelectorAll('#hrFormContent input, #hrFormContent textarea');
+        var keys = Object.keys(data);
+        inputs.forEach(function(el, i) {
+            if (keys[i] !== undefined) el.value = data[keys[i]];
+        });
+    }, 100);
+}
+
+function deleteSavedForm(id, type) {
+    if (!confirm('Delete this saved form?')) return;
+    fetch('/api/hr-forms/'+id, {method:'DELETE',headers:{'X-CSRF-TOKEN':_csrf2}})
+    .then(function(r){return r.json();}).then(function(){loadSavedForms(type);});
+}
+
+// Load on page ready
+document.addEventListener('DOMContentLoaded', function(){ loadSavedForms('dayoff'); });
 </script>
 
 @endsection
