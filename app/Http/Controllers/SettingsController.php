@@ -658,7 +658,7 @@ class SettingsController extends Controller
             'calendar','sales-marketing','client-database','client-database.list',
             'client-database.property','site-visit-database','sales-calendar','forms',
             'human-resource','human-resource.employee-data','human-resource.contact-list',
-            'settings.users','settings.employee','settings.personnel','settings.teams',
+            'settings.users','settings.teams',
             'settings.period-lock','settings.visibility','settings.activity','settings.deleted','settings.permissions',
         ];
 

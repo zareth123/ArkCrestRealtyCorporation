@@ -988,8 +988,6 @@
             ],
             'Settings' => [
               'settings.users'                   => 'User Management',
-              'settings.employee'                => 'Employee Data',
-              'settings.personnel'               => 'ARC Contact List',
               'settings.teams'                   => 'Team Management',
               'settings.period-lock'             => 'Period Lock',
               'settings.visibility'              => 'Page Visibility',
