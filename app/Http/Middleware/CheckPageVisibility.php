@@ -17,6 +17,9 @@ class CheckPageVisibility
         'calendar'              => 'calendar',
         'sales-marketing'       => 'sales-marketing',
         'forms'                 => 'forms',
+        'human-resource'        => 'human-resource',
+        'hr.employee-data'      => 'human-resource.employee-data',
+        'hr.contact-list'       => 'human-resource.contact-list',
     ];
 
     public function handle(Request $request, Closure $next)
