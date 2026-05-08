@@ -128,22 +128,24 @@ function closeHrForm() { document.getElementById('hrFormModal').style.display='n
 function printHrForm() {
     var content = document.getElementById('hrFormContent').innerHTML;
     var win = window.open('','_blank');
-    win.document.write('<html><head><title>HR Form</title><style>@page{size:letter;margin:.75in}body{font-family:"Times New Roman",serif;font-size:13px;color:#111;margin:0}table{border-collapse:collapse;width:100%}td,th{border:1px solid #111;padding:4px 8px}.nb td,.nb th{border:none}@media print{body{margin:0}}</style></head><body>'+content+'</body></html>');
+    win.document.write('<html><head><title>HR Form</title><style>@page{size:letter;margin:.75in}body{font-family:"Times New Roman",serif;font-size:13px;color:#111;margin:0}table{border-collapse:collapse;width:100%}td,th{border:1px solid #111;padding:4px 8px}.nb td,.nb th{border:none}input,textarea{font-family:"Times New Roman",serif;font-size:13px;color:#111;}@media print{body{margin:0}input,textarea{border:none!important;outline:none!important;}}</style></head><body>'+content+'</body></html>');
     win.document.close(); win.focus(); setTimeout(function(){win.print();},400);
 }
 function _ul(w){return '<span style="display:inline-block;min-width:'+(w||160)+'px;border-bottom:1px solid #111;margin-left:4px;">&nbsp;</span>';}
+function _inp(w,ph){return '<input type="text" placeholder="'+(ph||'')+'" style="display:inline-block;width:'+(w||160)+'px;border:none;border-bottom:1px solid #111;margin-left:4px;font-family:inherit;font-size:inherit;outline:none;background:transparent;padding:0 2px;">';}
+function _ta(h){return '<textarea style="width:100%;height:'+(h||80)+'px;border:1px solid #111;font-family:inherit;font-size:inherit;resize:none;padding:4px;box-sizing:border-box;"></textarea>';}
 
 function _dayOffCopy(){
     return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'+
         '<img src="'+_hrLogo+'" style="width:48px;height:48px;object-fit:contain;">'+
         '<h2 style="font-size:20px;font-weight:bold;margin:0;flex:1;text-align:center;">Change Day-Off Form</h2></div>'+
-        '<table class="nb" style="margin-bottom:8px;font-size:12px;"><tr>'+
-        '<td>Name:'+_ul(180)+'</td><td>Position:'+_ul(130)+'</td></tr><tr>'+
-        '<td>Previous Day-Off Schedule:'+_ul(110)+'</td><td>Department:'+_ul(130)+'</td></tr><tr>'+
-        '<td>New Day-Off Schedule:'+_ul(120)+'</td><td>Date (Week):'+_ul(130)+'</td></tr></table>'+
+        '<table class="nb" style="margin-bottom:8px;font-size:12px;width:100%;"><tr>'+
+        '<td>Name:'+_inp(180)+'</td><td>Position:'+_inp(130)+'</td></tr><tr>'+
+        '<td>Previous Day-Off Schedule:'+_inp(110)+'</td><td>Department:'+_inp(130)+'</td></tr><tr>'+
+        '<td>New Day-Off Schedule:'+_inp(120)+'</td><td>Date (Week):'+_inp(130)+'</td></tr></table>'+
         '<div style="margin-bottom:4px;font-size:12px;">Reason:</div>'+
-        '<div style="border:1px solid #111;height:70px;margin-bottom:16px;"></div>'+
-        '<table class="nb" style="font-size:12px;"><tr>'+
+        _ta(70)+
+        '<table class="nb" style="font-size:12px;margin-top:12px;"><tr>'+
         '<td style="width:50%;">Approved by : <strong><u>Mr. Edwin Mojica</u></strong><br><small>(Chief Operating Officer)</small></td>'+
         '<td>Acknowledged by : <strong><u>Mr. Jossen Fernandez</u></strong><br><small>(President)</small></td></tr></table>';
 }
@@ -158,14 +160,14 @@ function hrFormAbsences(){
     return '<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">'+
         '<img src="'+_hrLogo+'" style="width:56px;height:56px;object-fit:contain;">'+
         '<h2 style="font-size:22px;font-weight:bold;margin:0;flex:1;text-align:center;">Absences Report Form</h2></div>'+
-        '<table class="nb" style="margin-bottom:10px;"><tr>'+
-        '<td>Name:'+_ul(200)+'</td><td>Department:'+_ul(160)+'</td></tr><tr>'+
-        '<td>Date today:'+_ul(200)+'</td><td></td></tr></table>'+
+        '<table class="nb" style="margin-bottom:10px;width:100%;"><tr>'+
+        '<td>Name:'+_inp(200)+'</td><td>Department:'+_inp(160)+'</td></tr><tr>'+
+        '<td>Date today:'+_inp(200)+'</td><td></td></tr></table>'+
         '<div style="margin:12px 0 5px;">Explanation:</div>'+
-        '<div style="border:1px solid #111;height:340px;margin-bottom:32px;"></div>'+
-        '<table class="nb"><tr>'+
-        '<td style="width:50%;">Assessed by:'+_ul(160)+'</td>'+
-        '<td>Acknowledged by:'+_ul(160)+'</td></tr></table>';
+        _ta(300)+
+        '<table class="nb" style="margin-top:24px;"><tr>'+
+        '<td style="width:50%;">Assessed by:'+_inp(160)+'</td>'+
+        '<td>Acknowledged by:'+_inp(160)+'</td></tr></table>';
 }
 
 function hrFormVoucher(){
@@ -176,20 +178,27 @@ function hrFormVoucher(){
         '<div style="display:flex;align-items:center;justify-content:center;gap:8px;">'+
         '<img src="'+_hrLogo+'" style="width:26px;height:26px;object-fit:contain;">'+
         '<div><strong>ArkCrest Realty Corporation</strong><br>Allowance Voucher ARCS &nbsp;&nbsp; (36-2026)</div></div></td></tr>'+
-        '<tr><td>Employee Name:</td><td>'+_ul(110)+'</td><td>Designation:</td><td>'+_ul(90)+'</td></tr>'+
-        '<tr><td>Pay Period:</td><td>'+_ul(110)+'</td><td>Department:</td><td>'+_ul(90)+'</td></tr>'+
+        '<tr><td>Employee Name:</td><td><input type="text" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td>'+
+        '<td>Designation:</td><td><input type="text" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
+        '<tr><td>Pay Period:</td><td><input type="text" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td>'+
+        '<td>Department:</td><td><input type="text" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
         '<tr><td><strong>Earnings</strong></td><td><strong>Amount</strong></td><td><strong>Deductions</strong></td><td><strong>Amount</strong></td></tr>'+
-        '<tr><td>Basic Pay:</td><td></td><td>Number of Absences:</td><td></td></tr>'+
-        '<tr><td></td><td></td><td></td><td></td></tr>'+
-        '<tr><td></td><td></td><td></td><td></td></tr>'+
-        '<tr><td></td><td></td><td></td><td></td></tr>'+
-        '<tr><td colspan="2" style="text-align:right;font-weight:bold;">Total Earnings:</td>'+
-        '<td style="font-weight:bold;text-align:right;">Total Deductions:</td><td></td></tr>'+
-        '<tr><td colspan="3" style="text-align:right;font-weight:bold;">Net Pay:</td><td style="font-weight:bold;">&#8369;</td></tr></table>'+
+        '<tr><td>Basic Pay:</td><td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td>'+
+        '<td>Number of Absences:</td><td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
+        '<tr><td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td>'+
+        '<td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
+        '<tr><td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td>'+
+        '<td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
+        '<tr><td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td>'+
+        '<td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
+        '<tr><td colspan="2" style="text-align:right;font-weight:bold;">Total Earnings: <input type="text" style="width:80px;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td>'+
+        '<td style="font-weight:bold;text-align:right;">Total Deductions: <input type="text" style="width:60px;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td><td></td></tr>'+
+        '<tr><td colspan="3" style="text-align:right;font-weight:bold;">Net Pay: &#8369;</td>'+
+        '<td><input type="text" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;font-weight:bold;"></td></tr></table>'+
         '<table class="nb" style="font-size:12px;margin-bottom:6px;"><tr>'+
         '<td style="width:33%;">Prepared by:<br><br><u>Mr. Lourd Thristan Lobendino</u><br><small>Human Resource Associate</small></td>'+
         '<td style="width:33%;">Approved by:<br><br><u>Mr. Edwin Mojica</u><br><small>Chief Operating Officer</small></td>'+
-        '<td>Received by:<br><br>'+_ul(120)+'<br><small>&nbsp;</small></td></tr></table>';
+        '<td>Received by:<br><br><input type="text" style="width:120px;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"><br><small>&nbsp;</small></td></tr></table>';
     };
     return c("Employer\'s Copy")+
         '<hr style="margin:16px 0;border:none;border-top:1px dashed #999;">'+
