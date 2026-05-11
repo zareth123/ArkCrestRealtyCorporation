@@ -75,9 +75,9 @@
                 </div>
                 <div class="card-content">
                     <div class="card-label">Units</div>
-                    <div class="card-value">{{ number_format($units, 0) }}</div>
+                    <div class="card-value" id="card_units">{{ number_format($units, 0) }}</div>
                     <div style="font-size:12px;color:#64748b;margin-top:4px;">
-                        Gross Sales: <strong>&#8369;{{ number_format($grossSalesFromClient, 0) }}</strong>
+                        Gross Sales: <strong id="card_gross_sales">&#8369;{{ number_format($grossSalesFromClient, 0) }}</strong>
                     </div>
                 </div>
             </div>
@@ -749,13 +749,16 @@ function formatInputValue(input) {
 function updateSummaryCards() {
     const units = parseFloat(document.getElementById('units').value.replace(/,/g, '')) || 0;
     const grossSales = parseFloat(document.getElementById('gross_sales').value.replace(/,/g, '')) || 0;
-    const netSales = grossSales - totalExpenses;
+    const totalExpEl = document.getElementById('total_expenses_display');
+    const currentTotalExpenses = totalExpEl ? parseFloat(totalExpEl.textContent.replace(/[₱,\s]/g, '')) || 0 : totalExpenses;
+    const netSales = grossSales - currentTotalExpenses;
     
     // Update Units card
     document.getElementById('card_units').textContent = units.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
     
     // Update Gross Sales card
-    document.getElementById('card_gross_sales').innerHTML = '<span style="font-size: 20px; margin-right: 4px;">₱</span>' + grossSales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const cardGross = document.getElementById('card_gross_sales');
+    if (cardGross) cardGross.textContent = '₱' + grossSales.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
     
     // Update Net Sales card
     document.getElementById('card_net_sales').innerHTML = '<span style="font-size: 20px; margin-right: 4px;">₱</span>' + netSales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -914,8 +917,14 @@ function calculateNetSales() {
     // Remove commas before parsing
     const grossSalesValue = document.getElementById('gross_sales').value.replace(/,/g, '');
     const grossSales = parseFloat(grossSalesValue) || 0;
-    const netSales = grossSales - totalExpenses;
+    // Read total expenses dynamically from the display element
+    const totalExpEl = document.getElementById('total_expenses_display');
+    const currentTotalExpenses = totalExpEl ? parseFloat(totalExpEl.textContent.replace(/[₱,\s]/g, '')) || 0 : totalExpenses;
+    const netSales = grossSales - currentTotalExpenses;
     document.getElementById('net_sales').textContent = '₱ ' + netSales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    // Also update the card
+    const cardEl = document.getElementById('card_net_sales');
+    if (cardEl) cardEl.innerHTML = '<span style="font-size:20px;margin-right:4px;">₱</span>' + netSales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
 function recalcNetSales() {
