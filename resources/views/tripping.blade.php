@@ -178,8 +178,17 @@ body{display:flex;align-items:center;justify-content:center;background:linear-gr
             <div class="section-label">Property</div>
             <div class="field ac-wrap">
                 <label>Property Name</label>
+                @if($properties->isNotEmpty())
+                <select name="property_name" id="propertyNameInput" required style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:12px;color:#111827;background:white;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.04);" onchange="onPropertySelect(this)">
+                    <option value="">— Select Property —</option>
+                    @foreach($properties as $prop)
+                    <option value="{{ $prop->name }}" data-developer="{{ $prop->developer }}" {{ old('property_name') == $prop->name ? 'selected' : '' }}>{{ $prop->name }}{{ $prop->developer ? ' ('.$prop->developer.')' : '' }}</option>
+                    @endforeach
+                </select>
+                @else
                 <input type="text" id="propertyNameInput" name="property_name" value="{{ old('property_name') }}" required placeholder="Type to search or enter new property..." autocomplete="off">
                 <div class="ac-list" id="propertyAcList"></div>
+                @endif
             </div>
             <div class="reveal-field" id="companyField">
                 <div class="field">
@@ -214,7 +223,8 @@ body{display:flex;align-items:center;justify-content:center;background:linear-gr
             @php
                 $u = auth()->user();
                 $pos = strtolower($u->position ?? '');
-                $isSalesPerson = str_contains($pos, 'sales');
+                $salesPositions = ['sales agent', 'sales manager', 'sales person', 'salesperson', 'sales team leader', 'sales personnel'];
+                $isSalesPerson = in_array($pos, $salesPositions);
                 $hasSystemAccess = !$isSalesPerson && ($u->isAdmin() || !in_array('forms', $u->hidden_pages ?? []));
             @endphp
             @if($hasSystemAccess)
@@ -314,6 +324,15 @@ document.getElementById('clientPhoneInput').addEventListener('blur',function(){
 });
 function setupAc(inputId,listId,fetchUrl,onSelect){var input=document.getElementById(inputId),list=document.getElementById(listId),timer;input.addEventListener('input',function(){clearTimeout(timer);var q=input.value.trim();if(!q){list.classList.remove('open');return;}timer=setTimeout(function(){fetch(fetchUrl+'?q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(data){list.innerHTML='';if(!data.length){list.innerHTML='<div class="ac-empty">No existing records</div>';}else{data.forEach(function(item){var d=document.createElement('div');d.className='ac-item';d.textContent=item;d.addEventListener('mousedown',function(e){e.preventDefault();onSelect(item,input,list);});list.appendChild(d);});}list.classList.add('open');});},250);});document.addEventListener('click',function(e){if(!input.contains(e.target)&&!list.contains(e.target))list.classList.remove('open');});}
 setupAc('propertyNameInput','propertyAcList','/api/tripping/properties',function(name,input,list){input.value=name;list.classList.remove('open');document.getElementById('companyField').classList.add('show');fetch('/api/tripping/property-details?name='+encodeURIComponent(name)).then(function(r){return r.json();}).then(function(d){document.getElementById('companyName').value=d.company||'';});checkDuplicate();});
+function onPropertySelect(sel) {
+    var opt = sel.options[sel.selectedIndex];
+    var dev = opt ? opt.getAttribute('data-developer') : '';
+    if (sel.value) {
+        document.getElementById('companyField').classList.add('show');
+        if (dev) document.getElementById('companyName').value = dev;
+        checkDuplicate();
+    }
+}
 document.getElementById('propertyNameInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();document.getElementById('companyField').classList.add('show');checkDuplicate();}});
 document.getElementById('propertyNameInput').addEventListener('blur',function(){setTimeout(function(){if(document.getElementById('propertyNameInput').value.trim()){document.getElementById('companyField').classList.add('show');checkDuplicate();}},300);});
 document.getElementById('clientNameInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();revealClientFields();checkDuplicate();}});

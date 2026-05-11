@@ -47,6 +47,12 @@
                 isActive = true;
             } else if (page === 'settings' && currentPath.includes('/settings')) {
                 isActive = true;
+            } else if (page === 'human-resource' && currentPath === '/human-resource') {
+                isActive = true;
+            } else if (page === 'hr-employee-data' && currentPath.includes('/human-resource/employee-data')) {
+                isActive = true;
+            } else if (page === 'hr-contact-list' && currentPath.includes('/human-resource/contact-list')) {
+                isActive = true;
             }
             
             if (isActive) {
@@ -67,6 +73,9 @@
                             if (arrow) arrow.classList.add('open');
                         } else if (submenu.id === 'commissionSubmenu') {
                             const arrow = document.getElementById('commissionArrow');
+                            if (arrow) arrow.classList.add('open');
+                        } else if (submenu.id === 'hrSubmenu') {
+                            const arrow = document.getElementById('hrArrow');
                             if (arrow) arrow.classList.add('open');
                         } else {
                             const arrow = document.getElementById('financeArrow');

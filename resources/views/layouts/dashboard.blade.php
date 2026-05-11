@@ -8,6 +8,29 @@
     <title>{{ config('app.name', 'ARCKREST REALTY CORPORATION') }} - @yield('title', 'Dashboard')</title>
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}?v={{ time() }}{{ rand(1000, 9999) }}">
     <link rel="stylesheet" href="{{ asset('css/optimized-global.css') }}?v={{ time() }}">
+    <style>
+    /* Global horizontal scrollbar for all table wrappers */
+    .tbl-wrap, .table-wrapper, .table-container, .tbl-scroll {
+        overflow-x: scroll !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    .tbl-wrap::-webkit-scrollbar,
+    .table-wrapper::-webkit-scrollbar,
+    .table-container::-webkit-scrollbar,
+    .tbl-scroll::-webkit-scrollbar { height: 8px; }
+    .tbl-wrap::-webkit-scrollbar-track,
+    .table-wrapper::-webkit-scrollbar-track,
+    .table-container::-webkit-scrollbar-track,
+    .tbl-scroll::-webkit-scrollbar-track { background:#f1f5f9; border-radius:4px; }
+    .tbl-wrap::-webkit-scrollbar-thumb,
+    .table-wrapper::-webkit-scrollbar-thumb,
+    .table-container::-webkit-scrollbar-thumb,
+    .tbl-scroll::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:4px; }
+    .tbl-wrap::-webkit-scrollbar-thumb:hover,
+    .table-wrapper::-webkit-scrollbar-thumb:hover,
+    .table-container::-webkit-scrollbar-thumb:hover,
+    .tbl-scroll::-webkit-scrollbar-thumb:hover { background:#475569; }
+    </style>
 </head>
 <body>
     <div class="dashboard-container">
@@ -374,8 +397,8 @@
                     </li>
                     @endif
                     
-                    <!-- Forms -->
-                    @if($canSee('forms'))
+                    <!-- Human Resource -->
+                    @if($canSee('human-resource'))
                     <li class="nav-item-wrapper">
                         <div class="nav-item-container">
                             <a href="{{ route('human-resource') }}" class="nav-item nav-item-with-dropdown" data-page="human-resource" onclick="event.stopPropagation();">
@@ -1478,5 +1501,97 @@
         @csrf
     </form>
 
+<script>
+// Auto-add tbl-scroll class to all overflow-x divs for scrollbar styling
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('div, section').forEach(function(el) {
+        var s = window.getComputedStyle(el).overflowX;
+        if (s === 'auto' || s === 'scroll') {
+            el.classList.add('tbl-scroll');
+        }
+    });
+});
+</script>
+
+<!-- Custom Confirm Modal (replaces browser default confirm()) -->
+<div id="customConfirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:16px;padding:28px 32px;width:380px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;">
+        <div style="width:52px;height:52px;background:#fef2f2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+            <svg fill="none" stroke="#ef4444" viewBox="0 0 24 24" style="width:26px;height:26px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <div id="customConfirmMessage" style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:8px;"></div>
+        <div id="customConfirmSub" style="font-size:13px;color:#64748b;margin-bottom:24px;">This action cannot be undone.</div>
+        <div style="display:flex;gap:10px;">
+            <button id="customConfirmCancel" style="flex:1;padding:10px;background:#f1f5f9;color:#374151;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">Cancel</button>
+            <button id="customConfirmOk" style="flex:1;padding:10px;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Confirm</button>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    var modal = document.getElementById('customConfirmModal');
+    var msgEl = document.getElementById('customConfirmMessage');
+    var subEl = document.getElementById('customConfirmSub');
+    var okBtn = document.getElementById('customConfirmOk');
+    var cancelBtn = document.getElementById('customConfirmCancel');
+    var _resolve = null;
+
+    function showConfirmModal(message) {
+        // Parse message for sub-text
+        msgEl.textContent = message;
+        subEl.style.display = message.toLowerCase().includes('permanent') ? 'block' : 'none';
+        modal.style.display = 'flex';
+        return new Promise(function(resolve) { _resolve = resolve; });
+    }
+
+    okBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+        if (_resolve) { _resolve(true); _resolve = null; }
+    });
+    cancelBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+        if (_resolve) { _resolve(false); _resolve = null; }
+    });
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            if (_resolve) { _resolve(false); _resolve = null; }
+        }
+    });
+
+    // Override window.confirm globally
+    window.confirm = function(message) {
+        // For synchronous form onsubmit, we need a workaround
+        // Store pending form and use async approach
+        return true; // fallback — handled below
+    };
+
+    // Intercept all form submissions with onsubmit confirm
+    document.addEventListener('submit', function(e) {
+        var form = e.target;
+        var msg = form.getAttribute('data-confirm');
+        if (!msg) return; // no custom confirm needed
+        e.preventDefault();
+        showConfirmModal(msg).then(function(confirmed) {
+            if (confirmed) {
+                form.removeAttribute('data-confirm');
+                form.submit();
+            }
+        });
+    }, true);
+
+    // Convert all onsubmit="return confirm(...)" to data-confirm
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('form[onsubmit]').forEach(function(form) {
+            var attr = form.getAttribute('onsubmit') || '';
+            var match = attr.match(/confirm\(['"](.+?)['"]\)/);
+            if (match) {
+                form.setAttribute('data-confirm', match[1]);
+                form.removeAttribute('onsubmit');
+            }
+        });
+    });
+})();
+</script>
 </body>
 </html>

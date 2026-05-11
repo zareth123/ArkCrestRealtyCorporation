@@ -159,6 +159,12 @@ body{display:flex;align-items:center;justify-content:center;background:linear-gr
       <div class="form-title">Welcome back</div>
       <div class="form-sub">Login to dive into the system!</div>
       @if(session('success'))<div class="alert-success">{{ session('success') }}</div>@endif
+      @if(session('inactive_agent'))
+      <div style="background:#fff7ed;border-left:3px solid #f97316;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:#9a3412;">
+        <div style="font-weight:700;margin-bottom:4px;">⚠ Account Inactive</div>
+        <div>Your account has been set to inactive. Please contact the executives to reactivate your access.</div>
+      </div>
+      @endif
       @if($errors->any() && !old('name'))<div class="alert-error">{{ $errors->first() }}</div>@endif
       <form method="POST" action="{{ route('login.post') }}">
         @csrf

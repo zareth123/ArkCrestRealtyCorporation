@@ -9,14 +9,17 @@ class CheckPageVisibility
 {
     // Map route names to their setting key
     const PAGE_MAP = [
-        'dashboard'             => 'dashboard',
-        'summary-report'        => 'summary-report',
-        'summary-report.yearly' => 'summary-report',
-        'departments.admin'     => 'departments',
-        'commission-monitoring' => 'commission-monitoring',
-        'calendar'              => 'calendar',
-        'sales-marketing'       => 'sales-marketing',
-        'forms'                 => 'forms',
+        'dashboard'                    => 'dashboard',
+        'summary-report'               => 'summary-report',
+        'summary-report.yearly'        => 'summary-report',
+        'departments.admin'            => 'departments',
+        'commission-monitoring'        => 'commission-monitoring',
+        'calendar'                     => 'calendar',
+        'sales-marketing'              => 'sales-marketing',
+        'forms'                        => 'forms',
+        'human-resource'               => 'human-resource',
+        'hr.employee-data'             => 'human-resource.employee-data',
+        'hr.contact-list'              => 'human-resource.contact-list',
     ];
 
     public function handle(Request $request, Closure $next)

@@ -112,11 +112,31 @@ class SalesMarketingController extends Controller
             $merged[$key]['deals']              += $row->deals;
         }
 
-        // Look up position from users table
+        // Look up position from users table AND team management roles
         $agentNames = collect($merged)->pluck('agent_name');
         $userPositions = \App\Models\User::whereIn('name', $agentNames)->pluck('position', 'name');
+
+        // Build role map from Team Management (leader_name → Team Leader, sales_manager → Sales Manager)
+        $allTeams = \App\Models\SalesTeam::all();
+        $teamRoleMap = [];
+        foreach ($allTeams as $t) {
+            if ($t->leader_name) {
+                $teamRoleMap[strtolower(trim($t->leader_name))] = 'Team Leader';
+            }
+            if ($t->sales_manager) {
+                // Sales Manager overrides Team Leader if same person
+                $teamRoleMap[strtolower(trim($t->sales_manager))] = 'Sales Manager';
+            }
+        }
+
         foreach ($merged as $key => &$agent) {
-            $agent['position'] = $userPositions[$agent['agent_name']] ?? null;
+            $nameKey = strtolower(trim($agent['agent_name']));
+            // Team Management role takes priority over users.position
+            if (isset($teamRoleMap[$nameKey])) {
+                $agent['position'] = $teamRoleMap[$nameKey];
+            } else {
+                $agent['position'] = $userPositions[$agent['agent_name']] ?? null;
+            }
         }
         unset($agent);
 
@@ -387,19 +407,19 @@ class SalesMarketingController extends Controller
         $record = CommissionRequestSales::findOrFail($id);
         $oldStatus = $record->client_status;
 
-        // Block Done if no downpayment has been set at all
+        // Block Done only if there is absolutely no downpayment activity yet
         if ($request->client_status === 'Done') {
             $dpStatus = $record->downpayment_status;
-            $hasDownpayment = !empty($dpStatus) && $dpStatus !== '— Set —';
 
-            // For installments: at least 1 term paid is enough
+            // Check installments — at least 1 paid is enough
             $installments = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $id)->get();
-            if ($installments->count() > 0) {
-                $hasDownpayment = $installments->contains(fn($i) => $i->is_paid);
-            }
+            $hasAnyInstallmentPaid = $installments->contains(fn($i) => $i->is_paid);
 
-            if (!$hasDownpayment) {
-                return back()->with('error', 'Cannot set to Done — please set the downpayment status first.');
+            // Check if downpayment_status is set to something meaningful (Spot, Paid, Partial, etc.)
+            $hasDownpaymentStatus = !empty($dpStatus) && !in_array($dpStatus, ['— Set —', null]);
+
+            if (!$hasAnyInstallmentPaid && !$hasDownpaymentStatus) {
+                return back()->with('error', 'Cannot set to Done — client must have at least one downpayment recorded first.');
             }
         }
 
@@ -491,6 +511,22 @@ class SalesMarketingController extends Controller
         $all   = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $parentId)->count();
         $paid  = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $parentId)->where('is_paid', true)->count();
         $status = $paid === $all ? 'Paid' : 'Partial';
+        CommissionRequestSales::findOrFail($parentId)->update(['downpayment_status' => $status]);
+
+        return response()->json(['success' => true, 'status' => $status]);
+    }
+
+    public function unmarkInstallmentPaid(Request $request, $id)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $inst = \App\Models\DownpaymentInstallment::findOrFail($id);
+        $inst->update(['is_paid' => false, 'paid_at' => null]);
+
+        // Recalculate parent downpayment_status
+        $parentId = $inst->commission_request_sales_id;
+        $all  = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $parentId)->count();
+        $paid = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $parentId)->where('is_paid', true)->count();
+        $status = $paid === 0 ? null : ($paid === $all ? 'Paid' : 'Partial');
         CommissionRequestSales::findOrFail($parentId)->update(['downpayment_status' => $status]);
 
         return response()->json(['success' => true, 'status' => $status]);

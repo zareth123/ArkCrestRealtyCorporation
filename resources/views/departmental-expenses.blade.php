@@ -681,43 +681,7 @@ function showToast(type, title, message, callback) {
     }
 }
 
-function showConfirm(title, message, onConfirm) {
-    const toast = document.getElementById('toastNotification');
-    const icon = document.getElementById('toastIcon');
-    const titleEl = document.getElementById('toastTitle');
-    const messageEl = document.getElementById('toastMessage');
-    
-    icon.textContent = '?';
-    titleEl.textContent = title;
-    messageEl.innerHTML = message + '<div class="confirm-buttons"><button class="btn-confirm-yes" onclick="confirmYes()">Yes</button><button class="btn-confirm-no" onclick="confirmNo()">No</button></div>';
-    
-    toast.classList.remove('success', 'error', 'warning', 'info', 'confirm', 'hiding');
-    toast.classList.add('confirm');
-    toast.classList.add('show');
-    
-    window.confirmCallback = onConfirm;
-}
 
-function confirmYes() {
-    const toast = document.getElementById('toastNotification');
-    toast.classList.add('hiding');
-    setTimeout(() => {
-        toast.classList.remove('show', 'hiding');
-        if (window.confirmCallback) {
-            window.confirmCallback();
-            window.confirmCallback = null;
-        }
-    }, 300);
-}
-
-function confirmNo() {
-    const toast = document.getElementById('toastNotification');
-    toast.classList.add('hiding');
-    setTimeout(() => {
-        toast.classList.remove('show', 'hiding');
-        window.confirmCallback = null;
-    }, 300);
-}
 
 // Helper function to close all dropdowns
 function closeAllDropdowns() {

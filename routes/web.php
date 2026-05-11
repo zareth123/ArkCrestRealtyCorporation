@@ -46,6 +46,7 @@ Route::post('/', function () {
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::get('/logout', function() { return redirect()->route('login'); });
 
 // Protected routes
 Route::middleware('auth')->group(function () {
@@ -115,9 +116,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/settings/employee/add', [App\Http\Controllers\SettingsController::class, 'addEmployeeRecord'])->name('settings.employee.add');
 
     // Forms
-    Route::get('/human-resource', [App\Http\Controllers\HumanResourceController::class, 'index'])->name('human-resource');
-    Route::get('/human-resource/employee-data', [App\Http\Controllers\HumanResourceController::class, 'employeeData'])->name('hr.employee-data');
-    Route::get('/human-resource/contact-list', [App\Http\Controllers\HumanResourceController::class, 'contactList'])->name('hr.contact-list');
+    Route::get('/human-resource', [App\Http\Controllers\HumanResourceController::class, 'index'])->name('human-resource')->middleware('page.visible');
+    Route::get('/human-resource/employee-data', [App\Http\Controllers\HumanResourceController::class, 'employeeData'])->name('hr.employee-data')->middleware('page.visible');
+    Route::get('/human-resource/contact-list', [App\Http\Controllers\HumanResourceController::class, 'contactList'])->name('hr.contact-list')->middleware('page.visible');
     Route::get('/forms', [App\Http\Controllers\FormsController::class, 'index'])->name('forms')->middleware('page.visible');
     Route::get('/forms/site-visit', [App\Http\Controllers\FormsController::class, 'siteVisit'])->name('forms.site-visit');
     Route::get('/api/forms/control-number', [App\Http\Controllers\FormsController::class, 'nextControlNumber']);
@@ -152,6 +153,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/client-database/{id}/installments/setup', [App\Http\Controllers\SalesMarketingController::class, 'setupInstallments']);
     Route::patch('/api/installments/{id}/amount', [App\Http\Controllers\SalesMarketingController::class, 'updateInstallmentAmount']);
     Route::patch('/api/installments/{id}/paid', [App\Http\Controllers\SalesMarketingController::class, 'markInstallmentPaid']);
+    Route::patch('/api/installments/{id}/unpaid', [App\Http\Controllers\SalesMarketingController::class, 'unmarkInstallmentPaid']);
     Route::delete('/client-database/{id}', [App\Http\Controllers\SalesMarketingController::class, 'destroy'])->name('client-database.destroy');
 
     // Site Visit Database
@@ -170,10 +172,18 @@ Route::middleware('auth')->group(function () {
     // Team Management (admin only)
     Route::post('/settings/teams', [App\Http\Controllers\SettingsController::class, 'storeTeam'])->name('settings.teams.store');
     Route::delete('/settings/teams/{id}', [App\Http\Controllers\SettingsController::class, 'destroyTeam'])->name('settings.teams.destroy');
+    Route::put('/settings/teams/{id}', [App\Http\Controllers\SettingsController::class, 'updateTeam'])->name('settings.teams.update');
     Route::post('/settings/teams/{id}/quota', [App\Http\Controllers\SettingsController::class, 'setTeamQuota'])->name('settings.teams.quota');
     Route::delete('/settings/quotas/{id}', [App\Http\Controllers\SettingsController::class, 'destroyQuota'])->name('settings.quotas.destroy');
     Route::post('/settings/agents', [App\Http\Controllers\SettingsController::class, 'storeAgent'])->name('settings.agents.store');
     Route::delete('/settings/agents/{id}', [App\Http\Controllers\SettingsController::class, 'destroyAgent'])->name('settings.agents.destroy');
+    Route::patch('/settings/agents/{id}', [App\Http\Controllers\SettingsController::class, 'updateAgent'])->name('settings.agents.update');
+    Route::post('/settings/agents/{id}/toggle', [App\Http\Controllers\SettingsController::class, 'toggleAgentStatus'])->name('settings.agents.toggle');
+
+    // Property Management (admin only)
+    Route::post('/settings/properties', [App\Http\Controllers\SettingsController::class, 'storeProperty'])->name('settings.properties.store');
+    Route::delete('/settings/properties/{id}', [App\Http\Controllers\SettingsController::class, 'destroyProperty'])->name('settings.properties.destroy');
+    Route::get('/api/settings/properties', [App\Http\Controllers\SettingsController::class, 'getProperties'])->name('settings.properties.index');
 
     // Permission Requests
     Route::post('/api/permission-requests', [App\Http\Controllers\PermissionRequestController::class, 'store'])->name('permission-requests.store');

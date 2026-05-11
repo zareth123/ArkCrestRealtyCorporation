@@ -103,3 +103,51 @@
 .form-readonly {
     background-color: #f4f6f8;
 }
+
+/* ── Horizontal Table Scroll ── */
+/* All table wrappers: always show horizontal scrollbar so users can scroll on PC */
+[style*="overflow-x:auto"],
+[style*="overflow-x: auto"],
+.tbl-wrap,
+.table-wrapper,
+.table-container,
+.arc-table-wrap,
+.st-card-body[style*="overflow-x"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Make the scrollbar always visible and styled nicely */
+[style*="overflow-x:auto"]::-webkit-scrollbar,
+[style*="overflow-x: auto"]::-webkit-scrollbar,
+.tbl-wrap::-webkit-scrollbar,
+.table-wrapper::-webkit-scrollbar,
+.table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+[style*="overflow-x:auto"]::-webkit-scrollbar-track,
+[style*="overflow-x: auto"]::-webkit-scrollbar-track,
+.tbl-wrap::-webkit-scrollbar-track,
+.table-wrapper::-webkit-scrollbar-track,
+.table-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+[style*="overflow-x:auto"]::-webkit-scrollbar-thumb,
+[style*="overflow-x: auto"]::-webkit-scrollbar-thumb,
+.tbl-wrap::-webkit-scrollbar-thumb,
+.table-wrapper::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+[style*="overflow-x:auto"]::-webkit-scrollbar-thumb:hover,
+[style*="overflow-x: auto"]::-webkit-scrollbar-thumb:hover,
+.tbl-wrap::-webkit-scrollbar-thumb:hover,
+.table-wrapper::-webkit-scrollbar-thumb:hover,
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}

@@ -36,6 +36,28 @@ class AuthController extends Controller
             return back()->withErrors(['email' => 'Your account is pending admin approval.'])->withInput($request->only('email', 'remember'));
         }
 
+        // Check if user is an inactive sales agent in team management
+        try {
+            if (\Schema::hasColumn('sales_agents', 'is_active')) {
+                $query = \App\Models\SalesAgent::where('is_active', false);
+                if (\Schema::hasColumn('sales_agents', 'user_id')) {
+                    $query->where(function($q) use ($user) {
+                        $q->where('user_id', $user->id)
+                          ->orWhereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($user->name))]);
+                    });
+                } else {
+                    $query->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($user->name))]);
+                }
+                $inactiveAgent = $query->first();
+                if ($inactiveAgent) {
+                    Auth::logout();
+                    return back()->with('inactive_agent', true)->withInput($request->only('email'));
+                }
+            }
+        } catch (\Exception $e) {
+            // Don't block login if agent check fails
+        }
+
         Auth::login($user, $request->boolean('remember'));
         $user->update(['last_login_at' => now()]);
         $request->session()->regenerate();
@@ -89,7 +111,7 @@ class AuthController extends Controller
         }
 
         // Sales positions (non-admin) → redirect to site visit form only
-        $salesPositions = ['sales agent', 'sales manager', 'sales person', 'sales team leader'];
+        $salesPositions = ['sales agent', 'sales manager', 'sales person', 'salesperson', 'sales team leader', 'sales personnel'];
         if (!$user->isAdmin() && in_array(strtolower(trim($user->position ?? '')), $salesPositions)) {
             return redirect()->route('tripping');
         }

@@ -122,6 +122,10 @@
                     <input type="date" name="reservation_date">
                 </div>
                 <div class="form-group">
+                    <label>NUMBER OF UNITS</label>
+                    <input type="number" name="number_of_units" min="1" value="1" placeholder="1">
+                </div>
+                <div class="form-group">
                     <label>DATE OF DOWNPAYMENT</label>
                     <input type="date" name="date_of_downpayment">
                 </div>
@@ -139,7 +143,7 @@
                 </div>
             </div>
             <input type="hidden" name="date_requested" value="{{ date('Y-m-d') }}">
-            <input type="hidden" name="number_of_units" value="1">
+            
             <input type="hidden" name="property_details" value="">
             <input type="hidden" name="commission" value="">
             <input type="hidden" name="remarks" value="">
@@ -180,7 +184,7 @@
             <table style="width:100%;border-collapse:collapse;font-size:13px">
                 <thead style="background:linear-gradient(135deg,#1e4575,#2563eb)">
                     <tr>
-                        @foreach(['Developer','Project','Block & Lot','Client','Lot Area','Price/SQM','TCP','Discount (%)','Discount Value','Net TCP','Terms','Reservation Date','Downpayment Date','Agent','Status','Downpayment Status','Actions'] as $h)
+                        @foreach(['Developer','Project','Block & Lot','Client','Lot Area','Price/SQM','TCP','Discount (%)','Discount Value','Net TCP','Terms','Reservation Date','Units','Downpayment Date','Agent','Status','Downpayment Status','Actions'] as $h)
                         <th style="padding:14px 12px;text-align:left;font-weight:600;color:white;text-transform:uppercase;font-size:11px;white-space:nowrap">{{ $h }}</th>
                         @endforeach
                     </tr>
@@ -203,6 +207,7 @@
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->net_tcp ? '₱'.number_format($req->net_tcp,2) : '-' }}</td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->terms_of_payment ?? '-' }}</td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->reservation_date ? $req->reservation_date->format('M d, Y') : '-' }}</td>
+                        <td style="padding:14px 12px;color:#374151;white-space:nowrap;text-align:center;">{{ $req->number_of_units ?? '-' }}</td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->date_of_downpayment ? $req->date_of_downpayment->format('M d, Y') : '-' }}</td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->agent_name ?? '-' }}</td>
                         <td style="padding:10px 12px;white-space:nowrap">
@@ -316,6 +321,7 @@
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Net TCP</label><input type="number" id="edit_net_tcp" name="net_tcp" step="0.01" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Terms of Payment *</label><input type="text" id="edit_terms_of_payment" name="terms_of_payment" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Reservation Date</label><input type="date" id="edit_reservation_date" name="reservation_date" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Number of Units</label><input type="number" id="edit_number_of_units" name="number_of_units" min="1" value="1" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Date of Downpayment</label><input type="date" id="edit_date_of_downpayment" name="date_of_downpayment" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Agent's Name *</label><input type="text" id="edit_agent_name" name="agent_name" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Client Status</label>
@@ -492,6 +498,7 @@ function editRow(id){
         document.getElementById('edit_net_tcp').value=d.net_tcp??'';
         document.getElementById('edit_terms_of_payment').value=d.terms_of_payment??'';
         document.getElementById('edit_reservation_date').value=d.reservation_date?d.reservation_date.split('T')[0]:'';
+        document.getElementById('edit_number_of_units').value=d.number_of_units??1;
         document.getElementById('edit_date_of_downpayment').value=d.date_of_downpayment?d.date_of_downpayment.split('T')[0]:'';
         document.getElementById('edit_agent_name').value=d.agent_name??'';
         document.getElementById('edit_client_status').value=d.status??'';
@@ -736,6 +743,7 @@ function cdFilter() {
 <script>
 let _dpRecordId = null;
 const _dpCsrf = document.querySelector('meta[name=csrf-token]')?.content || '';
+const _isAdmin = {{ auth()->user()->isAdmin() ? 'true' : 'false' }};
 
 function openDPModal(id, amount, terms, perTerm, status) {
     _dpRecordId = id;
@@ -833,19 +841,35 @@ function renderInstallments(list) {
         container.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">Set amount and terms, then click "Set Terms".</div>';
         return;
     }
-    container.innerHTML = list.map(inst => `
-        <div style="display:flex;align-items:center;gap:0;border:1.5px solid ${inst.is_paid ? '#bbf7d0' : '#e2e8f0'};border-radius:10px;overflow:hidden;background:${inst.is_paid ? '#f0fdf4' : '#f8fafc'};">
-            <span style="font-size:13px;font-weight:700;color:#1e4575;padding:10px 14px;white-space:nowrap;border-right:1.5px solid ${inst.is_paid ? '#bbf7d0' : '#e2e8f0'};">Term ${inst.term_number}</span>
-            <input type="number" id="inst_amount_${inst.id}" value="${inst.amount || ''}" placeholder="Enter amount here" step="0.01" min="0"
-                ${inst.is_paid ? 'disabled' : ''}
-                onblur="saveInstallmentAmount(${inst.id})"
-                style="flex:1;padding:10px 12px;border:none;outline:none;font-size:13px;background:transparent;${inst.is_paid ? 'color:#166534;' : ''}">
-            ${inst.is_paid
+    container.innerHTML = list.map(inst => {
+        const border = inst.is_paid ? '#bbf7d0' : '#e2e8f0';
+        const bg     = inst.is_paid ? '#f0fdf4' : '#f8fafc';
+
+        if (_isAdmin) {
+            // Admin: amount input (always editable) + Paid/Undo button
+            const actionBtn = inst.is_paid
+                ? `<button onclick="unmarkPaid(${inst.id})" style="padding:10px 14px;background:#dcfce7;color:#166534;border:none;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;border-left:1.5px solid #bbf7d0;" title="Click to undo">✓ Paid ↩</button>`
+                : `<button onclick="markPaid(${inst.id})" style="padding:10px 16px;background:linear-gradient(135deg,#A37929,#d4a03a);color:white;border:none;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Paid</button>`;
+            return `
+                <div style="display:flex;align-items:center;gap:0;border:1.5px solid ${border};border-radius:10px;overflow:hidden;background:${bg};">
+                    <span style="font-size:13px;font-weight:700;color:#1e4575;padding:10px 14px;white-space:nowrap;border-right:1.5px solid ${border};">Term ${inst.term_number}</span>
+                    <input type="number" id="inst_amount_${inst.id}" value="${inst.amount || ''}" placeholder="Enter amount here" step="0.01" min="0"
+                        onblur="saveInstallmentAmount(${inst.id})"
+                        style="flex:1;padding:10px 12px;border:none;outline:none;font-size:13px;background:transparent;${inst.is_paid ? 'color:#166534;' : ''}">
+                    ${actionBtn}
+                </div>`;
+        } else {
+            // Staff: no amount input, just term label + Paid button (locked if already paid)
+            const actionBtn = inst.is_paid
                 ? `<span style="padding:10px 14px;background:#dcfce7;color:#166534;font-size:12px;font-weight:700;white-space:nowrap;border-left:1.5px solid #bbf7d0;">✓ Paid</span>`
-                : `<button onclick="markPaid(${inst.id})" style="padding:10px 16px;background:linear-gradient(135deg,#A37929,#d4a03a);color:white;border:none;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Paid</button>`
-            }
-        </div>
-    `).join('');
+                : `<button onclick="markPaid(${inst.id})" style="padding:10px 16px;background:linear-gradient(135deg,#A37929,#d4a03a);color:white;border:none;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Paid</button>`;
+            return `
+                <div style="display:flex;align-items:center;gap:0;border:1.5px solid ${border};border-radius:10px;overflow:hidden;background:${bg};">
+                    <span style="font-size:13px;font-weight:700;color:#1e4575;padding:10px 14px;white-space:nowrap;border-right:1.5px solid ${border};flex:1;">Term ${inst.term_number}${inst.amount ? ' — ₱' + Number(inst.amount).toLocaleString() : ''}</span>
+                    ${actionBtn}
+                </div>`;
+        }
+    }).join('');
 }
 
 function saveInstallmentAmount(instId) {
@@ -858,8 +882,17 @@ function saveInstallmentAmount(instId) {
 }
 
 function markPaid(instId) {
-    if (!confirm('Mark this term as paid? This cannot be undone.')) return;
+    if (!confirm('Mark this term as paid?')) return;
     fetch(`/api/installments/${instId}/paid`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _dpCsrf },
+        body: JSON.stringify({})
+    }).then(r => r.json()).then(() => loadInstallments());
+}
+
+function unmarkPaid(instId) {
+    if (!confirm('Undo this payment? This will mark the term as unpaid.')) return;
+    fetch(`/api/installments/${instId}/unpaid`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _dpCsrf },
         body: JSON.stringify({})

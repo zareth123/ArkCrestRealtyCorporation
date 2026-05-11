@@ -46,7 +46,11 @@
 .search-wrap input:focus{outline:none;border-color:#1e4575;background:white;box-shadow:0 0 0 3px rgba(30,69,117,.08)}
 .search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#94a3b8}
 /* Table */
-.tbl-wrap{overflow-x:auto}
+.tbl-wrap{overflow-x:scroll;-webkit-overflow-scrolling:touch;}
+.tbl-wrap::-webkit-scrollbar{height:8px;}
+.tbl-wrap::-webkit-scrollbar-track{background:#f1f5f9;border-radius:4px;}
+.tbl-wrap::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:4px;}
+.tbl-wrap::-webkit-scrollbar-thumb:hover{background:#475569;}
 .svd-table{width:100%;border-collapse:collapse;min-width:900px}
 .svd-table thead tr{background:linear-gradient(135deg,#0f2a4a,#1e4575)}
 .svd-table thead th{padding:13px 18px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;border-right:1px solid rgba(255,255,255,.08)}
@@ -229,7 +233,7 @@
             <th style="width:40px;text-align:center">#</th>
             <th>Name of Client</th><th>Property</th><th>Company</th>
             <th>Name of Agent</th><th>Email</th><th>Mobile Number</th><th>Address</th>
-            <th>Tripping Date</th><th>Tripping Time</th><th>Mode of Visit</th><th>Actions</th>
+            <th>Tripping Date</th><th>Tripping Time</th><th>Mode of Visit</th><th>Date Submitted</th><th>Actions</th>
         </tr></thead>
         <tbody>
         @foreach($confirmed->values() as $i => $r)
@@ -248,6 +252,7 @@
             <td><div class="td-name" style="font-size:12px">{{ $r->tripping_date ? $r->tripping_date->format('M j, Y') : '—' }}</div></td>
             <td><div class="td-sub">{{ $r->tripping_time ? \Carbon\Carbon::parse($r->tripping_time)->format('g:i A') : '—' }}</div></td>
             <td><div class="td-sub">{{ $r->tripping_type ?? '—' }}</div></td>
+            <td><div class="td-sub" style="white-space:nowrap;">{{ $r->created_at ? $r->created_at->format('M j, Y g:i A') : '—' }}</div></td>
             <td>
                 <div class="actions">
                     {{-- Reschedule --}}
@@ -320,7 +325,7 @@
             <th>Name of Client</th><th>Property</th><th>Company</th>
             <th>Name of Agent</th><th>Email</th><th>Mobile Number</th><th>Address</th>
             <th>Tripping Date</th><th>Tripping Time</th><th>Mode of Visit</th>
-            @if(auth()->user()->isAdmin())<th>Actions</th>@endif
+            <th>Date Submitted</th><th>Actions</th>
         </tr></thead>
         <tbody>
         @foreach($grp->values() as $i => $r)
@@ -339,7 +344,7 @@
             <td>{{ $r->tripping_date ? $r->tripping_date->format('M j, Y') : '—' }}</td>
             <td><div class="td-sub">{{ $r->tripping_time ? \Carbon\Carbon::parse($r->tripping_time)->format('g:i A') : '—' }}</div></td>
             <td><div class="td-sub">{{ $r->tripping_type ?? '—' }}</div></td>
-            @if(auth()->user()->isAdmin())
+            <td><div class="td-sub" style="white-space:nowrap;">{{ $r->created_at ? $r->created_at->format('M j, Y g:i A') : '—' }}</div></td>
             <td>
                 <div class="actions">
                     @if($status === 'done')
@@ -353,20 +358,20 @@
                         <button type="submit" class="btn-reject">&#10005; Cancel</button>
                     </form>
                     @endif
-                    {{-- Delete --}}
+                    {{-- Delete (admin only) --}}
+                    @if(auth()->user()->isAdmin())
                     <form method="POST" action="{{ route('site-visit-database.destroy', $r->id) }}" onsubmit="return confirm('Delete this record?')">
                         @csrf @method('DELETE')
                         <button type="submit" class="btn-delete">Delete</button>
                     </form>
+                    @endif
                     {{-- Print --}}
                     <button class="btn-print" onclick="window.print()">
                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                         Print
                     </button>
                 </div>
-                </div>
             </td>
-            @endif
         </tr>
         @endforeach
         </tbody>

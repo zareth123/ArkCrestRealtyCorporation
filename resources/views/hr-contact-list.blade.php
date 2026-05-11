@@ -74,10 +74,14 @@
     <div class="hr-card"><div style="padding:40px;text-align:center;color:#94a3b8;">No contacts yet.</div></div>
 @else
 @php $grouped = $personnelContacts->groupBy(fn($c) => $c->company ?: 'Others'); @endphp
+<div id="contactGroupsContainer">
 @foreach($grouped as $grpCompany => $contacts)
-<div class="hr-card">
+<div class="hr-card" data-group="{{ addslashes($grpCompany) }}">
     <div class="hr-group-header">
-        <div class="hr-group-title">
+        <div class="hr-group-title" style="display:flex;align-items:center;gap:8px;">
+            @if($isAdmin)
+            <span class="drag-handle" title="Drag to reorder group" style="cursor:grab;color:rgba(212,160,58,.5);font-size:16px;line-height:1;padding:0 4px;user-select:none;">⠿</span>
+            @endif
             <svg width="14" height="14" fill="none" stroke="#d4a03a" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             {{ $grpCompany }} <span style="color:rgba(212,160,58,.6);font-weight:400;">({{ $contacts->count() }})</span>
         </div>
@@ -86,12 +90,16 @@
     <div style="overflow-x:auto;">
     <table class="hr-table">
         <thead><tr>
+            @if($isAdmin)<th style="width:20px;"></th>@endif
             <th>Name</th><th>Contact No.</th><th>Email</th><th>Facebook</th>
             @if($isAdmin)<th>Actions</th>@endif
         </tr></thead>
         <tbody>
             @foreach($contacts as $contact)
-            <tr>
+            <tr data-id="{{ $contact->id }}">
+                @if($isAdmin)
+                <td style="color:#cbd5e1;font-size:16px;cursor:grab;user-select:none;text-align:center;" title="Drag to reorder">⠿</td>
+                @endif
                 <td>
                     <div style="display:flex;align-items:center;gap:8px;">
                         <div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#A37929,#d4a03a);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0;">{{ strtoupper(substr($contact->name,0,1)) }}</div>
@@ -122,6 +130,7 @@
     </div>
 </div>
 @endforeach
+</div>{{-- end contactGroupsContainer --}}
 @endif
 
 {{-- Add Contact Modal --}}
@@ -188,5 +197,117 @@ function openContactModal(id, name, company, phone, email, facebook, btn) {
 }
 function closeContactModal() { document.getElementById('contactEditModal').style.display = 'none'; }
 </script>
+
+@if(auth()->user()->isAdmin())
+<script>
+// ── Drag & Drop for Contact List ──
+var _csrf = document.querySelector('meta[name=csrf-token]').content;
+
+// ── ROW drag (within a group) ──
+function initRowDrag(tbody) {
+    var dragging = null;
+    tbody.querySelectorAll('tr[data-id]').forEach(function(row) {
+        row.setAttribute('draggable', 'true');
+        row.style.cursor = 'grab';
+
+        row.addEventListener('dragstart', function(e) {
+            dragging = row;
+            row.style.opacity = '0.4';
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        row.addEventListener('dragend', function() {
+            row.style.opacity = '1';
+            dragging = null;
+            saveRowOrder(tbody);
+        });
+        row.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            if (dragging && dragging !== row) {
+                var rect = row.getBoundingClientRect();
+                var mid = rect.top + rect.height / 2;
+                if (e.clientY < mid) {
+                    tbody.insertBefore(dragging, row);
+                } else {
+                    tbody.insertBefore(dragging, row.nextSibling);
+                }
+            }
+        });
+    });
+}
+
+function saveRowOrder(tbody) {
+    var items = [];
+    tbody.querySelectorAll('tr[data-id]').forEach(function(row, i) {
+        items.push({ id: parseInt(row.getAttribute('data-id')), sort_order: i + 1 });
+    });
+    fetch('/api/personnel-contacts/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _csrf },
+        body: JSON.stringify({ items: items })
+    });
+}
+
+// ── GROUP drag (whole card) ──
+var _dragGroup = null;
+function initGroupDrag(container) {
+    container.querySelectorAll('.hr-card[data-group]').forEach(function(card) {
+        var handle = card.querySelector('.drag-handle');
+        if (!handle) return;
+
+        handle.addEventListener('mousedown', function() { card.setAttribute('draggable', 'true'); });
+        handle.addEventListener('mouseup', function() { card.setAttribute('draggable', 'false'); });
+
+        card.addEventListener('dragstart', function(e) {
+            _dragGroup = card;
+            card.style.opacity = '0.4';
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        card.addEventListener('dragend', function() {
+            card.style.opacity = '1';
+            card.setAttribute('draggable', 'false');
+            _dragGroup = null;
+            saveGroupOrder(container);
+        });
+        card.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            if (_dragGroup && _dragGroup !== card) {
+                var rect = card.getBoundingClientRect();
+                var mid = rect.top + rect.height / 2;
+                if (e.clientY < mid) {
+                    container.insertBefore(_dragGroup, card);
+                } else {
+                    container.insertBefore(_dragGroup, card.nextSibling);
+                }
+            }
+        });
+    });
+}
+
+function saveGroupOrder(container) {
+    // Collect all row IDs in new order across all groups
+    var items = [];
+    var order = 1;
+    container.querySelectorAll('.hr-card[data-group] tr[data-id]').forEach(function(row) {
+        items.push({ id: parseInt(row.getAttribute('data-id')), sort_order: order++ });
+    });
+    if (items.length) {
+        fetch('/api/personnel-contacts/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _csrf },
+            body: JSON.stringify({ items: items })
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var container = document.getElementById('contactGroupsContainer');
+    if (!container) return;
+    initGroupDrag(container);
+    container.querySelectorAll('tbody').forEach(function(tbody) {
+        initRowDrag(tbody);
+    });
+});
+</script>
+@endif
 
 @endsection

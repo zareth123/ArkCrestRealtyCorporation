@@ -6,16 +6,22 @@ use App\Models\User;
 use App\Models\SalesAgent;
 use App\Models\PersonnelContact;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 class HumanResourceController extends Controller
 {
     public function index()
     {
-        $totalEmployees = User::whereNotIn('status', ['pre_registered', 'deleted'])
+        $salesPositions = ['sales agent', 'sales manager', 'sales person', 'salesperson', 'sales team leader', 'sales personnel'];
+
+        $totalEmployees = User::whereIn('status', ['active', 'pre_registered', 'pending'])
             ->whereNotNull('employee_id')
             ->count();
 
-        $totalAgents = SalesAgent::count();
+        $totalAgents = User::whereIn('status', ['active', 'pre_registered', 'pending'])
+            ->whereNotNull('position')
+            ->whereIn(\DB::raw('LOWER(TRIM(position))'), $salesPositions)
+            ->count();
 
         return view('human-resource', compact('totalEmployees', 'totalAgents'));
     }

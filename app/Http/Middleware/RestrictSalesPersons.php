@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 class RestrictSalesPersons
 {
     // Positions that should only access the site visit form
-    const SALES_POSITIONS = ['sales agent', 'sales manager', 'sales person', 'salesperson', 'sales team leader'];
+    const SALES_POSITIONS = ['sales agent', 'sales manager', 'sales person', 'salesperson', 'sales team leader', 'sales personnel'];
 
     public function handle(Request $request, Closure $next)
     {
@@ -18,7 +18,7 @@ class RestrictSalesPersons
         if ($user->isAdmin()) return $next($request);
 
         $pos = strtolower(trim($user->position ?? ''));
-        $isSales = str_contains($pos, 'sales');
+        $isSales = in_array($pos, self::SALES_POSITIONS);
 
         if ($isSales) {
             $path = '/' . ltrim($request->path(), '/');

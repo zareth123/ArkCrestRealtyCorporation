@@ -167,7 +167,8 @@ class SettingsController extends Controller
             'activeUsers'        => User::whereIn('status', ['active', 'pre_registered', 'pending'])->orderBy('employee_id')->get(),
             'activityLogs'       => ActivityLog::with('user')->orderBy('created_at', 'desc')->limit(200)->get(),
             'hiddenSections'     => array_values(json_decode(\DB::table('app_settings')->where('key', 'hidden_pages')->value('value') ?? '[]', true) ?: []),
-            'salesTeams'         => \App\Models\SalesTeam::with(['agents', 'quotas' => fn($q) => $q->orderBy('date_from', 'desc')])->orderBy('leader_name')->get(),
+            'salesTeams'         => \App\Models\SalesTeam::with(['agents.user', 'quotas' => fn($q) => $q->orderBy('date_from', 'desc')])->orderBy('leader_name')->get(),
+            'properties'         => \Schema::hasTable('properties') ? \App\Models\Property::orderBy('name')->get() : collect(),
             'privacyContent'     => \DB::table('app_settings')->where('key', 'privacy_policy')->value('value') ?? "Data Privacy Notice\n\nArckrest Realty Corporation is committed to protecting the privacy and confidentiality of all personal information collected through this system.\n\nInformation We Collect\n\nWe collect your full name, email address, employee ID, position, and date hired for account management and system access purposes.\n\nHow We Use Your Information\n\n- To manage and authenticate your system account\n- To track activity logs for security and audit purposes\n- To send email notifications related to your account\n- To generate internal reports and analytics\n\nSystem Usage Policy\n\n- Keep your login credentials confidential at all times.\n- Unauthorized access or sharing of credentials is strictly prohibited.\n- All data entered must be accurate and truthful.\n- Misuse may result in account suspension or termination.\n- This system is for authorized Arckrest Realty Corporation employees only.",
             'periodLocks'        => \App\Models\PeriodLock::getLocked(),
             'rejectedTrippings'  => \App\Models\TripSchedule::where('status', 'rejected')->orderBy('updated_at', 'desc')->get()->each(function($r) {
@@ -183,8 +184,38 @@ class SettingsController extends Controller
         ];
     }
 
-    public function storeTeam(Request $request)
+    public function getProperties()
     {
+        return response()->json(\App\Models\Property::orderBy('name')->get());
+    }
+
+    public function storeProperty(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $request->validate(['name' => 'required|string|max:255', 'developer' => 'nullable|string|max:255']);
+
+        // Auto-create table if migration hasn't run yet
+        if (!\Schema::hasTable('properties')) {
+            \Schema::create('properties', function ($table) {
+                $table->id();
+                $table->string('name');
+                $table->string('developer')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        \App\Models\Property::create(['name' => $request->name, 'developer' => $request->developer]);
+        return redirect()->route('settings')->with('success', 'Property added.')->with('open_section', 'properties');
+    }
+
+    public function destroyProperty($id)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        \App\Models\Property::findOrFail($id)->delete();
+        return redirect()->route('settings')->with('success', 'Property removed.')->with('open_section', 'properties');
+    }
+
+    public function storeTeam(Request $request)    {
         if (!auth()->user()->isAdmin()) abort(403);
         $request->validate([
             'team_name'     => 'required|string|max:255',
@@ -202,7 +233,25 @@ class SettingsController extends Controller
     public function destroyTeam($id)
     {
         if (!auth()->user()->isAdmin()) abort(403);
-        \App\Models\SalesTeam::findOrFail($id)->delete();
+        $team = \App\Models\SalesTeam::findOrFail($id);
+
+        // Clear team_name on all users linked to this team's agents
+        try {
+            $agentNames = $team->agents->pluck('name')->toArray();
+            $userIds = [];
+            if (\Schema::hasColumn('sales_agents', 'user_id')) {
+                $userIds = $team->agents->pluck('user_id')->filter()->toArray();
+            }
+            if (!empty($userIds)) {
+                \App\Models\User::whereIn('id', $userIds)->update(['team_name' => null]);
+            } elseif (!empty($agentNames)) {
+                foreach ($agentNames as $name) {
+                    \App\Models\User::whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($name))])->update(['team_name' => null]);
+                }
+            }
+        } catch (\Exception $e) {}
+
+        $team->delete();
         return redirect()->route('settings')->with('success', 'Team deleted.')->with('open_section', 'teams');
     }
 
@@ -234,15 +283,160 @@ class SettingsController extends Controller
     {
         if (!auth()->user()->isAdmin()) abort(403);
         $request->validate(['team_id' => 'required|exists:sales_teams,id', 'name' => 'required|string|max:255']);
-        \App\Models\SalesAgent::create(['team_id' => $request->team_id, 'name' => $request->name]);
+
+        $name = trim($request->name);
+
+        // Check for duplicate in same team
+        $exists = \App\Models\SalesAgent::where('team_id', $request->team_id)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [strtolower($name)])
+            ->exists();
+
+        if ($exists) {
+            return redirect()->route('settings')
+                ->with('error', "'{$name}' is already in this team.")
+                ->with('open_section', 'teams');
+        }
+
+        // Auto-link user by name match
+        $user = \App\Models\User::whereRaw('LOWER(TRIM(name)) = ?', [strtolower($name)])->first();
+
+        $data = [
+            'team_id'   => $request->team_id,
+            'name'      => $name,
+            'is_active' => true,
+        ];
+
+        if ($user) {
+            if (\Schema::hasColumn('sales_agents', 'user_id'))     $data['user_id']     = $user->id;
+            if (\Schema::hasColumn('sales_agents', 'employee_id')) $data['employee_id'] = $user->employee_id;
+            // Also sync team_name on the user
+            if (!$user->team_name) {
+                $team = \App\Models\SalesTeam::find($request->team_id);
+                if ($team) $user->update(['team_name' => $team->team_name]);
+            }
+        }
+
+        \App\Models\SalesAgent::create($data);
         return redirect()->route('settings')->with('success', 'Agent added.')->with('open_section', 'teams');
     }
 
     public function destroyAgent($id)
     {
         if (!auth()->user()->isAdmin()) abort(403);
-        \App\Models\SalesAgent::findOrFail($id)->delete();
+        $agent = \App\Models\SalesAgent::findOrFail($id);
+
+        // Clear team_name on the linked user
+        try {
+            $cleared = false;
+            if (\Schema::hasColumn('sales_agents', 'user_id') && $agent->user_id) {
+                \App\Models\User::where('id', $agent->user_id)->update(['team_name' => null]);
+                $cleared = true;
+            }
+            if (!$cleared) {
+                \App\Models\User::whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($agent->name))])->update(['team_name' => null]);
+            }
+        } catch (\Exception $e) {}
+
+        $agent->delete();
         return redirect()->route('settings')->with('success', 'Agent removed.')->with('open_section', 'teams');
+    }
+
+    public function updateTeam(Request $request, $id)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $request->validate([
+            'leader_name'   => 'nullable|string|max:255',
+            'sales_manager' => 'nullable|string|max:255',
+            'team_name'     => 'nullable|string|max:255',
+        ]);
+        \App\Models\SalesTeam::findOrFail($id)->update($request->only('team_name', 'leader_name', 'sales_manager'));
+        return redirect()->route('settings')->with('success', 'Team updated.')->with('open_section', 'teams');
+    }
+
+    public function updateAgent(Request $request, $id)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $agent = \App\Models\SalesAgent::findOrFail($id);
+
+        $updates = [];
+
+        if ($request->has('name')) {
+            $updates['name'] = $request->name;
+        }
+
+        // Handle employee_id — store on sales_agents if column exists, otherwise just link via user
+        if ($request->has('employee_id')) {
+            $empId = trim($request->input('employee_id'));
+
+            // Try to find and link the user
+            $linkedUser = null;
+            if ($empId) {
+                $linkedUser = \App\Models\User::where('employee_id', $empId)->first();
+            }
+
+            // Save employee_id on sales_agents if column exists
+            if (\Schema::hasColumn('sales_agents', 'employee_id')) {
+                $updates['employee_id'] = $empId ?: null;
+            }
+
+            // Save user_id link if column exists
+            if (\Schema::hasColumn('sales_agents', 'user_id') && $linkedUser) {
+                $updates['user_id'] = $linkedUser->id;
+            }
+
+            // If columns don't exist yet, add them now inline
+            if (!empty($empId) && !\Schema::hasColumn('sales_agents', 'employee_id')) {
+                try {
+                    \Schema::table('sales_agents', function ($table) {
+                        $table->unsignedBigInteger('user_id')->nullable()->after('team_id');
+                        $table->string('employee_id')->nullable()->after('user_id');
+                    });
+                    $updates['employee_id'] = $empId;
+                    if ($linkedUser) $updates['user_id'] = $linkedUser->id;
+                } catch (\Exception $e) { /* already exists */ }
+            }
+        }
+
+        if ($request->exists('is_active') && \Schema::hasColumn('sales_agents', 'is_active')) {
+            $updates['is_active'] = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if (!empty($updates)) {
+            $agent->update($updates);
+        }
+
+        $agent->refresh();
+        $isActive = \Schema::hasColumn('sales_agents', 'is_active') ? (bool) $agent->is_active : true;
+        $empIdResult = \Schema::hasColumn('sales_agents', 'employee_id')
+            ? ($agent->employee_id ?: ($agent->user?->employee_id ?: ''))
+            : ($agent->user?->employee_id ?: '');
+
+        return response()->json(['success' => true, 'is_active' => $isActive, 'employee_id' => $empIdResult]);
+    }
+
+    public function toggleAgentStatus(Request $request, $id)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $agent = \App\Models\SalesAgent::findOrFail($id);
+
+        // Ensure column exists before updating
+        if (!\Schema::hasColumn('sales_agents', 'is_active')) {
+            \Schema::table('sales_agents', function ($table) {
+                $table->boolean('is_active')->default(true)->after('name');
+            });
+        }
+
+        if ($request->has('set_active')) {
+            $val = $request->input('set_active');
+            // Handle both JSON boolean and string
+            $active = ($val === true || $val === 'true' || $val === 1 || $val === '1');
+            $agent->update(['is_active' => $active]);
+        } else {
+            $agent->update(['is_active' => !$agent->is_active]);
+        }
+
+        $agent->refresh();
+        return response()->json(['success' => true, 'is_active' => (bool) $agent->is_active]);
     }
 
     public function updateEmployeeInfo(Request $request)
@@ -463,7 +657,8 @@ class SettingsController extends Controller
             'dashboard','departments','summary-report','commission-monitoring','commission-monitoring.dashboard',
             'calendar','sales-marketing','client-database','client-database.list',
             'client-database.property','site-visit-database','sales-calendar','forms',
-            'settings.users','settings.employee','settings.personnel','settings.teams',
+            'human-resource','human-resource.employee-data','human-resource.contact-list',
+            'settings.users','settings.teams',
             'settings.period-lock','settings.visibility','settings.activity','settings.deleted','settings.permissions',
         ];
 

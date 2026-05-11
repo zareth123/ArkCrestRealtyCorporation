@@ -18,7 +18,7 @@ class DashboardController extends Controller
     {
         // Sales Agent / Sales Manager can only access the site visit form
         $user = auth()->user();
-        $salesPositions = ['sales agent', 'sales manager'];
+        $salesPositions = ['sales agent', 'sales manager', 'sales person', 'salesperson', 'sales team leader', 'sales personnel'];
         if (in_array(strtolower(trim($user->position ?? '')), $salesPositions)) {
             return redirect()->route('tripping');
         }
