@@ -440,6 +440,7 @@
                             <span class="sidebar-text">Site Visit Form</span>
                         </a>
                     </li>
+                    @if($canSee('forms'))
                     <li>
                         <a href="{{ route('forms') }}" class="nav-item" data-page="forms">
                             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -448,6 +449,7 @@
                             <span class="sidebar-text">Forms</span>
                         </a>
                     </li>
+                    @endif
                     @endif
                     
                     <!-- Settings -->
