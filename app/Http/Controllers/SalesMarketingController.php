@@ -469,7 +469,7 @@ class SalesMarketingController extends Controller
     public function setupInstallments(Request $request, $id)
     {
         $terms = (int) $request->terms;
-        if ($terms < 1 || $terms > 6) return response()->json(['error' => 'Invalid terms'], 422);
+        if ($terms < 1 || $terms > 120) return response()->json(['error' => 'Invalid terms'], 422);
 
         // Delete existing unpaid installments only
         \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $id)

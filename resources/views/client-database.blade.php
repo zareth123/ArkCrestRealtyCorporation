@@ -713,16 +713,23 @@ function cdFilter() {
 
         {{-- Others DP --}}
         <div id="dp_others_section" style="display:none;padding:0 24px 24px;flex-direction:column;gap:12px">
-            <div>
-                <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Amount</label>
-                <input type="number" id="dp_others_amount" step="0.01" min="0" placeholder="Enter amount"
-                    style="width:100%;padding:10px 12px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;box-sizing:border-box">
+            <div style="background:#fef3c7;border-left:3px solid #f59e0b;padding:10px 14px;border-radius:6px;font-size:12px;color:#92400e;margin-bottom:4px;">
+                For more than 6 terms — enter total amount and number of terms, then click Set Terms.
             </div>
-            <div>
-                <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Notes <span style="font-weight:400;color:#94a3b8">(e.g. 3 payments over 18 months)</span></label>
-                <textarea id="dp_others_notes" rows="3" placeholder="Describe the payment arrangement..."
-                    style="width:100%;padding:10px 12px;border:2px solid #d0d5dd;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+            <div style="display:flex;gap:12px;align-items:flex-end;">
+                <div style="flex:1">
+                    <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Total Amount</label>
+                    <input type="number" id="dp_others_amount" step="0.01" min="0" placeholder="0.00"
+                        style="width:100%;padding:9px 12px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;box-sizing:border-box">
+                </div>
+                <div>
+                    <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">No. of Terms</label>
+                    <input type="number" id="dp_others_terms" min="7" max="120" placeholder="e.g. 12"
+                        style="width:90px;padding:9px 12px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;box-sizing:border-box">
+                </div>
+                <button onclick="setupOthersInstallments()" style="padding:9px 16px;background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Set Terms</button>
             </div>
+            <div id="dp_others_list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;"></div>
         </div>
 
         <div style="padding:16px 24px;border-top:1px solid #e5e7eb;flex-shrink:0">
@@ -811,12 +818,24 @@ function saveSpotDP() {
 
 function saveOthersDP() {
     const amount = document.getElementById('dp_others_amount').value;
-    const notes  = document.getElementById('dp_others_notes').value;
-    const status = 'Others' + (notes ? ': ' + notes.substring(0, 40) : '');
-    const form = document.createElement('form');
-    form.method = 'POST'; form.action = `/client-database/${_dpRecordId}/downpayment-status`;
-    form.innerHTML = `<input name="_token" value="${_dpCsrf}"><input name="_method" value="PATCH"><input name="downpayment_status" value="${status}"><input name="downpayment_amount" value="${amount}">`;
-    document.body.appendChild(form); form.submit();
+    const terms  = document.getElementById('dp_others_terms').value;
+    if (!terms || parseInt(terms) < 1) { alert('Please enter number of terms.'); return; }
+    setupOthersInstallments();
+}
+
+function setupOthersInstallments() {
+    const amount = parseFloat(document.getElementById('dp_others_amount').value) || 0;
+    const terms  = parseInt(document.getElementById('dp_others_terms').value) || 0;
+    if (!terms || terms < 1) { alert('Please enter number of terms.'); return; }
+    fetch(`/api/client-database/${_dpRecordId}/installments/setup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _dpCsrf },
+        body: JSON.stringify({ terms, total_amount: amount })
+    }).then(r => r.json()).then(data => {
+        // Switch to installment view to show the terms
+        selectDPType('installment');
+        renderInstallments(data);
+    });
 }
 
 function loadInstallments() {
