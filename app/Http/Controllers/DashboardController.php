@@ -76,12 +76,12 @@ class DashboardController extends Controller
         // Total Reservation = units + pending - cancelled
         $totalReservation = $units + $pendingReservation - $cancelledReservation;
 
-        // Yearly total sales = net_tcp from Commission Monitoring this year, Released only
+        // Yearly total sales = ARC Gross Sales (arkcrest_commission) from released commissions this year
         $yearStart = now()->startOfYear()->toDateString();
         $yearEnd   = now()->endOfYear()->toDateString();
-        $yearlySales = CommissionRequest::where('status', 'Released')
-            ->whereBetween('date_requested', [$yearStart, $yearEnd])
-            ->sum('net_tcp');
+        $yearlySales = \App\Models\ArkcrestCommissionRate::whereHas('commissionRequest', function($q) use ($yearStart, $yearEnd) {
+            $q->where('status', 'Released')->whereBetween('date_released', [$yearStart, $yearEnd]);
+        })->sum('arkcrest_commission');
 
         // Monthly sales trend for chart (all 12 months of current year)
         $monthlySales = [];
