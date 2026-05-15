@@ -764,24 +764,36 @@ const _isAdmin = {{ auth()->user()->isAdmin() ? 'true' : 'false' }};
 function openDPModal(id, amount, terms, perTerm, status) {
     _dpRecordId = id;
     document.getElementById('dp_total_amount').value = amount || '';
-    document.getElementById('dp_terms_select').value = terms || 1;
+    document.getElementById('dp_terms_select').value = Math.min(terms || 1, 6);
     document.getElementById('dp_spot_amount').value = amount || '';
+    document.getElementById('dp_spot_date').value = '';
+    document.getElementById('dp_others_amount').value = amount || '';
+    document.getElementById('dp_others_terms').value = '';
 
-    // Show type selection first, unless already set
+    // Reset all sections first
     document.getElementById('dp_step_type').style.display = 'flex';
     document.getElementById('dp_spot_section').style.display = 'none';
     document.getElementById('dp_installment_section').style.display = 'none';
+    document.getElementById('dp_others_section').style.display = 'none';
     document.getElementById('dp_footer_type').style.display = 'flex';
     document.getElementById('dp_footer_spot').style.display = 'none';
     document.getElementById('dp_footer_installment').style.display = 'none';
+    document.getElementById('dp_footer_others').style.display = 'none';
 
-    // If already has installments, go straight to installment view
-    if (terms > 1 || (status && status.includes('month'))) {
+    // Route to correct view based on current status
+    if (status === 'Spot Paid') {
+        selectDPType('spot');
+    } else if (status && (status.includes('month') || status === 'Partial' || status === 'Paid')) {
         selectDPType('installment');
         loadInstallments();
-    } else if (status === 'Spot Paid') {
-        selectDPType('spot');
+    } else if (terms > 6) {
+        selectDPType('others');
+        loadInstallments();
+    } else if (terms > 1) {
+        selectDPType('installment');
+        loadInstallments();
     }
+    // else: show type selection screen
 
     document.getElementById('dpModal').style.display = 'flex';
 }
@@ -815,17 +827,18 @@ function selectDPType(type) {
 function saveSpotDP() {
     const amount = document.getElementById('dp_spot_amount').value;
     const date   = document.getElementById('dp_spot_date').value;
+    if (!amount || parseFloat(amount) <= 0) {
+        alert('Please enter the downpayment amount.');
+        return;
+    }
     fetch(`/client-database/${_dpRecordId}/downpayment-status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _dpCsrf },
         body: JSON.stringify({ downpayment_status: 'Spot Paid', downpayment_amount: amount, downpayment_date: date })
     }).then(r => r.json()).then(d => {
-        if (d.success) {
-            document.getElementById('dpModal').style.display = 'none';
-            window.location.reload();
-        }
+        document.getElementById('dpModal').style.display = 'none';
+        window.location.reload();
     }).catch(() => {
-        // Fallback to form submit
         const form = document.createElement('form');
         form.method = 'POST'; form.action = `/client-database/${_dpRecordId}/downpayment-status`;
         form.innerHTML = `<input name="_token" value="${_dpCsrf}"><input name="_method" value="PATCH"><input name="downpayment_status" value="Spot Paid"><input name="downpayment_amount" value="${amount}"><input name="downpayment_date" value="${date}">`;
@@ -929,12 +942,20 @@ function markPaid(instId) {
 function markPaidWithDate(instId, btn) {
     var dateEl = document.getElementById('inst_date_'+instId);
     var date = dateEl ? dateEl.value : '';
-    if (!confirm('Mark this term as paid?')) return;
+    // Save amount first if it has a value
+    var amountEl = document.getElementById('inst_amount_'+instId);
+    if (amountEl && amountEl.value) {
+        saveInstallmentAmount(instId);
+    }
+    if (!confirm('Mark Term ' + instId + ' as paid?')) return;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
     fetch(`/api/installments/${instId}/paid`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _dpCsrf },
         body: JSON.stringify({ paid_date: date })
-    }).then(r => r.json()).then(() => loadInstallments());
+    }).then(r => r.json()).then(() => loadInstallments())
+      .catch(() => { btn.disabled = false; btn.textContent = 'Paid'; alert('Failed to save. Please try again.'); });
 }
 
 function unmarkPaid(instId) {

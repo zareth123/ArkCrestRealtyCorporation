@@ -578,15 +578,17 @@ class SalesMarketingController extends Controller
         if ($request->filled('downpayment_amount')) {
             $updates['downpayment_amount'] = $request->input('downpayment_amount');
         }
-        // Always ensure downpayment_date column exists
-        if (!\Schema::hasColumn('commission_requests_sales', 'downpayment_date')) {
-            try { \DB::statement("ALTER TABLE commission_requests_sales ADD COLUMN downpayment_date DATE NULL"); } catch (\Exception $e) {}
-        }
-        if ($request->filled('downpayment_date')) {
-            $updates['downpayment_date'] = $request->input('downpayment_date');
-        }
+        // Save downpayment_date if column exists
+        try {
+            if (\Schema::hasColumn('commission_requests_sales', 'downpayment_date') && $request->filled('downpayment_date')) {
+                $updates['downpayment_date'] = $request->input('downpayment_date');
+            }
+        } catch (\Exception $e) {}
+
         $record->update($updates);
-        if ($request->expectsJson() || $request->isJson()) {
+
+        // Always return JSON for PATCH/AJAX requests
+        if ($request->expectsJson() || $request->isJson() || $request->ajax()) {
             return response()->json(['success' => true]);
         }
         return back()->with('success', 'Downpayment status updated.');
