@@ -601,6 +601,16 @@ class SalesMarketingController extends Controller
     public function updateDownpaymentStatus(Request $request, $id)
     {
         $record = CommissionRequestSales::findOrFail($id);
+
+        // Non-admin cannot change a finalized downpayment status
+        $finalStatuses = ['Spot Paid', 'Paid'];
+        if (!auth()->user()->isAdmin() && in_array($record->downpayment_status, $finalStatuses)) {
+            if ($request->expectsJson() || $request->isJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Only admin can modify a finalized downpayment.'], 403);
+            }
+            return back()->with('error', 'Only admin can modify a finalized downpayment.');
+        }
+
         $updates = ['downpayment_status' => $request->input('downpayment_status') ?: null];
         if ($request->filled('downpayment_amount')) {
             $updates['downpayment_amount'] = $request->input('downpayment_amount');

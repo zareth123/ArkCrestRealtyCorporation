@@ -807,6 +807,29 @@ function openDPModal(id, amount, terms, perTerm, status, dpDate) {
     document.getElementById('dp_others_amount').value = amount || '';
     document.getElementById('dp_others_terms').value = '';
 
+    // Lock spot DP fields for non-admin when already Spot Paid
+    const spotAmountEl = document.getElementById('dp_spot_amount');
+    const spotDateEl   = document.getElementById('dp_spot_date');
+    const spotPaidBtn  = document.querySelector('#dp_spot_section button[onclick="saveSpotDP()"]');
+    const isSpotPaid   = status === 'Spot Paid';
+    const locked       = isSpotPaid && !_isAdmin;
+
+    if (spotAmountEl) {
+        spotAmountEl.readOnly = locked;
+        spotAmountEl.style.background = locked ? '#f3f4f6' : 'transparent';
+        spotAmountEl.style.color      = locked ? '#6b7280' : '';
+    }
+    if (spotDateEl) {
+        spotDateEl.disabled = locked;
+        spotDateEl.style.background = locked ? '#f3f4f6' : '';
+        spotDateEl.style.color      = locked ? '#6b7280' : '';
+    }
+    if (spotPaidBtn) spotPaidBtn.style.display = locked ? 'none' : '';
+
+    // Show/hide Save button in footer for non-admin when locked
+    const footerSaveBtn = document.querySelector('#dp_footer_spot button[onclick="saveSpotDP()"]');
+    if (footerSaveBtn) footerSaveBtn.style.display = locked ? 'none' : '';
+
     // Reset all sections first
     document.getElementById('dp_step_type').style.display = 'flex';
     document.getElementById('dp_spot_section').style.display = 'none';
