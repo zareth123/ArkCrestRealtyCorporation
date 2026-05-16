@@ -863,11 +863,11 @@ function openDPModal(id, amount, terms, perTerm, status, dpDate) {
     const locked     = isSpotPaid && !_isAdmin;
 
     // Populate fields
-    document.getElementById('dp_total_amount').value  = amount || '';
+    document.getElementById('dp_total_amount').value  = amount > 0 ? amount : '';
     document.getElementById('dp_terms_select').value  = Math.min(terms || 1, 6);
-    document.getElementById('dp_spot_amount').value   = amount || '';
+    document.getElementById('dp_spot_amount').value   = amount > 0 ? amount : '';
     document.getElementById('dp_spot_date').value     = dpDate || '';
-    document.getElementById('dp_others_amount').value = amount || '';
+    document.getElementById('dp_others_amount').value = amount > 0 ? amount : '';
     document.getElementById('dp_others_terms').value  = '';
 
     // Apply lock/unlock to spot DP fields
