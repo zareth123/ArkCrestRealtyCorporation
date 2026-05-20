@@ -1142,12 +1142,13 @@ document.addEventListener('DOMContentLoaded', function() {
             cmNoResults.style.display = (visible === 0 && dataRows.length > 0) ? '' : 'none';
         }
 
-        // Update stat cards
-        document.getElementById('statTotal').textContent = visible;
-        document.getElementById('statNotReleased').textContent =
-            dataRows.filter(r => r.style.display !== 'none' && r.getAttribute('data-status') === 'Not Yet Released').length;
-        document.getElementById('statReleased').textContent =
-            dataRows.filter(r => r.style.display !== 'none' && r.getAttribute('data-status') === 'Released').length;
+        // Update stat cards (null-check in case cards section is hidden)
+        const elTotal = document.getElementById('statTotal');
+        const elNYR   = document.getElementById('statNotReleased');
+        const elRel   = document.getElementById('statReleased');
+        if (elTotal) elTotal.textContent = visible;
+        if (elNYR)   elNYR.textContent   = dataRows.filter(r => r.style.display !== 'none' && r.getAttribute('data-status') === 'Not Yet Released').length;
+        if (elRel)   elRel.textContent   = dataRows.filter(r => r.style.display !== 'none' && r.getAttribute('data-status') === 'Released').length;
     }
 
     searchInput.addEventListener('input', filterTable);
