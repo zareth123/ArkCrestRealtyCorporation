@@ -1480,6 +1480,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 700);
             }
             setTimeout(() => { row.style.background = ''; row.style.outline = ''; }, 10000);
+            row.addEventListener('click', function() { row.style.background = ''; row.style.outline = ''; }, { once: true });
         }
         setTimeout(doCmHighlight, 800);
         setTimeout(doCmHighlight, 1500);

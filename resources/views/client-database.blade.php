@@ -759,6 +759,13 @@ document.addEventListener('DOMContentLoaded',function(){
                 const badge = row.querySelector('.hl-badge');
                 if (badge) badge.remove();
             }, 10000);
+            // Click anywhere on row to remove highlight immediately
+            row.addEventListener('click', function() {
+                row.style.background = '';
+                row.style.outline    = '';
+                const badge = row.querySelector('.hl-badge');
+                if (badge) badge.remove();
+            }, { once: true });
         }
 
         // Try multiple times to ensure table is rendered
