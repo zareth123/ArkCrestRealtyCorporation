@@ -1377,9 +1377,11 @@ function computeAddCommission() {
     const pctEl  = document.getElementById('cm_add_commission_percent');
     const pct    = pctEl ? (parseFloat(pctEl.value) || 0) : 0;
     const result = netTcp * (pct / 100);
-    document.getElementById('cm_add_commission').value = result > 0 ? result.toFixed(2) : '';
-    const display = document.getElementById('cm_add_commission_display');
-    if (display) display.value = result > 0 ? fmtComma(result) : '0.00';
+    if (netTcp > 0) {
+        document.getElementById('cm_add_commission').value = result > 0 ? result.toFixed(2) : '';
+        const display = document.getElementById('cm_add_commission_display');
+        if (display) display.value = result > 0 ? fmtComma(result) : '';
+    }
     computeValueOfPaymentTerms();
 }
 function computeAddCommissionFromValue() {
@@ -1389,23 +1391,23 @@ function computeAddCommissionFromValue() {
     const pct    = netTcp > 0 ? (val / netTcp) * 100 : 0;
     document.getElementById('cm_add_commission').value = val > 0 ? val.toFixed(2) : '';
     const pctEl = document.getElementById('cm_add_commission_percent');
-    if (pctEl) pctEl.value = pct > 0 ? pct.toFixed(4).replace(/\.?0+$/, '') : '';
-}
-function computeAddCommissionFromValue() {
-    const netTcp = parseFloat(document.getElementById('cm_add_net_tcp').value) || 0;
-    const val    = parseFloat(document.getElementById('cm_add_commission_display').value) || 0;
-    const pct    = netTcp > 0 ? (val / netTcp) * 100 : 0;
-    document.getElementById('cm_add_commission').value = val > 0 ? val.toFixed(2) : '';
-    const pctEl = document.getElementById('cm_add_commission_percent');
-    if (pctEl) pctEl.value = pct > 0 ? pct.toFixed(4).replace(/\.?0+$/, '') : '';
+    if (pctEl && pct > 0) pctEl.value = pct.toFixed(4).replace(/\.?0+$/, '');
 }
 
-// Ensure commission is computed before form submit
+
+// Ensure commission hidden field is synced from display before submit
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('cmAddForm');
     if (form) {
         form.addEventListener('submit', function() {
-            computeAddCommission();
+            const displayVal = (document.getElementById('cm_add_commission_display')?.value || '').replace(/,/g, '');
+            const hiddenEl   = document.getElementById('cm_add_commission');
+            const parsed     = parseFloat(displayVal);
+            if (parsed > 0) {
+                hiddenEl.value = parsed.toFixed(2);
+            } else {
+                computeAddCommission();
+            }
         });
     }
 });
