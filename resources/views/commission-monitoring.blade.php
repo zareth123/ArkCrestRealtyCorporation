@@ -312,7 +312,7 @@
                 </thead>
                 <tbody id="monitoringTableBody">
                     @forelse($commissionRequests as $request)
-                    <tr data-status="{{ $request->status }}" data-date="{{ $request->date_requested ? $request->date_requested->format('Y-m') : '' }}">
+                    <tr id="cm-{{ $request->id }}" data-id="{{ $request->id }}" data-status="{{ $request->status }}" data-date="{{ $request->date_requested ? $request->date_requested->format('Y-m') : '' }}">
                         <td>{{ $request->client_name ?? '-' }}</td>
                         <td>{{ $request->reservation_date ? $request->reservation_date->format('M d, Y') : '-' }}</td>
                         <td>{{ $request->project_name ?? '-' }}</td>
@@ -1450,6 +1450,41 @@ document.addEventListener('DOMContentLoaded', function() {
         this.action = `/commission-monitoring/${id}`;
         showToast('Saving changes...', 'info');
     });
+
+    // Auto-open edit/delete after admin approval redirect
+    const _hlParams = new URLSearchParams(window.location.search);
+    const _hlId     = _hlParams.get('highlight');
+    const _hlStatus = _hlParams.get('status');
+    const _hlAction = _hlParams.get('action');
+    if (_hlId && _hlStatus === 'approved') {
+        function doCmHighlight() {
+            const row = document.getElementById('cm-' + _hlId) || document.querySelector('[data-id="' + _hlId + '"]');
+            if (!row) return;
+            row.style.background = 'rgba(22,163,74,.12)';
+            row.style.outline = '2px solid #16a34a';
+            row.style.outlineOffset = '-1px';
+            const scroller = document.querySelector('.page-content');
+            if (scroller) {
+                const rr = row.getBoundingClientRect(), sr = scroller.getBoundingClientRect();
+                scroller.scrollTo({ top: scroller.scrollTop + rr.top - sr.top - 100, behavior: 'smooth' });
+            } else { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            if (_hlAction === 'edit') {
+                setTimeout(() => editCommission(parseInt(_hlId)), 700);
+            }
+            if (_hlAction === 'delete') {
+                setTimeout(() => {
+                    if (confirm('Your delete request was approved. Delete this record now?')) {
+                        const delForm = row.querySelector('form');
+                        if (delForm) delForm.submit();
+                    }
+                }, 700);
+            }
+            setTimeout(() => { row.style.background = ''; row.style.outline = ''; }, 10000);
+        }
+        setTimeout(doCmHighlight, 800);
+        setTimeout(doCmHighlight, 1500);
+        window.history.replaceState({}, '', window.location.pathname);
+    }
 });
 </script>
 

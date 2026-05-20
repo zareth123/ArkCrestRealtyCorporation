@@ -740,6 +740,19 @@ document.addEventListener('DOMContentLoaded',function(){
                 }, 600);
             }
 
+            // If approved + delete action → auto-trigger delete confirm
+            if (isApproved && hlAction === 'delete') {
+                setTimeout(function() {
+                    if (confirm('Your delete request was approved. Delete this record now?')) {
+                        var allForms = document.querySelectorAll('tr[data-id="' + highlightId + '"] form');
+                        for (var f of allForms) {
+                            var m = f.querySelector('input[name="_method"]');
+                            if (m && m.value === 'DELETE') { f.submit(); return; }
+                        }
+                    }
+                }, 700);
+            }
+
             setTimeout(function() {
                 row.style.background   = '';
                 row.style.outline      = '';
