@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+﻿@extends('layouts.dashboard')
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/departmental-expenses-enhanced.css') }}?v={{ time() }}">
@@ -1046,7 +1046,7 @@ document.getElementById('edit_requested_amount').addEventListener('input', calcu
 document.getElementById('edit_total_expenses').addEventListener('input', calculateEditAmountReturned);
 
 // Add request
-document.getElementById('addRequestForm').addEventListener('submit', function(e) {
+document.getElementById('addRequestForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
     
     const formData = {

@@ -104,12 +104,23 @@ class PermissionRequestController extends Controller
             return response()->json(['approved' => false, 'perm_id' => null]);
         }
 
+        // First try exact record_id match (new requests)
         $perm = PermissionRequest::where('user_id', auth()->id())
             ->where('action', $request->action)
             ->where('record_id', $recordId)
             ->where('status', 'approved')
             ->latest()
             ->first();
+
+        // Fallback: match old approved requests where record_id was not saved (null)
+        if (!$perm) {
+            $perm = PermissionRequest::where('user_id', auth()->id())
+                ->where('action', $request->action)
+                ->whereNull('record_id')
+                ->where('status', 'approved')
+                ->latest()
+                ->first();
+        }
 
         return response()->json(['approved' => (bool) $perm, 'perm_id' => $perm?->id]);
     }
