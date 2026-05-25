@@ -156,7 +156,7 @@ class DepartmentalExpensesController extends Controller
 
         $controlNumber = \DB::transaction(function() use ($month, $year) {
             $count = 1;
-            while (DepartmentalExpense::where('control_number', sprintf('ARCS-%s-%03d-%s', $month, $count, $year))->exists()) {
+            while (DepartmentalExpense::withTrashed()->where('control_number', sprintf('ARCS-%s-%03d-%s', $month, $count, $year))->exists()) {
                 $count++;
             }
             return sprintf('ARCS-%s-%03d-%s', $month, $count, $year);
