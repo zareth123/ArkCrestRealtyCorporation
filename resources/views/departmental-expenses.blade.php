@@ -1643,5 +1643,50 @@ setTimeout(function() {
 } catch(error) {
     console.error('Error in departmental-expenses JavaScript:', error);
 }
+
+// Auto-open edit after admin approval redirect
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const hlId     = params.get('highlight');
+    const hlStatus = params.get('status');
+    const hlAction = params.get('action');
+    if (!hlId || hlStatus !== 'approved') return;
+
+    function doHighlight() {
+        const row = document.querySelector('tr[data-id="' + hlId + '"]');
+        if (!row) return;
+        row.style.background   = 'rgba(22,163,74,.12)';
+        row.style.outline      = '2px solid #16a34a';
+        row.style.outlineOffset= '-1px';
+        row.style.transition   = 'all .3s';
+        const scroller = document.querySelector('.page-content');
+        if (scroller) {
+            const rr = row.getBoundingClientRect(), sr = scroller.getBoundingClientRect();
+            scroller.scrollTo({ top: scroller.scrollTop + rr.top - sr.top - 100, behavior: 'smooth' });
+        } else { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        // Show toast
+        if (typeof showToast === 'function') showToast('Your edit request was approved. You can now edit this record.', 'success', 'Request Approved');
+        // Auto-open edit modal
+        if (hlAction === 'edit') {
+            setTimeout(() => editRequest(parseInt(hlId)), 700);
+        }
+        // Auto-trigger delete
+        if (hlAction === 'delete') {
+            setTimeout(() => {
+                if (confirm('Your delete request was approved. Delete this record now?')) {
+                    deleteRequest(parseInt(hlId));
+                }
+            }, 700);
+        }
+        // Remove highlight on click
+        row.addEventListener('click', function() {
+            row.style.background = ''; row.style.outline = '';
+        }, { once: true });
+        setTimeout(() => { row.style.background = ''; row.style.outline = ''; }, 10000);
+    }
+    setTimeout(doHighlight, 800);
+    setTimeout(doHighlight, 1500);
+    window.history.replaceState({}, '', window.location.pathname);
+})();
 </script>
 @endsection

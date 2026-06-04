@@ -181,6 +181,8 @@ class PermissionRequestController extends Controller
     // Consume (delete) an approved permission after it has been used
     public static function consume(int $userId, string $action, int $recordId): void
     {
+        // Only consume permissions that were specifically approved for this record
+        // (don't consume null-record_id permissions — those are general approvals)
         PermissionRequest::where('user_id', $userId)
             ->where('action', $action)
             ->where('record_id', $recordId)
