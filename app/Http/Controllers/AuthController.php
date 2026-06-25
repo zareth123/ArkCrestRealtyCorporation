@@ -25,7 +25,6 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        // Use Hash::check even if user not found to prevent timing attacks
         $passwordValid = $user && Hash::check($request->password, $user->password);
 
         if (!$user || !$passwordValid) {
@@ -36,7 +35,6 @@ class AuthController extends Controller
             return back()->withErrors(['email' => 'Your account is pending admin approval.'])->withInput($request->only('email', 'remember'));
         }
 
-        // Check if user is an inactive sales agent in team management
         try {
             if (\Schema::hasColumn('sales_agents', 'is_active')) {
                 $query = \App\Models\SalesAgent::where('is_active', false);
@@ -55,7 +53,7 @@ class AuthController extends Controller
                 }
             }
         } catch (\Exception $e) {
-            // Don't block login if agent check fails
+
         }
 
         Auth::login($user, $request->boolean('remember'));
@@ -88,7 +86,7 @@ class AuthController extends Controller
                     }
                 }
             }
-            // Today's due notes — only push once per note (check if already notified today)
+
             $dueNotes = \App\Models\Note::where('user_id', $user->id)
                 ->whereDate('note_date', today())
                 ->where('reminder_sent', false)
@@ -110,13 +108,11 @@ class AuthController extends Controller
             }
         }
 
-        // Sales positions (non-admin) → redirect to site visit form only
         $salesPositions = ['sales agent', 'sales manager', 'sales person', 'salesperson', 'sales team leader', 'sales personnel'];
         if (!$user->isAdmin() && in_array(strtolower(trim($user->position ?? '')), $salesPositions)) {
             return redirect()->route('tripping');
         }
 
-        // Admins always go to dashboard
         if ($user->isAdmin()) {
             return redirect()->route('dashboard');
         }
@@ -142,28 +138,23 @@ class AuthController extends Controller
             'preferred_address'  => 'nullable|string|max:100',
         ]);
 
-        // Block if employee_id already has an active account
         if (User::where('employee_id', $request->employee_id)->where('status', 'active')->exists()) {
             return back()->withErrors(['employee_id' => 'This Employee ID already has an account.'])->withInput($request->except('password', 'password_confirmation'));
         }
 
-        // emp_id must exist in pre-set records (added by admin)
         $preSet = User::where('employee_id', $request->employee_id)->where('status', 'pre_registered')->first();
         if (!$preSet) {
             return back()->withErrors(['employee_id' => 'Employee ID not found. Please contact your admin.'])->withInput($request->except('password', 'password_confirmation'));
         }
 
-        // date_hired must match
         if ($preSet->date_hired && $preSet->date_hired->format('Y-m-d') !== $request->date_hired) {
             return back()->withErrors(['date_hired' => 'Employee ID and Date Hired do not match our records.'])->withInput($request->except('password', 'password_confirmation'));
         }
 
-        // name must match (case-insensitive)
         if (strtolower(trim($preSet->name)) !== strtolower(trim($request->name))) {
             return back()->withErrors(['name' => 'Name does not match our records for this Employee ID.'])->withInput($request->except('password', 'password_confirmation'));
         }
 
-        // position must match (case-insensitive)
         if ($preSet->position && strtolower(trim($preSet->position)) !== strtolower(trim($request->position))) {
             return back()->withErrors(['position' => 'Position does not match our records for this Employee ID.'])->withInput($request->except('password', 'password_confirmation'));
         }
@@ -179,7 +170,6 @@ class AuthController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Send OTP via email
         \Mail::to($request->email)->send(new \App\Mail\EmailVerificationCode($code, $request->name));
 
         return redirect()->route('register.verify', ['email' => $request->email])
@@ -211,12 +201,10 @@ class AuthController extends Controller
 
         $data = json_decode($record->form_data, true);
 
-        // Check email still unique (among users with accounts)
         if (\App\Models\User::where('email', $data['email'])->whereNotIn('status', ['pre_registered'])->exists()) {
             return back()->withErrors(['code' => 'This email is already registered.']);
         }
 
-        // Update the pre-set placeholder row
         $preSet = User::where('employee_id', $data['employee_id'])->where('status', 'pre_registered')->first();
         if ($preSet) {
             $preSet->update([
@@ -244,10 +232,8 @@ class AuthController extends Controller
             ]);
         }
 
-        // Delete used code
         \DB::table('email_verification_codes')->where('email', $request->email)->delete();
 
-        // Notify admins
         User::where('role', 'admin')->each(function($admin) use ($newUser) {
             \App\Models\SystemNotification::notify(
                 $admin->id, 'user_pending',
@@ -269,7 +255,6 @@ class AuthController extends Controller
         return redirect()->route('login');
     }
 
-    // Step 2: Get security question for email
     public function getSecurityQuestion(Request $request)
     {
         $user = User::where('email', $request->email)->first();
@@ -277,7 +262,6 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Email not found. Please check and try again.'], 422);
         }
 
-        // check_only = just verify email exists (used for method selection screen)
         if ($request->input('check_only')) {
             return response()->json([
                 'success'      => true,
@@ -293,7 +277,6 @@ class AuthController extends Controller
         return response()->json(['success' => true, 'question' => $user->security_question]);
     }
 
-    // Step 1: Verify email + security question
     public function checkSecurityQuestion(Request $request)
     {
         $request->validate([
@@ -314,7 +297,6 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Incorrect answer. Please try again.'], 422);
         }
 
-        // Store token in session
         $token = bin2hex(random_bytes(16));
         \DB::table('password_reset_tokens')->where('email', $user->email)->delete();
         \DB::table('password_reset_tokens')->insert([
@@ -331,7 +313,6 @@ class AuthController extends Controller
         ]);
     }
 
-    // Send password reset link via email
     public function sendPasswordResetEmail(Request $request)
     {
         $email = $request->input('email');
@@ -340,7 +321,6 @@ class AuthController extends Controller
             return response()->json(['success' => false]);
         }
 
-        // Generate a token
         $token = \Illuminate\Support\Str::random(64);
         \DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $email],
@@ -387,7 +367,6 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => $msg], 422);
         }
 
-        // Verify token
         $record = \DB::table('password_reset_tokens')
             ->where('email', $request->email)
             ->first();
@@ -396,7 +375,6 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid or expired token. Please start over.'], 422);
         }
 
-        // Check token age (15 minutes)
         if (\Carbon\Carbon::parse($record->created_at)->addMinutes(15)->isPast()) {
             \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
             return response()->json(['success' => false, 'message' => 'Token expired. Please start over.'], 422);
