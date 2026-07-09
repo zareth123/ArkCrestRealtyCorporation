@@ -79,7 +79,7 @@
             @foreach($errors->all() as $error)<div>• {{ $error }}</div>@endforeach
         </div>
         @endif
-        <form id="cmAddForm" class="commission-form" action="{{ route('commission-monitoring.store') }}" method="POST" onsubmit="return confirm('Submit this commission request?')">
+        <form id="cmAddForm" class="commission-form" action="{{ route('commission-monitoring.store') }}" method="POST" onsubmit="return previewCommissionSubmit(event)">
             @csrf
             <div class="form-section">
                 <div class="section-title-bar">
@@ -1703,6 +1703,47 @@ function clearCmAddForm() {
         }
     });
 }
+
+function previewCommissionSubmit(event) {
+    event.preventDefault();
+
+    const val = (name) => {
+        const el = document.querySelector('#cmAddForm [name="' + name + '"]');
+        return el ? el.value : '';
+    };
+    const fmtMoney = (v) => v ? '₱' + parseFloat(v).toLocaleString('en-PH', {minimumFractionDigits:2}) : '-';
+    const fmtDate  = (v) => v ? new Date(v + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'2-digit', year:'numeric'}) : '-';
+    const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+
+    set('cmp_client_name',       val('client_name') || '-');
+    set('cmp_reservation_date',  fmtDate(val('reservation_date')));
+    set('cmp_project_name',      val('project_name') || '-');
+    set('cmp_property_details',  val('property_details') || '-');
+    set('cmp_price_sqm',         fmtMoney(val('price_sqm')));
+    set('cmp_lot_area',          val('lot_area') ? val('lot_area') + ' sqm' : '-');
+    set('cmp_discount',          val('discount') ? val('discount') + (val('discount_type') === 'percent' ? '%' : '') : '-');
+    set('cmp_net_tcp',           fmtMoney(val('net_tcp')));
+    set('cmp_commission_percent', val('commission_percent') ? val('commission_percent') + '%' : '-');
+    set('cmp_commission',        fmtMoney(val('commission')));
+    set('cmp_payment_type',      val('payment_type') || '-');
+    set('cmp_value_of_payment_terms', fmtMoney(val('value_of_payment_terms')));
+    set('cmp_terms_of_payment',  val('terms_of_payment') || '-');
+    set('cmp_mode_of_payment',   val('mode_of_payment') || '-');
+    set('cmp_agent_name',        val('agent_name') || '-');
+    set('cmp_date_requested',    fmtDate(val('date_requested')));
+    set('cmp_number_of_units',   val('number_of_units') || '-');
+    set('cmp_status',            val('status') || '-');
+    set('cmp_date_released',     fmtDate(val('date_released')));
+    set('cmp_remarks',           val('remarks') || '-');
+
+    document.getElementById('cmPreviewModal').classList.add('active');
+    return false;
+}
+
+function confirmSubmitCmForm() {
+    document.getElementById('cmPreviewModal').classList.remove('active');
+    document.getElementById('cmAddForm').submit();
+}
 function viewCommission(id) {
     fetch(`/api/commission-monitoring/${id}`)
         .then(r => r.json())
@@ -2289,6 +2330,51 @@ function submitCmPermRequest() {
                 <button type="submit" class="btn-modal-save">Save Changes</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- SUBMIT PREVIEW Modal -->
+<div id="cmPreviewModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:800px;">
+        <div class="modal-header">
+            <h3>Review Commission Request</h3>
+            <button class="modal-close" onclick="closeCmModal('cmPreviewModal')">✖</button>
+        </div>
+        <div class="modal-body">
+            <div style="background:#fef3c7;color:#92400e;padding:12px 16px;border-radius:8px;margin-bottom:18px;font-size:13px;font-weight:600;">
+                ⚠ Please review the details below carefully. Are you sure you want to submit this request?
+            </div>
+            <div class="modal-grid">
+                <div class="modal-field"><label>Client's Name</label><div class="field-value" id="cmp_client_name">-</div></div>
+                <div class="modal-field"><label>Reservation Date</label><div class="field-value" id="cmp_reservation_date">-</div></div>
+                <div class="modal-field"><label>Project Name</label><div class="field-value" id="cmp_project_name">-</div></div>
+                <div class="modal-field"><label>Property Details</label><div class="field-value" id="cmp_property_details">-</div></div>
+                @if($isAdmin)
+                <div class="modal-field"><label>Price / SQM</label><div class="field-value" id="cmp_price_sqm">-</div></div>
+                <div class="modal-field"><label>Lot Area</label><div class="field-value" id="cmp_lot_area">-</div></div>
+                <div class="modal-field"><label>Discount</label><div class="field-value" id="cmp_discount">-</div></div>
+                @endif
+                <div class="modal-field"><label>Net TCP</label><div class="field-value" id="cmp_net_tcp">-</div></div>
+                @if($isAdmin)
+                <div class="modal-field"><label>Commission %</label><div class="field-value" id="cmp_commission_percent">-</div></div>
+                @endif
+                <div class="modal-field"><label>Value of Commission</label><div class="field-value" id="cmp_commission">-</div></div>
+                <div class="modal-field"><label>Commission Terms</label><div class="field-value" id="cmp_payment_type">-</div></div>
+                <div class="modal-field"><label>Value of Commission Terms</label><div class="field-value" id="cmp_value_of_payment_terms">-</div></div>
+                <div class="modal-field"><label>Terms of Payment</label><div class="field-value" id="cmp_terms_of_payment">-</div></div>
+                <div class="modal-field"><label>Mode of Payment</label><div class="field-value" id="cmp_mode_of_payment">-</div></div>
+                <div class="modal-field"><label>Agent's Name</label><div class="field-value" id="cmp_agent_name">-</div></div>
+                <div class="modal-field"><label>Date Requested</label><div class="field-value" id="cmp_date_requested">-</div></div>
+                <div class="modal-field"><label>Number of Units</label><div class="field-value" id="cmp_number_of_units">-</div></div>
+                <div class="modal-field"><label>Status</label><div class="field-value" id="cmp_status">-</div></div>
+                <div class="modal-field"><label>Date Released</label><div class="field-value" id="cmp_date_released">-</div></div>
+                <div class="modal-field" style="grid-column:1/-1;"><label>Remarks</label><div class="field-value" id="cmp_remarks">-</div></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeCmModal('cmPreviewModal')">Go Back &amp; Edit</button>
+            <button class="btn-modal-save" onclick="confirmSubmitCmForm()">Yes, Submit Request</button>
+        </div>
     </div>
 </div>
 
