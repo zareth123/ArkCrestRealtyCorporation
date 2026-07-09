@@ -166,4 +166,27 @@ class CommissionMonitoringController extends Controller
 
         return redirect()->route('commission-monitoring')->with('success', 'Commission request deleted.');
     }
+
+    // Bulk delete — admin only
+    public function bulkDestroy(\Illuminate\Http\Request $request)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+
+        $ids = array_filter((array) $request->input('ids', []), fn ($id) => is_numeric($id));
+        if (empty($ids)) {
+            return redirect()->route('commission-monitoring')->with('error', 'No records selected.');
+        }
+
+        $records = CommissionRequest::whereIn('id', $ids)->get();
+        foreach ($records as $record) {
+            \App\Models\ActivityLog::log('delete', 'Commission Monitoring', "Deleted commission request ID: {$record->id} ({$record->client_name} - {$record->project_name})", [
+                'id'           => $record->id,
+                'client_name'  => $record->client_name ?? null,
+                'project_name' => $record->project_name ?? null,
+            ]);
+        }
+        CommissionRequest::whereIn('id', $ids)->delete();
+
+        return redirect()->route('commission-monitoring')->with('success', count($records) . ' commission request(s) deleted.');
+    }
 }
