@@ -78,7 +78,7 @@
         <div class="arc-card">
             <div class="arc-card-label">Released Commissions</div>
             <div class="arc-card-value">{{ $released->count() }}</div>
-            <div style="font-size:12px;color:#64748b;margin-top:4px;">{{ $month === 'all' ? 'transactions this year' : 'transactions this month' }}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:4px;">released transactions</div>
         </div>
         <div class="arc-card">
             <div class="arc-card-label">Total Net TCP</div>
@@ -92,23 +92,6 @@
         </div>
     </div>
 
-
-    {{-- Month / Year Period Selector (separate, auto-searches on change) --}}
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-        <select id="arcMonthSelect" onchange="navigateArcPeriod(this.value, document.getElementById('arcYearSelect').value)"
-            style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;cursor:pointer;">
-            <option value="all" {{ $month === 'all' ? 'selected' : '' }}>All Months</option>
-            @foreach(['January','February','March','April','May','June','July','August','September','October','November','December'] as $i => $m)
-            <option value="{{ $i+1 }}" {{ (string)$month === (string)($i+1) ? 'selected' : '' }}>{{ $m }}</option>
-            @endforeach
-        </select>
-        <select id="arcYearSelect" onchange="navigateArcPeriod(document.getElementById('arcMonthSelect').value, this.value)"
-            style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;cursor:pointer;">
-            @foreach($years as $y)
-            <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
-            @endforeach
-        </select>
-    </div>
 
     {{-- Search + Column Filter --}}
     <div class="arc-filters-bar">
@@ -209,9 +192,6 @@
 </div>
 
 <script>
-var arcCurrentMonth = "{{ $month }}";
-var arcCurrentYear  = {{ $year }};
-var arcYearsList    = @json($years);
 var arcTotals = {};
 @foreach($released as $r)
 @php $rate = $rates->get($r->id); @endphp
@@ -277,7 +257,7 @@ function updateTotal() {
 /* ---- Filter dropdown + Search logic ---- */
 
 var FILTERABLE_COLUMNS = [
-    { key: 'date-released',     label: 'Date Released',     type: 'date',   data: 'dateReleased' },
+    { key: 'date-released',     label: 'Date Released',     type: 'daterange',   data: 'dateReleased' },
     { key: 'client',            label: 'Client',             type: 'text',   data: 'client' },
     { key: 'project',           label: 'Project',            type: 'text',   data: 'project' },
     { key: 'agent',             label: 'Agent',               type: 'text',   data: 'agent' },
@@ -356,25 +336,34 @@ function renderActiveFilterChips() {
         chip.appendChild(label);
 
         var input;
-        if (col.type === 'period-month') {
-            input = document.createElement('select');
-            var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-            monthNames.forEach(function (m, i) {
-                var opt = document.createElement('option');
-                opt.value = i + 1; opt.textContent = m;
-                if (arcCurrentMonth == i + 1) opt.selected = true;
-                input.appendChild(opt);
-            });
-            input.onchange = function () { navigateArcPeriod(this.value, arcCurrentYear); };
-        } else if (col.type === 'period-year') {
-            input = document.createElement('select');
-            arcYearsList.forEach(function (y) {
-                var opt = document.createElement('option');
-                opt.value = y; opt.textContent = y;
-                if (arcCurrentYear == y) opt.selected = true;
-                input.appendChild(opt);
-            });
-            input.onchange = function () { navigateArcPeriod(arcCurrentMonth, this.value); };
+        if (col.type === 'daterange') {
+            if (!activeArcFilters[key] || typeof activeArcFilters[key] !== 'object') {
+                activeArcFilters[key] = { from: '', to: '' };
+            }
+            var range = activeArcFilters[key];
+
+            input = document.createElement('span');
+            input.style.display = 'flex';
+            input.style.alignItems = 'center';
+            input.style.gap = '6px';
+
+            var fromInput = document.createElement('input');
+            fromInput.type = 'date';
+            fromInput.value = range.from || '';
+            fromInput.onchange = function () { range.from = this.value; applyArcFilters(); };
+
+            var toLabel = document.createElement('span');
+            toLabel.textContent = 'to';
+            toLabel.style.cssText = 'color:#8a9bad;font-size:12px;';
+
+            var toInput = document.createElement('input');
+            toInput.type = 'date';
+            toInput.value = range.to || '';
+            toInput.onchange = function () { range.to = this.value; applyArcFilters(); };
+
+            input.appendChild(fromInput);
+            input.appendChild(toLabel);
+            input.appendChild(toInput);
         } else if (col.type === 'select') {
             input = document.createElement('select');
             var optAll = document.createElement('option');
@@ -420,13 +409,6 @@ function renderActiveFilterChips() {
     row.appendChild(clearBtn);
 }
 
-function navigateArcPeriod(month, year) {
-    var url = new URL(window.location.href);
-    url.searchParams.set('month', month);
-    url.searchParams.set('year', year);
-    window.location.href = url.toString();
-}
-
 function clearAllArcFilters() {
     activeArcFilters = {};
     renderActiveFilterChips();
@@ -444,7 +426,17 @@ function applyArcFilters() {
         for (var key in activeArcFilters) {
             var col = FILTERABLE_COLUMNS.find(function (c) { return c.key === key; });
             if (!col) continue;
-            if (col.type === 'period-month' || col.type === 'period-year') continue; // these reload the page instead of filtering rows
+
+            if (col.type === 'daterange') {
+                var range = activeArcFilters[key];
+                if (!range || (!range.from && !range.to)) continue;
+                var cellDate = (row.dataset[col.data] || '').toString();
+                if (!cellDate) { visible = false; break; }
+                if (range.from && cellDate < range.from) { visible = false; break; }
+                if (range.to && cellDate > range.to) { visible = false; break; }
+                continue;
+            }
+
             var val = (activeArcFilters[key] || '').toString().trim();
             if (!val) continue;
             var cellVal = (row.dataset[col.data] || '').toString();
