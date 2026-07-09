@@ -46,6 +46,13 @@
 .lc-input{padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;font-family:inherit;width:100%;box-sizing:border-box}
 .lc-input:focus{outline:none;border-color:#1e4575;box-shadow:0 0 0 3px rgba(30,69,117,.08)}
 .lc-table-scroll{overflow-x:auto !important;overflow-y:visible !important;max-height:none !important;}
+@media (max-width:900px){
+  .lc-view-grid{grid-template-columns:1fr 1fr !important;}
+}
+@media (max-width:600px){
+  .lc-view-modal-box{width:100% !important;max-width:100% !important;border-radius:0 !important;}
+  .lc-view-grid{grid-template-columns:1fr !important;}
+}
 
 /* ---- Filter dropdown + chips (matches Client Database / Commission Monitoring pattern) ---- */
 .column-filter-dropdown{position:relative}
@@ -186,13 +193,13 @@
 
 {{-- View Client Details Modal --}}
 <div id="lcViewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
-    <div style="background:white;border-radius:16px;width:95%;max-width:960px;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div class="lc-view-modal-box" style="background:white;border-radius:16px;width:95%;max-width:960px;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
         <div style="background:linear-gradient(135deg,#1e4575,#2563eb);color:white;padding:20px 24px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center">
             <h3 style="margin:0;font-size:18px;font-weight:700">Commission Request Details</h3>
             <button onclick="document.getElementById('lcViewModal').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:white;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px">✕</button>
         </div>
         <div style="padding:24px;max-height:70vh;overflow-y:auto;overflow-x:hidden;">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;min-width:0;" id="lcViewContent"></div>
+            <div class="lc-view-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;min-width:0;" id="lcViewContent"></div>
         </div>
         <div style="padding:16px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end">
             <button onclick="document.getElementById('lcViewModal').style.display='none'" style="padding:10px 20px;background:#f3f4f6;color:#374151;border:2px solid #d0d5dd;border-radius:8px;font-weight:600;cursor:pointer">Close</button>
