@@ -10,33 +10,19 @@ class ArkcrestSalesController extends Controller
 {
     public function index(Request $request)
     {
-        $month = $request->get('month', 'all');
-        $year  = $request->get('year', date('Y'));
-
-        $releasedQuery = CommissionRequest::where('status', 'Released')
-            ->whereYear('date_released', $year);
-
-        if ($month !== 'all') {
-            $releasedQuery->whereMonth('date_released', $month);
-        }
-
-        $released = $releasedQuery->orderBy('date_released')->get();
+        $released = CommissionRequest::where('status', 'Released')
+            ->orderBy('date_released')
+            ->get();
 
         $rates = ArkcrestCommissionRate::whereIn('commission_request_id', $released->pluck('id'))
             ->get()->keyBy('commission_request_id');
-
-        $years = CommissionRequest::where('status', 'Released')
-            ->whereNotNull('date_released')
-            ->selectRaw('YEAR(date_released) as y')
-            ->distinct()->pluck('y')->sortDesc();
-        if (!$years->contains((int)$year)) $years->prepend((int)$year);
 
         $totalReleasedCommission = $released->sum('commission');
         $totalNetTcp = $released->sum('net_tcp');
         $totalArkcrestCommission = $rates->sum('arkcrest_commission');
 
         return view('arkcrest-sales', compact(
-            'released', 'rates', 'month', 'year', 'years',
+            'released', 'rates',
             'totalReleasedCommission', 'totalNetTcp', 'totalArkcrestCommission'
         ));
     }
