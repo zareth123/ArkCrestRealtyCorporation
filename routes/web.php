@@ -113,6 +113,19 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::post('/settings/period-lock', [App\Http\Controllers\SettingsController::class, 'lockPeriod'])->name('settings.period-lock.store');
     Route::delete('/settings/period-lock/{id}', [App\Http\Controllers\SettingsController::class, 'unlockPeriod'])->name('settings.period-lock.destroy');
 
+    // Backup & Restore
+    Route::get('/settings/backup', [App\Http\Controllers\BackupController::class, 'index'])->name('backup.index');
+    Route::post('/settings/backup/create-csv', [App\Http\Controllers\BackupController::class, 'createCsv'])->name('backup.create-csv');
+    Route::post('/settings/backup/create-pdf', [App\Http\Controllers\BackupController::class, 'createPdf'])->name('backup.create-pdf');
+    Route::post('/settings/backup/upload-restore', [App\Http\Controllers\BackupController::class, 'uploadAndRestore'])->name('backup.upload-restore');
+    Route::get('/settings/backup/{filename}/download', [App\Http\Controllers\BackupController::class, 'download'])->name('backup.download');
+    Route::post('/settings/backup/{filename}/restore', [App\Http\Controllers\BackupController::class, 'restore'])->name('backup.restore');
+    Route::delete('/settings/backup/{filename}', [App\Http\Controllers\BackupController::class, 'destroy'])->name('backup.destroy');
+
+    // Export Records
+    Route::get('/admin/export', [App\Http\Controllers\AdminExportController::class, 'index'])->name('admin.export');
+    Route::post('/admin/export/download', [App\Http\Controllers\AdminExportController::class, 'download'])->name('admin.export.download');
+
     // User management (admin only)
     Route::get('/settings/users', [App\Http\Controllers\SettingsController::class, 'users'])->name('settings.users');
     Route::post('/settings/users/{id}/approve', [App\Http\Controllers\SettingsController::class, 'approveUser'])->name('settings.users.approve');

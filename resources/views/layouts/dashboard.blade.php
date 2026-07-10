@@ -553,7 +553,7 @@
                             </li>
                             @php
                                 $isAdminUser = auth()->check() && auth()->user()->isAdmin();
-                                $sHiddenGlobal = $isAdminUser ? [] : (auth()->user()->hidden_pages ?? []);
+                                $sHiddenGlobal = array_values(json_decode(\DB::table('app_settings')->where('key', 'hidden_pages')->value('value') ?? '[]', true) ?: []);
                                 $canSeeSetting = fn($k) => $isAdminUser || !in_array($k, $sHiddenGlobal);
                             @endphp
                             @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.activity','settings.deleted','settings.permissions','settings.teams','settings.period-lock'], fn($k) => !in_array($k, $sHiddenGlobal)))
@@ -606,6 +606,22 @@
                                 <a href="{{ route('settings') }}?panel=teams" class="nav-subitem" data-page="settings-teams">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                     <span class="sidebar-text">Team Management</span>
+                                </a>
+                            </li>
+                            @endif
+                            @if($canSeeSetting('settings.backup'))
+                            <li>
+                                <a href="{{ route('backup.index') }}" class="nav-subitem" data-page="settings-backup">
+                                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-4 8v4m0 0l-2-2m2 2l2-2M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <span class="sidebar-text">Backup &amp; Restore</span>
+                                </a>
+                            </li>
+                            @endif
+                            @if($canSeeSetting('settings.export'))
+                            <li>
+                                <a href="{{ route('admin.export') }}" class="nav-subitem" data-page="settings-export">
+                                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M7 10l5 5 5-5M12 15V3"/></svg>
+                                    <span class="sidebar-text">Export Records</span>
                                 </a>
                             </li>
                             @endif
