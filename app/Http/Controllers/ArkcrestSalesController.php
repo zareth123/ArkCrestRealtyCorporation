@@ -20,10 +20,11 @@ class ArkcrestSalesController extends Controller
         $totalReleasedCommission = $released->sum('commission');
         $totalNetTcp = $released->sum('net_tcp');
         $totalArkcrestCommission = $rates->sum('arkcrest_commission');
+        $totalUnits = $released->sum('number_of_units');
 
         return view('arkcrest-sales', compact(
             'released', 'rates',
-            'totalReleasedCommission', 'totalNetTcp', 'totalArkcrestCommission'
+            'totalReleasedCommission', 'totalNetTcp', 'totalArkcrestCommission', 'totalUnits'
         ));
     }
 
