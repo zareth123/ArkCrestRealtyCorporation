@@ -423,7 +423,11 @@
         box-sizing: border-box;
         /* left is set dynamically by JS (cmUpdateStickyOffsets) */
     }
-    .monitoring-table thead .col-sticky { background: #1e4575; z-index: 3; }
+    .monitoring-table thead .col-sticky { background: #1e4575; z-index: 5; }
+
+    /* Sticky header row (vertical scroll) — mirrors the sticky index/checkbox
+    columns above (horizontal scroll), so both axes stay anchored together. */
+    .monitoring-table thead th { position: sticky; top: 0; background: #1e4575; z-index: 4; box-shadow: 0 2px 4px -2px rgba(0,0,0,.25); }
     .col-sticky-check {
         width: 40px; min-width: 40px; max-width: 40px;
         text-align: center; padding: 12px 4px !important;

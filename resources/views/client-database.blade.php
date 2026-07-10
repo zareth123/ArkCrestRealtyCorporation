@@ -29,8 +29,11 @@
 .cd-sticky-col{position:sticky;background:#fff;z-index:2}
 .cd-sticky-checkbox{left:0;width:40px;min-width:40px;max-width:40px;text-align:center}
 .cd-sticky-index{left:40px;width:52px;min-width:52px;max-width:52px;text-align:center;box-shadow:2px 0 4px -2px rgba(0,0,0,0.15)}
-thead .cd-sticky-col{background:#1e4575;z-index:3}
 tbody tr:hover .cd-sticky-col{background:#f8fafc}
+
+/* Sticky header row (mirrors the sticky index column above, but for vertical scroll) */
+.cd-records-table thead th{position:sticky;top:0;background:#1e4575;z-index:4;box-shadow:0 2px 4px -2px rgba(0,0,0,.25)}
+.cd-records-table thead .cd-sticky-col{z-index:5}
 .cd-bulk-btn{padding:9px 14px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:#ef4444;color:#fff;transition:opacity .2s}
 .cd-bulk-btn:disabled{opacity:.45;cursor:not-allowed}
 
