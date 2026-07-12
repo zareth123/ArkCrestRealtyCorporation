@@ -226,7 +226,7 @@ class DatabaseBackupService
         // This export is for quick viewing/printing, not a full data dump
         // (that's what the CSV backup is for) — capping rows per table keeps
         // both the memory usage and the resulting PDF's size reasonable.
-        $rowLimit = 200;
+        $rowLimit = 1000000;
 
         $tables = $this->backupableTables();
 
@@ -235,8 +235,8 @@ class DatabaseBackupService
             h1 { font-size: 16px; color:#1e4575; margin-bottom:2px; }
             .meta { font-size: 10px; color:#6b7280; margin-bottom:18px; }
             h2 { font-size: 12px; color:#1e4575; background:#eef2f7; padding:4px 8px; margin-top:22px; page-break-inside: avoid; }
-            table { border-collapse: collapse; width:100%; margin-bottom:6px; }
-            th, td { border:1px solid #ccc; padding:3px 5px; text-align:left; word-break:break-all; }
+            table { border-collapse: collapse; width:100%; margin-bottom:6px; table-layout: fixed; }
+            th, td { border:1px solid #ccc; padding:3px 4px; text-align:left; word-break:break-all; overflow-wrap:break-word; font-size: 7.5px; }
             th { background:#f3f4f6; font-weight:bold; }
             .empty-note { color:#9ca3af; font-style:italic; padding:4px 0; }
         </style>';
@@ -267,7 +267,7 @@ class DatabaseBackupService
                 $html .= '<tr>';
                 foreach ($columns as $col) {
                     $value = $row->{$col} ?? '';
-                    $value = is_string($value) ? mb_strimwidth($value, 0, 200, '…') : $value;
+                    $value = is_string($value) ? mb_strimwidth($value, 0, 80, '…') : $value;
                     $html .= '<td>' . e((string) $value) . '</td>';
                 }
                 $html .= '</tr>';
