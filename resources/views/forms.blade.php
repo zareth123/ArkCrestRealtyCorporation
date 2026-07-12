@@ -5,6 +5,7 @@
 .frm-wrap{padding:24px 30px;max-width:816px;margin:0 auto}
 .btn-clear-f{padding:10px 24px;background:#f3f4f6;color:#374151;border:2px solid #d0d5dd;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer}
 .btn-print-f{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;background:#1e4575;color:white;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer}
+.btn-print-f:disabled{opacity:.45;cursor:not-allowed;background:#8b98ab}
 .btn-submit-f{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;background:linear-gradient(135deg,#1e4575 0%,#2563eb 60%,#1e4575 100%);background-size:200% auto;color:white;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;transition:all .2s}
 .btn-submit-f:disabled{opacity:.55;cursor:not-allowed}
 .frm-card{background:white;padding:32px 48px 32px 48px;border:1px solid #ccc;font-family:Arial,sans-serif;color:#000;width:816px;box-sizing:border-box;margin:0 auto;}
@@ -312,9 +313,13 @@
 
     <!-- Buttons (screen only) -->
     <div class="frm-btns dept-sel">
-    <button class="btn-clear-f" onclick="openClearConfirm('budget')">Clear</button>    <button class="btn-print-f" onclick="openPreview('frmCard','Budget Request Form')">
+    <button class="btn-clear-f" onclick="openClearConfirm('budget')">Clear</button>    <button class="btn-print-f" id="btnSubmitBudget" onclick="openPreview('frmCard','Budget Request Form','submit')">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    Submit
+    </button>
+    <button class="btn-print-f" id="btnPrintBudget" onclick="openPreview('frmCard','Budget Request Form','print')" disabled title="Submit the form first to enable printing">
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-    Print and Submit
+    Print
     </button>
     </div>
 
@@ -786,6 +791,12 @@ function clearForm(){
     document.querySelectorAll('.liq-date-input,.liq-receipt-input,.liq-particulars-input,.liq-amount-input').forEach(function(el){el.value='';});
     document.getElementById('f_dept').value='HUMAN RESOURCES';
     updDept();
+    // A cleared form is a fresh, unsaved request — Print stays locked
+    // until it's actually submitted again, and we grab a new preview
+    // control number for whatever gets filled in next.
+    _budgetSubmitted = false;
+    updatePrintButtonState();
+    loadControlNumberPreview();
 }
 // Live comma formatting for peso amount fields (e.g. 10000 -> 10,000)
 // Keeps the cursor in place relative to the end of the value so typing
@@ -826,6 +837,7 @@ function loadControlNumberPreview(){
     });
 }
 loadControlNumberPreview();
+updatePrintButtonState();
 
 // Reads a peso-formatted input (which may contain thousands separators)
 // and returns a plain number, or null if the field is empty/invalid.
@@ -891,12 +903,24 @@ function collectBudgetRequestData(){
     };
 }
 
+// Whether the form currently on screen has already been saved to All
+// Expenses. Print is gated on this — it only unlocks once a real,
+// saved record (with an assigned control number) exists, so a printed
+// copy always reflects something that was actually submitted. Reset
+// whenever the form is cleared or a fresh one is started.
+var _budgetSubmitted = false;
+function updatePrintButtonState(){
+    var btn = document.getElementById('btnPrintBudget');
+    if(!btn) return;
+    btn.disabled = !_budgetSubmitted;
+    btn.title = _budgetSubmitted ? '' : 'Submit the form first to enable printing';
+}
 var _budgetSubmitting = false;
-function submitBudgetRequestAndPrint(){
+function submitBudgetRequest(){
     if(_budgetSubmitting) return;
     var data = collectBudgetRequestData();
     if(!data.requestor_name || !data.category || !data.requested_amount){
-    showToast('Please fill in Name, Particular, and Amount Requested before printing.', 'error', 'Missing details');
+    showToast('Please fill in Name, Particular, and Amount Requested before submitting.', 'error', 'Missing details');
     return;
     }
     _budgetSubmitting = true;
@@ -918,9 +942,9 @@ function submitBudgetRequestAndPrint(){
     var previewCtrl = document.querySelector('#frmPreviewBody #ctrlNumDisplay');
     if(previewCtrl) previewCtrl.innerHTML = document.getElementById('ctrlNumDisplay').innerHTML;
     showToast('Added to All Expenses — Control Number: ' + res.d.control_number, 'success', 'Submitted');
-    window.print();
-    // Get the next control number ready for whatever request comes next
-    loadControlNumberPreview();
+    _budgetSubmitted = true;
+    updatePrintButtonState();
+    closePreview();
     }).catch(function(){
     _budgetSubmitting = false;
     showToast('Network error. Please try again.', 'error');
@@ -1147,7 +1171,11 @@ function formatFriendlyTime(timeStr){
     return h12 + ':' + m + ' ' + ampm;
 }
 
-function openPreview(cardId, label){
+function openPreview(cardId, label, action){
+    if(cardId === 'frmCard' && action === 'print' && !_budgetSubmitted){
+    showToast('Please submit the form first before printing.', 'error', 'Not submitted yet');
+    return;
+    }
     document.body.appendChild(document.getElementById('frmPreviewModal'));
     var clone = document.getElementById(cardId).cloneNode(true);
     clone.querySelectorAll('.frm-btns,.dept-sel,.no-print-sv').forEach(function(el){ el.remove(); });
@@ -1215,8 +1243,15 @@ function openPreview(cardId, label){
     document.getElementById('frmPreviewLabel').textContent = label + ' — Preview';
     var modal = document.getElementById('frmPreviewModal');
     modal.dataset.source = cardId;
+    modal.dataset.action = action || '';
     var printLabelEl = document.getElementById('frmPreviewPrintLabel');
-    if(printLabelEl) printLabelEl.textContent = (cardId === 'frmCard') ? 'Print and Submit' : 'Print';
+    if(printLabelEl){
+    if(cardId === 'frmCard'){
+    printLabelEl.textContent = (action === 'submit') ? 'Submit' : 'Print';
+    } else {
+    printLabelEl.textContent = 'Print';
+    }
+    }
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     setTimeout(fitPreviewCard, 0);
@@ -1226,8 +1261,18 @@ function closePreview(){
     document.body.style.overflow = '';
 }
 function previewPrint(){
-    var src = document.getElementById('frmPreviewModal').dataset.source;
-    if(src === 'frmCard'){ submitBudgetRequestAndPrint(); } else { window.print(); }
+    var modal = document.getElementById('frmPreviewModal');
+    var src = modal.dataset.source;
+    var action = modal.dataset.action;
+    if(src === 'frmCard' && action === 'submit'){
+    submitBudgetRequest();
+    } else {
+    // Either the Site Visit form, or the budget form's Print action —
+    // by the time Print is reachable the form has already been
+    // submitted (the button is disabled/gated until then), so this
+    // never triggers another save.
+    window.print();
+    }
 }
 function previewDownload(){
     var src = document.getElementById('frmPreviewModal').dataset.source;

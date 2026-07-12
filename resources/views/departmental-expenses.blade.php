@@ -238,7 +238,7 @@
                     <div class="form-group">
                         <label>Status <span class="required">*</span></label>
                         <select id="status" name="status" class="form-control" required>
-                            <option value="FOR REQUEST">FOR REQUEST</option>
+                            <option value="PENDING">PENDING</option>
                             <option value="NOT LIQUIDATED">NOT LIQUIDATED</option>
                             <option value="LIQUIDATED">LIQUIDATED</option>
                             <option value="REJECTED">REJECTED</option>
@@ -286,6 +286,10 @@
             <!-- Filters and Search below title -->
             <div class="expenses-filters-bar" style="display: flex; flex-direction: column; gap: 14px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0;">
                 <div class="expenses-filters-row" style="display: flex; justify-content: flex-start; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <button type="button" id="printSelectedBtn" onclick="printSelectedRecords()" style="display:flex;align-items:center;gap:6px;padding:9px 14px;background:#1e4575;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;height:40px;box-sizing:border-box;">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        Print Selected
+                    </button>
                     <div class="expenses-search-wrapper" style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 560px;">
                         <div class="column-filter-dropdown" id="columnFilterDropdown" style="position: relative;">
                             <button type="button" id="columnFilterBtn" class="column-filter-btn" onclick="toggleColumnFilterMenu(event)">
@@ -311,6 +315,9 @@
             <table class="requests-table">
                 <thead>
                     <tr>
+                        <th style="width: 40px; min-width: 40px;">
+                            <input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll(this)">
+                        </th>
                         <th style="min-width: 150px;">Control Number</th>
                         <th style="min-width: 180px;">Requestor Name</th>
                         <th style="min-width: 180px;">Department</th>
@@ -328,6 +335,7 @@
                 <tbody id="requestsTableBody">
                     @foreach($requests as $req)
                     <tr id="expense-{{ $req->id }}" data-id="{{ $req->id }}" data-department="{{ $req->department }}" data-date-requested="{{ $req->date_requested ? $req->date_requested->format('Y-m-d') : '' }}" data-date-released="{{ $req->date_released ? $req->date_released->format('Y-m-d') : '' }}" data-control="{{ $req->control_number }}" data-requestor="{{ $req->requestor_name }}" data-category="{{ $req->category }}" data-status="{{ $req->status }}" data-requested-amount="{{ $req->requested_amount }}" data-total-expenses="{{ $req->total_expenses }}" data-amount-returned="{{ $req->amount_returned }}" data-date-returned="{{ $req->date_of_amount_returned ? $req->date_of_amount_returned->format('Y-m-d') : '' }}">
+                        <td><input type="checkbox" class="row-select-checkbox" value="{{ $req->id }}"></td>
                         <td>{{ $req->control_number }}</td>
                         <td>{{ $req->requestor_name }}</td>
                         <td class="department-cell">{{ $req->department }}</td>
@@ -360,6 +368,7 @@
                 <p style="font-size: 14px;">Try adjusting your search or filter criteria</p>
             </div>
         </div>
+        <div id="printArea" class="print-only"></div>
     </div>
     @endif
 </div>
@@ -439,6 +448,10 @@
     .clear-column-filters-btn {
         width: 100% !important;
         text-align: center;
+    }
+    #printSelectedBtn {
+        width: 100% !important;
+        justify-content: center !important;
     }
 
 }
@@ -572,6 +585,109 @@
     cursor: pointer;
     white-space: nowrap;
 }
+
+/* Sticky checkbox + Control Number + Requestor Name columns in All Expenses table.
+   Column order is: (1) checkbox, (2) Control Number, (3) Requestor Name */
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.requests-table th:nth-child(1),
+.requests-table td:nth-child(1) {
+    width: 40px;
+    min-width: 40px;
+    text-align: center;
+}
+.requests-table th:nth-child(1),
+.requests-table td:nth-child(1),
+.requests-table th:nth-child(2),
+.requests-table td:nth-child(2),
+.requests-table th:nth-child(3),
+.requests-table td:nth-child(3) {
+    position: sticky;
+    z-index: 2;
+}
+.requests-table td:nth-child(1),
+.requests-table td:nth-child(2),
+.requests-table td:nth-child(3) {
+    background: #fff;
+}
+.requests-table th:nth-child(1),
+.requests-table th:nth-child(2),
+.requests-table th:nth-child(3) {
+    z-index: 3;
+}
+.requests-table th:nth-child(1),
+.requests-table td:nth-child(1) {
+    left: 0;
+}
+.requests-table th:nth-child(2),
+.requests-table td:nth-child(2) {
+    left: 40px;
+}
+.requests-table th:nth-child(3),
+.requests-table td:nth-child(3) {
+    left: 190px;
+}
+.requests-table td:nth-child(3),
+.requests-table th:nth-child(3) {
+    box-shadow: 2px 0 4px -2px rgba(0,0,0,0.12);
+}
+
+@media (max-width: 768px) {
+    .requests-table th:nth-child(1),
+    .requests-table td:nth-child(1),
+    .requests-table th:nth-child(2),
+    .requests-table td:nth-child(2),
+    .requests-table th:nth-child(3),
+    .requests-table td:nth-child(3) {
+        position: static;
+        box-shadow: none;
+        left: auto;
+    }
+    .requests-table th:nth-child(2),
+    .requests-table td:nth-child(2) {
+        min-width: 110px !important;
+        max-width: 110px !important;
+        white-space: normal;
+        word-break: break-word;
+        font-size: 12px;
+    }
+    .requests-table th:nth-child(3),
+    .requests-table td:nth-child(3) {
+        min-width: 140px !important;
+    }
+}
+
+/* Print view - hidden on screen, shown only when printing */
+.print-only { display: none; }
+
+@media print {
+    body * { visibility: hidden; }
+    .print-only, .print-only * { visibility: visible; }
+    .print-only {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+    }
+    .print-header { margin-bottom: 20px; }
+    .print-header h2 { margin: 0 0 4px; font-size: 18px; color: #1e4575; }
+    .print-header p { margin: 0; font-size: 12px; color: #555; }
+    .print-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .print-table th, .print-table td {
+        border: 1px solid #999;
+        padding: 6px 8px;
+        text-align: left;
+    }
+    .print-table th {
+        background: #eef2f7 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    @page { size: landscape; margin: 12mm; }
+}
 </style>
 
 <div id="budgetModal" class="modal">
@@ -691,7 +807,7 @@
                 <div class="form-group">
                     <label>Status <span class="required">*</span></label>
                     <select id="edit_status" name="status" class="form-control form-control-sm" required>
-                        <option value="FOR REQUEST">FOR REQUEST</option>
+                        <option value="PENDING">PENDING</option>
                         <option value="NOT LIQUIDATED">NOT LIQUIDATED</option>
                         <option value="LIQUIDATED">LIQUIDATED</option>
                         <option value="REJECTED">REJECTED</option>
@@ -1292,8 +1408,8 @@ function syncLiquidationFieldsState(prefix) {
     });
 }
 
-let addStatusPrevValue = document.getElementById('status') ? document.getElementById('status').value : 'FOR REQUEST';
-let editStatusPrevValue = 'FOR REQUEST';
+let addStatusPrevValue = document.getElementById('status') ? document.getElementById('status').value : 'PENDING';
+let editStatusPrevValue = 'PENDING';
 
 function openLiquidationModal(data) {
     document.getElementById('liq_source').value = data.source;
@@ -1639,8 +1755,8 @@ function _doEditRequest(id) {
     const cells = row.cells;
     
     document.getElementById('edit_id').value = id;
-    document.getElementById('edit_control_number').value = row.getAttribute('data-control') || cells[0].textContent.trim();
-    document.getElementById('edit_requestor_name').value = cells[1].textContent;
+    document.getElementById('edit_control_number').value = row.getAttribute('data-control') || cells[1].textContent.trim();
+    document.getElementById('edit_requestor_name').value = cells[2].textContent;
     
     // Get original department value from data attribute
     const originalDepartment = row.getAttribute('data-department');
@@ -1650,10 +1766,10 @@ function _doEditRequest(id) {
     updateEditCategoryDropdown(mappedDepartment);
     
     setTimeout(() => {
-        document.getElementById('edit_category').value = cells[3].textContent;
+        document.getElementById('edit_category').value = cells[4].textContent;
     }, 100);
     
-    const dateRequested = cells[4].textContent.trim();
+    const dateRequested = cells[5].textContent.trim();
     if (dateRequested !== '-') {
         const [month, day, year] = dateRequested.split('/');
         document.getElementById('edit_date_requested').value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
@@ -1661,33 +1777,33 @@ function _doEditRequest(id) {
         document.getElementById('edit_date_requested').value = '';
     }
     
-    document.getElementById('edit_requested_amount').value = cells[5].textContent.replace('₱ ', '').replace(/,/g, '');
-    document.getElementById('edit_status').value = cells[6].querySelector('.status-badge').textContent.trim();
+    document.getElementById('edit_requested_amount').value = cells[6].textContent.replace('₱ ', '').replace(/,/g, '');
+    document.getElementById('edit_status').value = cells[7].querySelector('.status-badge').textContent.trim();
     editStatusPrevValue = document.getElementById('edit_status').value;
     syncLiquidationFieldsState('edit_');
     
-    if (cells[7].textContent !== '-') {
-        const dateReleased = cells[7].textContent.trim();
+    if (cells[8].textContent !== '-') {
+        const dateReleased = cells[8].textContent.trim();
         const [month, day, year] = dateReleased.split('/');
         document.getElementById('edit_date_released').value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     } else {
         document.getElementById('edit_date_released').value = '';
     }
     
-    if (cells[8].textContent !== '-') {
-        document.getElementById('edit_total_expenses').value = cells[8].textContent.replace('₱ ', '').replace(/,/g, '');
+    if (cells[9].textContent !== '-') {
+        document.getElementById('edit_total_expenses').value = cells[9].textContent.replace('₱ ', '').replace(/,/g, '');
     } else {
         document.getElementById('edit_total_expenses').value = '';
     }
     
-    if (cells[9].textContent !== '-') {
-        document.getElementById('edit_amount_returned').value = cells[9].textContent.replace('₱ ', '').replace(/,/g, '');
+    if (cells[10].textContent !== '-') {
+        document.getElementById('edit_amount_returned').value = cells[10].textContent.replace('₱ ', '').replace(/,/g, '');
     } else {
         document.getElementById('edit_amount_returned').value = '';
     }
     
-    if (cells[10].textContent !== '-') {
-        const dateReturned = cells[10].textContent.trim();
+    if (cells[11].textContent !== '-') {
+        const dateReturned = cells[11].textContent.trim();
         const [month, day, year] = dateReturned.split('/');
         document.getElementById('edit_date_of_amount_returned').value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     } else {
@@ -1706,22 +1822,22 @@ function viewRequest(id) {
     const row = document.querySelector(`tr[data-id="${id}"]`);
     const cells = row.cells;
     
-    document.getElementById('view_control_number').textContent = cells[0].textContent;
-    document.getElementById('view_requestor_name').textContent = cells[1].textContent;
-    document.getElementById('view_department').textContent = cells[2].textContent;
-    document.getElementById('view_category').textContent = cells[3].textContent;
-    document.getElementById('view_date_requested').textContent = cells[4].textContent;
-    document.getElementById('view_requested_amount').textContent = cells[5].textContent;
+    document.getElementById('view_control_number').textContent = cells[1].textContent;
+    document.getElementById('view_requestor_name').textContent = cells[2].textContent;
+    document.getElementById('view_department').textContent = cells[3].textContent;
+    document.getElementById('view_category').textContent = cells[4].textContent;
+    document.getElementById('view_date_requested').textContent = cells[5].textContent;
+    document.getElementById('view_requested_amount').textContent = cells[6].textContent;
     
-    const statusBadge = cells[6].querySelector('.status-badge').cloneNode(true);
+    const statusBadge = cells[7].querySelector('.status-badge').cloneNode(true);
     const statusContainer = document.getElementById('view_status');
     statusContainer.innerHTML = '';
     statusContainer.appendChild(statusBadge);
     
-    document.getElementById('view_date_released').textContent = cells[7].textContent;
-    document.getElementById('view_total_expenses').textContent = cells[8].textContent;
-    document.getElementById('view_amount_returned').textContent = cells[9].textContent;
-    document.getElementById('view_date_of_amount_returned').textContent = cells[10].textContent;
+    document.getElementById('view_date_released').textContent = cells[8].textContent;
+    document.getElementById('view_total_expenses').textContent = cells[9].textContent;
+    document.getElementById('view_amount_returned').textContent = cells[10].textContent;
+    document.getElementById('view_date_of_amount_returned').textContent = cells[11].textContent;
     
     document.getElementById('viewModal').style.display = 'block';
 }
@@ -1935,7 +2051,7 @@ const FILTERABLE_FIELDS = [
     { key: 'date_released',            label: 'Date Released',            dataAttr: 'data-date-released',    type: 'daterange' },
     { key: 'date_of_amount_returned',  label: 'Date of Amount Returned',  dataAttr: 'data-date-returned',    type: 'daterange' },
     { key: 'requested_amount',         label: 'Requested Amount',         dataAttr: 'data-requested-amount', type: 'text'  },
-    { key: 'status',                   label: 'Status',                   dataAttr: 'data-status',           type: 'select', options: ['FOR REQUEST', 'NOT LIQUIDATED', 'LIQUIDATED', 'REJECTED'] },
+    { key: 'status',                   label: 'Status',                   dataAttr: 'data-status',           type: 'select', options: ['PENDING', 'NOT LIQUIDATED', 'LIQUIDATED', 'REJECTED'] },
     { key: 'total_expenses',           label: 'Total Expenses',           dataAttr: 'data-total-expenses',   type: 'text'  },
     { key: 'amount_returned',          label: 'Amount Returned',          dataAttr: 'data-amount-returned',  type: 'text'  },
 ];
@@ -2154,6 +2270,58 @@ document.addEventListener('DOMContentLoaded', function() {
 
     applyFilters();
 });
+
+// ---- Row selection (checkboxes) + Print Selected ----
+function toggleSelectAll(cb) {
+    document.querySelectorAll('.row-select-checkbox').forEach(c => {
+        const row = c.closest('tr');
+        if (row.style.display !== 'none') c.checked = cb.checked;
+    });
+}
+
+function getSelectedPrintRows() {
+    return Array.from(document.querySelectorAll('.row-select-checkbox:checked'))
+        .map(cb => cb.closest('tr'))
+        .filter(row => row.style.display !== 'none');
+}
+
+function printSelectedRecords() {
+    const rows = getSelectedPrintRows();
+    if (rows.length === 0) {
+        showToast('warning', 'No Selection', 'Please select at least one record to print.');
+        return;
+    }
+
+    const headers = ['Control Number','Requestor Name','Department','Category','Date Requested','Requested Amount','Status','Date Released','Total Expenses','Amount Returned','Date of Amount Returned'];
+
+    let tableHtml = '<table class="print-table"><thead><tr>';
+    headers.forEach(h => tableHtml += `<th>${h}</th>`);
+    tableHtml += '</tr></thead><tbody>';
+
+    rows.forEach(row => {
+        const cells = row.cells;
+        tableHtml += '<tr>';
+        // cells[0] = checkbox column, cells[1..11] = data columns, skip Actions (last)
+        for (let i = 1; i <= 11; i++) {
+            tableHtml += `<td>${cells[i].textContent.trim()}</td>`;
+        }
+        tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody></table>';
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    document.getElementById('printArea').innerHTML = `
+        <div class="print-header">
+            <h2>Departmental Expenses Report</h2>
+            <p>Generated on ${dateStr} — ${rows.length} record(s)</p>
+        </div>
+        ${tableHtml}
+    `;
+
+    window.print();
+}
 
 // Set active state for Departments nav item - run separately to avoid conflicts
 setTimeout(function() {

@@ -13,8 +13,8 @@
 .arc-table-wrap{background:white;border-radius:12px;border:1px solid #e8ecf0;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)}
 .arc-table-scroll{overflow-x:auto !important;overflow-y:visible !important;max-height:none !important;}
 .arc-table{width:100%;border-collapse:collapse}
-.arc-table thead tr{background:linear-gradient(135deg,#0f2a4a,#1e4575)}
-.arc-table thead th{padding:11px 14px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap}
+.arc-table thead tr{background:#1e4575}
+.arc-table thead th{padding:11px 14px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;position:sticky;top:0;background:#1e4575;z-index:4;box-shadow:0 2px 4px -2px rgba(0,0,0,.25)}
 .arc-table tbody tr{border-bottom:1px solid #f1f5f9}
 .arc-table tbody tr:hover{background:#f8fafc}
 .arc-table td{padding:11px 14px;font-size:13px;color:#374151;vertical-align:middle}

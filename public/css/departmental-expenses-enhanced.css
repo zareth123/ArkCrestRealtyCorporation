@@ -585,7 +585,7 @@
     border: 2px solid #22c55e;
 }
 
-.status-for-request {
+.status-pending {
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
     color: #92400e;
     border: 2px solid #f59e0b;

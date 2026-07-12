@@ -14,8 +14,8 @@
 .pl-search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#94a3b8}
 .pl-select{padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;background:white;cursor:pointer}
 .pl-table{width:100%;border-collapse:collapse}
-.pl-table thead tr{background:linear-gradient(135deg,#0f2a4a,#1e4575)}
-.pl-table thead th{padding:11px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap}
+.pl-table thead tr{background:#1e4575}
+.pl-table thead th{padding:11px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;position:sticky;top:0;background:#1e4575;z-index:4;box-shadow:0 2px 4px -2px rgba(0,0,0,.25)}
 .pl-table tbody tr{border-bottom:1px solid #f1f5f9;transition:background .15s}
 .pl-table tbody tr:hover{background:#f8fafc}
 .pl-table tbody tr:last-child{border-bottom:none}

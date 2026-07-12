@@ -60,6 +60,16 @@
          'fields'=>['Employee Name','Designation','Pay Period','Department'],
          'extra'=>'Earnings · Deductions · Net Pay · Signatures'],
     ];
+
+    // Department dropdown source shared by all three HR forms below.
+    // If this view's controller already shares a $departments collection
+    // (same one used on the Forms/Budget Request page), we use it as-is;
+    // otherwise we fall back to a reasonable default list. Swap the
+    // fallback array for your real department source if this controller
+    // doesn't pass $departments.
+    $hrDepartmentList = isset($departments)
+        ? $departments->pluck('name')->values()
+        : ['Human Resources','Sales','Marketing','Finance','IT','Operations','Executive','Legal'];
     @endphp
 
     @foreach($forms as $form)
@@ -133,6 +143,9 @@ var _hrLogo = "{{ asset('images/ArkCrest_Logo.png') }}";
 var _hrCsrf = document.querySelector('meta[name=csrf-token]').content;
 var _hrFormType = null;
 var _editingFormId = null; // set when editing an existing saved form, so Save updates instead of creating a new one
+
+// Shared department list for the Department dropdowns on all three HR forms.
+window._hrDepartments = @json($hrDepartmentList);
 
 /* ---------- reusable confirmation modal (used in place of window.confirm for deletes) ---------- */
 var _confirmModalCallback = null;
@@ -233,24 +246,74 @@ function saveHrForm() {
     });
 }
 function printHrForm() {
+    // Auto-save before printing
+    var type = document.getElementById('hrFormModal').getAttribute('data-type');
+    var fields = {};
+    document.querySelectorAll('#hrFormContent input, #hrFormContent textarea').forEach(function(el, i) {
+        fields['field_'+i] = el.value;
+    });
+    var csrf = document.querySelector('meta[name=csrf-token]').content;
+    var isEditing = !!_editingFormId;
+    var oldId = _editingFormId;
+
+    fetch('/api/hr-forms', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':csrf},
+        body: JSON.stringify({type: type, data: fields})
+    }).then(function(r){return r.json();}).then(function(d){
+        if (!d.success) {
+            _showToast('Failed to save before printing.', true);
+            return;
+        }
+        _editingFormId = null;
+        // If editing, clean up the old record
+        if (isEditing && oldId) {
+            fetch('/api/hr-forms/'+oldId, {method:'DELETE',headers:{'X-CSRF-TOKEN':csrf}})
+                .finally(function(){ loadSavedForms(); _doPrint(); });
+        } else {
+            loadSavedForms();
+            _doPrint();
+        }
+    }).catch(function(){
+        _showToast('Network error. Could not save before printing.', true);
+    });
+}
+
+// Formats a native <input type="date"> value ("YYYY-MM-DD") into a
+// friendly, unambiguous printed form (e.g. "July 10, 2026"). Used only
+// for the *printed* copy — the interactive form still shows the native
+// picker/typing UI.
+function _fmtDate(v) {
+    if (!v) return '';
+    var parts = v.split('-');
+    if (parts.length !== 3) return v;
+    var d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+    if (isNaN(d.getTime())) return v;
+    return d.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+}
+
+function _doPrint() {
     var source = document.getElementById('hrFormContent');
     var clone = source.cloneNode(true);
-    // innerHTML only serializes the *original* attributes/content of each
-    // element, not what the user actually typed — an <input>'s typed text
-    // lives in its .value property (never written back to the "value"
-    // attribute), and a <textarea>'s typed text lives in .value too (its
-    // innerHTML/child text node stays empty, since it started empty). That
-    // mismatch is why the print preview showed blank fields and an
-    // apparently "missing" Explanation box. Fix: copy each live value into
-    // the clone (as an attribute for inputs, as text content for
-    // textareas) before reading its HTML.
-    var liveFields = source.querySelectorAll('input, textarea');
-    var cloneFields = clone.querySelectorAll('input, textarea');
+    var liveFields = source.querySelectorAll('input, textarea, select');
+    var cloneFields = clone.querySelectorAll('input, textarea, select');
     liveFields.forEach(function (live, i) {
         var c = cloneFields[i];
         if (!c) return;
         if (live.tagName === 'TEXTAREA') {
             c.textContent = live.value;
+        } else if (live.tagName === 'SELECT') {
+            // Selects don't print interactively well — swap for plain text
+            // showing the chosen department (or blank if none picked).
+            var span = document.createElement('span');
+            span.textContent = live.value || '';
+            span.style.cssText = 'display:inline-block;width:'+ (live.style.width||'160px') +';border-bottom:1px solid #111;margin-left:4px;';
+            c.parentNode.replaceChild(span, c);
+        } else if (live.type === 'date') {
+            var dSpan = document.createElement('span');
+            dSpan.textContent = _fmtDate(live.value);
+            dSpan.style.cssText = 'display:inline-block;width:'+ (live.style.width||'160px') +';border-bottom:1px solid #111;margin-left:4px;';
+            c.parentNode.replaceChild(dSpan, c);
         } else {
             c.setAttribute('value', live.value);
         }
@@ -258,19 +321,7 @@ function printHrForm() {
     var content = clone.innerHTML;
     var win = window.open('','_blank');
     var printHtml = '<html><head><title>HR Form</title><style>@page{size:letter;margin:.75in}body{font-family:"Times New Roman",serif;font-size:13px;color:#111;margin:0}table{border-collapse:collapse;width:100%}td,th{border:1px solid #111;padding:4px 8px}.nb td,.nb th{border:none}input,textarea{font-family:"Times New Roman",serif;font-size:13px;color:#111;}'
-        // Only strip the outline (browser focus-ring styling, irrelevant to print).
-        // A previous version also forced border:none!important here, which — because
-        // !important beats a plain inline style — wiped out every field's intentional
-        // border: the Explanation textarea's box (inline border:1px solid #111) and the
-        // underline (border-bottom) on every other text field. Removing that override
-        // restores both.
         + '@media print{body{margin:0}input,textarea{outline:none!important;}}</style>'
-        // NOTE: the closing head tag below is split on purpose. Dev-only HTML injector tools
-        // (e.g. Laravel Boost's browser logger) scan raw response bodies for that literal
-        // closing tag text to insert a script tag. Since this string is inside a JS
-        // document.write() call (not a real closing head tag in the page itself), having it
-        // intact here gets matched and injected into, corrupting this script block.
-        // Splitting it keeps the printed document correct while avoiding an accidental match.
         + '<' + '/head><body>'
         + content
         + '</body></html>';
@@ -291,6 +342,45 @@ function _ta(h,field){
     return '<textarea'+attr+' style="width:100%;height:'+(h||80)+'px;border:1px solid #111;font-family:inherit;font-size:inherit;resize:none;padding:4px;box-sizing:border-box;"></textarea>';
 }
 
+// Native calendar-picker date field. Typing is still possible, but native
+// <input type="date"> only ever accepts numeric day/month/year segments —
+// free text like "next Monday" or "TBD" simply can't be entered — so this
+// satisfies the "calendar picker + numeric typing only" requirement for
+// every date field across all three HR forms without extra JS validation.
+function _dateInp(w,field){
+    var attr = field ? ' data-field="'+field+'"' : '';
+    return '<input type="date"'+attr+' style="display:inline-block;width:'+(w||160)+'px;border:none;border-bottom:1px solid #111;margin-left:4px;font-family:inherit;font-size:inherit;outline:none;background:transparent;padding:0 2px;">';
+}
+
+// Department dropdown, populated from window._hrDepartments.
+function _deptSelect(w,field){
+    var attr = field ? ' data-field="'+field+'"' : '';
+    var opts = '<option value="">Select Department</option>';
+    (window._hrDepartments||[]).forEach(function(d){
+        opts += '<option value="'+d+'">'+d+'</option>';
+    });
+    return '<select'+attr+' style="display:inline-block;width:'+(w||160)+'px;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;background:transparent;padding:0 2px;">'+opts+'</select>';
+}
+
+// Strips anything that isn't a digit or a single decimal point, so
+// "Amount" / count fields (Basic Pay, Number of Absences, Number of Late
+// Arrivals, Number of Days Rendered, all Earnings/Deductions amounts,
+// totals, Net Pay) only ever hold a number — no letters or symbols can be
+// typed in beside them.
+function _restrictNumeric(el){
+    var v = el.value.replace(/[^0-9.]/g,'');
+    var firstDot = v.indexOf('.');
+    if(firstDot !== -1){
+        v = v.slice(0,firstDot+1) + v.slice(firstDot+1).replace(/\./g,'');
+    }
+    el.value = v;
+}
+// Numeric-only input, used for every Amount/count field on the Voucher form.
+function _numInp(w,field,extraStyle){
+    var attr = field ? ' data-field="'+field+'"' : '';
+    return '<input type="text" inputmode="decimal" oninput="_restrictNumeric(this)"'+attr+' style="width:'+(w||'100%')+';border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;'+(extraStyle||'')+'">';
+}
+
 function _dayOffCopy(label){
     return (label ? '<p style="font-style:italic;margin:0 0 4px;font-size:11px;">'+label+'</p>' : '')
         + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'+
@@ -298,8 +388,8 @@ function _dayOffCopy(label){
         '<h2 style="font-size:20px;font-weight:bold;margin:0;flex:1;text-align:center;">Change Day-Off Form</h2></div>'+
         '<table class="nb" style="margin-bottom:8px;font-size:12px;width:100%;"><tr>'+
         '<td>Name:'+_inp(180,'','name')+'</td><td>Position:'+_inp(130,'','position')+'</td></tr><tr>'+
-        '<td>Previous Day-Off Schedule:'+_inp(110,'','prev_dayoff')+'</td><td>Department:'+_inp(130,'','department')+'</td></tr><tr>'+
-        '<td>New Day-Off Schedule:'+_inp(120,'','new_dayoff')+'</td><td>Date (Week):'+_inp(130,'','date_week')+'</td></tr></table>'+
+        '<td>Previous Day-Off Schedule:'+_dateInp(150,'prev_dayoff')+'</td><td>Department:'+_deptSelect(150,'department')+'</td></tr><tr>'+
+        '<td>New Day-Off Schedule:'+_dateInp(150,'new_dayoff')+'</td><td>Date (Week):'+_dateInp(150,'date_week')+'</td></tr></table>'+
         '<div style="margin-bottom:4px;font-size:12px;">Reason:</div>'+
         _ta(70,'reason')+
         '<table class="nb" style="font-size:12px;margin-top:12px;"><tr>'+
@@ -318,8 +408,8 @@ function hrFormAbsences(){
         '<img src="'+_hrLogo+'" style="width:56px;height:56px;object-fit:contain;">'+
         '<h2 style="font-size:22px;font-weight:bold;margin:0;flex:1;text-align:center;">Absences Report Form</h2></div>'+
         '<table class="nb" style="margin-bottom:10px;width:100%;"><tr>'+
-        '<td>Name:'+_inp(200)+'</td><td>Department:'+_inp(160)+'</td></tr><tr>'+
-        '<td>Date today:'+_inp(200)+'</td><td></td></tr></table>'+
+        '<td>Name:'+_inp(200)+'</td><td>Department:'+_deptSelect(200)+'</td></tr><tr>'+
+        '<td>Date today:'+_dateInp(200)+'</td><td></td></tr></table>'+
         '<div style="margin:12px 0 5px;">Explanation:</div>'+
         _ta(300)+
         '<table class="nb" style="margin-top:24px;"><tr>'+
@@ -330,36 +420,49 @@ function hrFormAbsences(){
 function hrFormVoucher(){
     var c=function(label){
         return '<p style="font-style:italic;margin:0 0 4px;font-size:12px;">'+label+'</p>'+
-        '<table style="margin-bottom:14px;font-size:12px;"><tr>'+
+        '<table style="margin-bottom:14px;font-size:12px;width:100%;"><tr>'+
         '<td colspan="4" style="text-align:center;padding:6px;">'+
         '<div style="display:flex;align-items:center;justify-content:center;gap:8px;">'+
         '<img src="'+_hrLogo+'" style="width:26px;height:26px;object-fit:contain;">'+
         '<div><strong>ArkCrest Realty Corporation</strong><br>Allowance Voucher ARCS &nbsp;&nbsp; (36-2026)</div></div></td></tr>'+
         '<tr><td>Employee Name:</td><td><input type="text" data-field="emp_name" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td>'+
         '<td>Designation:</td><td><input type="text" data-field="designation" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
-        '<tr><td>Pay Period:</td><td><input type="text" data-field="pay_period" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td>'+
-        '<td>Department:</td><td><input type="text" data-field="department" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
-        '<tr><td><strong>Earnings</strong></td><td><strong>Amount</strong></td><td><strong>Deductions</strong></td><td><strong>Amount</strong></td></tr>'+
-        '<tr><td>Basic Pay:</td><td><input type="text" data-field="basic_pay" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td>'+
-        '<td>Number of Absences:</td><td><input type="text" data-field="absences_count" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
-        '<tr><td><input type="text" data-field="earn_desc_2" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" data-field="earn_amt_2" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td>'+
-        '<td><input type="text" data-field="ded_desc_2" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" data-field="ded_amt_2" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
-        '<tr><td><input type="text" data-field="earn_desc_3" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" data-field="earn_amt_3" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td>'+
-        '<td><input type="text" data-field="ded_desc_3" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" data-field="ded_amt_3" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
-        '<tr><td><input type="text" data-field="earn_desc_4" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" data-field="earn_amt_4" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td>'+
-        '<td><input type="text" data-field="ded_desc_4" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td><td><input type="text" data-field="ded_amt_4" style="width:100%;border:none;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
-        '<tr><td colspan="2" style="text-align:right;font-weight:bold;">Total Earnings: <input type="text" data-field="total_earnings" style="width:80px;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td>'+
-        '<td style="font-weight:bold;text-align:right;">Total Deductions: <input type="text" data-field="total_deductions" style="width:60px;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td><td></td></tr>'+
-        '<tr><td colspan="3" style="text-align:right;font-weight:bold;">Net Pay: &#8369;</td>'+
-        '<td><input type="text" data-field="net_pay" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;font-weight:bold;"></td></tr></table>'+
+        '<tr><td>Pay Period:</td><td><div style="display:flex;align-items:center;gap:4px;">'+
+        '<input type="date" data-field="pay_period_from" style="flex:1;min-width:0;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;">'+
+        '<span style="flex-shrink:0;">to</span>'+
+        '<input type="date" data-field="pay_period_to" style="flex:1;min-width:0;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></div></td>'+
+        '<td>Department:</td><td>'+_deptSelectFullWidth('department')+'</td></tr>'+
+
+        // Earnings/Deductions side-by-side. Days Rendered pairs with Absences,
+        // Basic Pay pairs with Late Arrivals, then a combined Totals row and
+        // a final Net Pay row spanning the full width.
+        '<tr><td style="padding-top:10px;"><strong>Earnings</strong></td><td style="padding-top:10px;"><strong>Amount</strong></td><td style="padding-top:10px;"><strong>Deductions</strong></td><td style="padding-top:10px;"><strong>Amount</strong></td></tr>'+
+        '<tr><td>Number of Days Rendered:</td><td>'+_numInp(null,'days_rendered')+'</td><td>Number of Absences:</td><td>'+_numInp(null,'absences_count')+'</td></tr>'+
+        '<tr><td>Basic Pay:</td><td>'+_numInp(null,'basic_pay')+'</td><td>Number of Late Arrivals:</td><td>'+_numInp(null,'late_arrivals_count')+'</td></tr>'+
+        '<tr><td style="text-align:right;font-weight:bold;padding-top:8px;">Total Earnings:</td><td style="padding-top:8px;">'+_numInp(null,'total_earnings',';font-weight:bold;')+'</td>'+
+        '<td style="text-align:right;font-weight:bold;padding-top:8px;">Total Deductions:</td><td style="padding-top:8px;">'+_numInp(null,'total_deductions',';font-weight:bold;')+'</td></tr>'+
+        '<tr><td colspan="3" style="text-align:right;font-weight:bold;padding-top:12px;">Net Pay: &#8369;</td>'+
+        '<td style="padding-top:12px;">'+_numInp('100%','net_pay',';font-weight:bold;')+'</td></tr></table>'+
         '<table class="nb" style="font-size:12px;margin-bottom:6px;"><tr>'+
         '<td style="width:33%;">Prepared by:<br><br><u>Mr. Lourd Thristan Lobendino</u><br><small>Human Resource Associate</small></td>'+
         '<td style="width:33%;">Approved by:<br><br><u>Mr. Edwin Mojica</u><br><small>Chief Operating Officer</small></td>'+
-        '<td>Received by:<br><br><input type="text" data-field="received_by" style="width:120px;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"><br><small>&nbsp;</small></td></tr></table>';
+        '<td style="width:33%;">Received by:<br><br><textarea data-field="received_by" rows="1" style="width:100%;min-width:80px;max-width:100%;box-sizing:border-box;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;resize:none;overflow:hidden;white-space:pre-wrap;word-break:break-word;line-height:1.3;" oninput="this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\';"></textarea><br><small>&nbsp;</small></td></tr></table>';
     };
     return c("Employer\'s Copy")+
         '<hr style="margin:16px 0;border:none;border-top:1px dashed #999;">'+
         c("Employee\'s Copy");
+}
+
+// Full-width variant of _deptSelect for use inside a table cell that
+// already provides its own width (matches the Employee Name / Designation
+// inputs directly above it on the Voucher form).
+function _deptSelectFullWidth(field){
+    var attr = field ? ' data-field="'+field+'"' : '';
+    var opts = '<option value="">Select Department</option>';
+    (window._hrDepartments||[]).forEach(function(d){
+        opts += '<option value="'+d+'">'+d+'</option>';
+    });
+    return '<select'+attr+' style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;">'+opts+'</select>';
 }
 
 /* Keep matching fields in sync across the two printed copies of a form as the user types.
@@ -471,12 +574,13 @@ function viewSavedForm(type, idx) {
     openHrForm(type);
     document.getElementById('hrFormTitle').textContent = (f.title || '') + ' — View Only';
     setTimeout(function() {
-        var inputs = document.querySelectorAll('#hrFormContent input, #hrFormContent textarea');
+        var inputs = document.querySelectorAll('#hrFormContent input, #hrFormContent textarea, #hrFormContent select');
         var data = f.data || {};
         var keys = Object.keys(data);
         inputs.forEach(function(el, i) {
             if (keys[i] !== undefined) el.value = data[keys[i]];
             el.setAttribute('readonly', 'readonly');
+            if (el.tagName === 'SELECT') el.setAttribute('disabled', 'disabled');
             el.style.background = '#f1f5f9';
             el.style.cursor = 'default';
         });
@@ -494,7 +598,7 @@ function editSavedForm(type, idx) {
     _editingFormId = f.id; // now mark it as an edit so Save updates this record instead of creating a new one
     document.getElementById('hrFormTitle').textContent = (f.title || '') + ' — Editing';
     setTimeout(function() {
-        var inputs = document.querySelectorAll('#hrFormContent input, #hrFormContent textarea');
+        var inputs = document.querySelectorAll('#hrFormContent input, #hrFormContent textarea, #hrFormContent select');
         var data = f.data || {};
         var keys = Object.keys(data);
         inputs.forEach(function(el, i) {

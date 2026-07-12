@@ -6,16 +6,43 @@ use Illuminate\Http\Request;
 use App\Models\Department;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
+use App\Models\DepartmentalExpense;
 
 class DepartmentController extends Controller
 {
+    /**
+     * Sum of budget-request-form amounts currently committed against a
+     * department's budget:
+     *  - "pending"    => requested_amount for records still PENDING
+     *                    (awaiting release) — money earmarked but not
+     *                    yet spent.
+     *  - "liquidated" => total_expenses for records that are fully
+     *                    LIQUIDATED — money actually spent.
+     * Matched by the department's name, which is the same string stored
+     * on DepartmentalExpense::department (see the Budget Request Form's
+     * department <select>, which submits $dept->name).
+     */
+    private function budgetCommitments(string $departmentName): array
+    {
+        $pending = (float) DepartmentalExpense::where('department', $departmentName)
+            ->where('status', 'PENDING')
+            ->sum('requested_amount');
+
+        $liquidated = (float) DepartmentalExpense::where('department', $departmentName)
+            ->where('status', 'LIQUIDATED')
+            ->sum('total_expenses');
+
+        return ['pending' => $pending, 'liquidated' => $liquidated];
+    }
+
     public function admin()
     {
         $department = Department::where('slug', 'admin')->first();
         $categories = $department->categories;
         $expenses = $department->expenses()->orderBy('expense_date', 'desc')->get();
-        
-        return view('departments.admin', compact('department', 'categories', 'expenses'));
+        $commitments = $this->budgetCommitments($department->name);
+
+        return view('departments.admin', compact('department', 'categories', 'expenses', 'commitments'));
     }
 
     public function sales()
@@ -23,8 +50,9 @@ class DepartmentController extends Controller
         $department = Department::where('slug', 'sales')->first();
         $categories = $department->categories;
         $expenses = $department->expenses()->orderBy('expense_date', 'desc')->get();
-        
-        return view('departments.sales', compact('department', 'categories', 'expenses'));
+        $commitments = $this->budgetCommitments($department->name);
+
+        return view('departments.sales', compact('department', 'categories', 'expenses', 'commitments'));
     }
 
     public function hr()
@@ -32,8 +60,9 @@ class DepartmentController extends Controller
         $department = Department::where('slug', 'hr')->first();
         $categories = $department->categories;
         $expenses = $department->expenses()->orderBy('expense_date', 'desc')->get();
-        
-        return view('departments.hr', compact('department', 'categories', 'expenses'));
+        $commitments = $this->budgetCommitments($department->name);
+
+        return view('departments.hr', compact('department', 'categories', 'expenses', 'commitments'));
     }
 
     public function finance()
@@ -47,8 +76,9 @@ class DepartmentController extends Controller
         }
         $categories = $department->categories;
         $expenses = $department->expenses()->orderBy('expense_date', 'desc')->get();
-        
-        return view('departments.finance', compact('department', 'categories', 'expenses'));
+        $commitments = $this->budgetCommitments($department->name);
+
+        return view('departments.finance', compact('department', 'categories', 'expenses', 'commitments'));
     }
 
     public function executive()
@@ -56,8 +86,9 @@ class DepartmentController extends Controller
         $department = Department::where('slug', 'executive')->first();
         $categories = $department->categories;
         $expenses = $department->expenses()->orderBy('expense_date', 'desc')->get();
-        
-        return view('departments.executive', compact('department', 'categories', 'expenses'));
+        $commitments = $this->budgetCommitments($department->name);
+
+        return view('departments.executive', compact('department', 'categories', 'expenses', 'commitments'));
     }
 
     public function deleteDepartment($id)

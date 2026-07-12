@@ -18,8 +18,8 @@
 .cd-card-hdr{padding:14px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .cd-card-hdr h3{font-size:14px;font-weight:700;color:#0f172a;margin:0}
 .cd-table{width:100%;border-collapse:collapse}
-.cd-table thead tr{background:linear-gradient(135deg,#0f2a4a,#1e4575)}
-.cd-table thead th{padding:11px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap}
+.cd-table thead tr{background:#1e4575}
+.cd-table thead th{padding:11px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;position:sticky;top:0;background:#1e4575;z-index:4;box-shadow:0 2px 4px -2px rgba(0,0,0,.25)}
 .cd-table tbody tr{border-bottom:1px solid #f1f5f9;transition:background .15s}
 .cd-table tbody tr:hover{background:#f8fafc}
 .cd-table tbody tr:last-child{border-bottom:none}

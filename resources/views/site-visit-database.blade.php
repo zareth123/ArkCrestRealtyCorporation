@@ -235,7 +235,7 @@
                         <button type="submit" class="btn-reject">&#10005; Cancel</button>
                     </form>
                     {{-- Print --}}
-                    <button class="btn-print">
+                    <button class="btn-print" onclick="autosaveAndPrint(this)" type="button">
                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                         Print
                     </button>
@@ -316,7 +316,7 @@
                         <button type="submit" class="btn-delete">Delete</button>
                     </form>
                     {{-- Print --}}
-                    <button class="btn-print" onclick="window.print()">
+                    <button class="btn-print" onclick="autosaveAndPrint(this)" type="button">
                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                         Print
                     </button>
@@ -358,6 +358,8 @@
 </div>
 
 <script>
+var _svLogo = "{{ asset('images/ArkCrest_Logo.png') }}";
+
 function openReschedule(id, date, time) {
     document.getElementById('rescheduleForm').action = '/site-visit-database/' + id + '/reschedule';
     document.getElementById('rescheduleDate').value = date || '';
@@ -425,6 +427,79 @@ function toggleSection(id) {
 document.addEventListener('DOMContentLoaded', function() {
     toggleSection('section-confirmed');
 });
+
+/* ---------- Print a single tripping row as a formatted slip ---------- */
+// Reads the row's cells straight from the DOM (no extra request needed),
+// builds a clean printable slip in a new tab, and triggers the print dialog.
+// Works for any Print button inside a table row, regardless of which
+// status section (confirmed / done / cancelled) it lives in.
+function autosaveAndPrint(btn) {
+    var row = btn.closest('tr');
+    if (!row) return;
+    var cells = row.querySelectorAll('td');
+    var get = function (i) {
+        if (!cells[i]) return '—';
+        var text = cells[i].innerText.trim();
+        return text || '—';
+    };
+
+    var rows = [
+        ['Name of Client', get(1)],
+        ['Property', get(2)],
+        ['Company', get(3)],
+        ['Name of Agent', get(4)],
+        ['Email', get(5)],
+        ['Mobile Number', get(6)],
+        ['Address', get(7)],
+        ['Tripping Date', get(8)],
+        ['Tripping Time', get(9)],
+        ['Mode of Visit', get(10)],
+        ['Date Submitted', get(11)]
+    ];
+
+    // NOTE: closing tags are deliberately built with string concatenation
+    // (e.g. '<' + '/tr>') rather than typed literally as '</tr>'. Writing
+    // them out in full inside this inline <script> block causes the browser
+    // to treat the sequence as the end of the *enclosing* script tag,
+    // dumping the remaining JS as literal text on the page. Splitting the
+    // sequence avoids that entirely. Same trick already used elsewhere in
+    // this codebase (see the HR form's print function).
+    var bodyRows = rows.map(function (pair) {
+        return '<tr><td class="lbl">' + pair[0] + '<' + '/td><td>' + pair[1] + '<' + '/td><' + '/tr>';
+    }).join('');
+
+    // Styled to match the branded look of the Site Visit Form on the
+    // Forms page: logo + underlined black title, blue subtitle, and a
+    // bold-label / black-border info table.
+    var printHtml = '<html><head><title>Site Visit Slip<' + '/title><style>'
+        + '@page{size:letter;margin:.6in}'
+        + 'body{font-family:Arial,sans-serif;color:#000;margin:0;padding:0}'
+        + '.hdr{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:18px}'
+        + '.hdr img{width:70px;height:70px;object-fit:contain;flex-shrink:0}'
+        + '.hdr .titles{text-align:center}'
+        + '.hdr .company{font-size:22px;font-weight:700;text-decoration:underline;color:#000;letter-spacing:.3px}'
+        + '.hdr .subtitle{font-size:20px;font-weight:700;color:#2563eb;margin-top:8px;letter-spacing:.3px}'
+        + 'table{width:100%;border-collapse:collapse;font-size:13px}'
+        + 'td{border:1px solid #000;padding:7px 10px;vertical-align:top}'
+        + 'td.lbl{font-weight:700;background:#fafafa;width:180px;white-space:nowrap}'
+        + '<' + '/style><' + '/head><body>'
+        + '<div class="hdr">'
+        + '<img src="' + _svLogo + '">'
+        + '<div class="titles">'
+        + '<div class="company">ARKCREST REALTY CORPORATION<' + '/div>'
+        + '<div class="subtitle">SITE VISIT TRIPPING SLIP<' + '/div>'
+        + '<' + '/div>'
+        + '<' + '/div>'
+        + '<table>' + bodyRows + '<' + '/table>'
+        + '<' + '/body><' + '/html>';
+
+    var win = window.open('', '_blank');
+    if (!win) { return; } // popup blocked
+    win.document.write(printHtml);
+    win.document.close();
+    win.focus();
+    setTimeout(function () { win.print(); }, 300);
+}
 
 // ── Auto-poll for new pending trippings every 10 seconds ──
 var _knownPendingIds = new Set(

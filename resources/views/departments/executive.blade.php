@@ -34,12 +34,25 @@
         <span class="budget-label">Current Budget:</span>
         <span class="budget-amount" id="budgetDisplay">₱ {{ number_format($department->allowable_budget, 2) }}</span>
     </div>
-    
+
+    <div class="budget-display">
+        <span class="budget-label">Requested (Pending):</span>
+        <span class="budget-amount" id="pendingDisplay">₱ {{ number_format($commitments['pending'], 2) }}</span>
+    </div>
+
+    <div class="budget-display">
+        <span class="budget-label">Liquidated:</span>
+        <span class="budget-amount" id="liquidatedDisplay">₱ {{ number_format($commitments['liquidated'], 2) }}</span>
+    </div>
+
     <div class="budget-display remaining-budget">
         <span class="budget-label">Remaining:</span>
-        <span class="budget-amount remaining" id="remainingDisplay">₱ {{ number_format($department->allowable_budget - $expenses->sum('total_amount'), 2) }}</span>
+        <span class="budget-amount remaining" id="remainingDisplay">₱ {{ number_format($department->allowable_budget - $expenses->sum('total_amount') - $commitments['pending'] - $commitments['liquidated'], 2) }}</span>
     </div>
 </div>
+<p class="budget-note" style="font-size:12px;color:#6b7280;margin:-8px 0 16px;">
+    Remaining budget accounts for manually-logged expenses below, plus amounts requested (PENDING) and already liquidated from submitted Budget Request Forms.
+</p>
 
 <!-- Add Category Section -->
 <div class="add-category-section">
@@ -180,6 +193,13 @@
 const departmentId = {{ $department->id }};
 const categories = @json($categories->pluck('name'));
 const csrfToken = '{{ csrf_token() }}';
+// Amounts already committed against this department's budget from
+// submitted Budget Request Forms (PENDING = earmarked/awaiting release,
+// LIQUIDATED = actually spent). Factored into the client-side
+// over-budget warnings below so they reflect the real remaining amount,
+// not just the manually-logged expenses in the table.
+const pendingCommitted = {{ (float) $commitments['pending'] }};
+const liquidatedCommitted = {{ (float) $commitments['liquidated'] }};
 
 async function updateBudget() {
     const budget = document.getElementById('allowableBudget').value;
@@ -229,7 +249,7 @@ async function addCategory(event) {
     // Check budget before adding
     const currentBudget = parseFloat(document.getElementById('allowableBudget').value) || 0;
     const totalExpenses = parseFloat(document.getElementById('grandTotal').textContent.replace('₱ ', '').replace(/,/g, '')) || 0;
-    const remaining = currentBudget - totalExpenses;
+    const remaining = currentBudget - totalExpenses - pendingCommitted - liquidatedCommitted;
     
     if (amount > remaining) {
         const shortage = amount - remaining;
@@ -404,7 +424,7 @@ async function saveEdit(event) {
     
     // Calculate new grand total
     const newGrandTotal = currentTotal - oldTotal + total;
-    const remaining = currentBudget - newGrandTotal;
+    const remaining = currentBudget - newGrandTotal - pendingCommitted - liquidatedCommitted;
     
     if (remaining < 0) {
         const shortage = Math.abs(remaining);

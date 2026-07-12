@@ -19,8 +19,8 @@
 .lc-search input{padding:8px 12px 8px 34px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;color:#111827;background:white;width:320px;transition:all .2s}
 .lc-search input:focus{outline:none;border-color:#1e4575;box-shadow:0 0 0 3px rgba(30,69,117,.08)}
 .lc-table{width:100%;border-collapse:collapse;min-width:700px}
-.lc-table thead tr{background:linear-gradient(135deg,#0f2a4a,#1e4575)}
-.lc-table thead th{padding:13px 18px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;border-right:1px solid rgba(255,255,255,.08)}
+.lc-table thead tr{background:#1e4575}
+.lc-table thead th{padding:13px 18px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;border-right:1px solid rgba(255,255,255,.08);position:sticky;top:0;background:#1e4575;z-index:4;box-shadow:0 2px 4px -2px rgba(0,0,0,.25)}
 .lc-table thead th:last-child{border-right:none}
 .lc-table tbody tr{border-bottom:1px solid #f1f5f9;transition:background .15s}
 .lc-table tbody tr:nth-child(even){background:#fafbfc}
