@@ -457,9 +457,9 @@ function applyArcFilters() {
             if (col.type === 'date') {
                 if (cellVal !== val) { visible = false; break; }
             } else if (col.type === 'number') {
-                var cleanCell = cellVal.replace(/[^0-9.]/g, '');
-                var cleanVal = val.replace(/[^0-9.]/g, '');
-                if (!cleanCell.includes(cleanVal)) { visible = false; break; }
+                var cleanCell = parseFloat(cellVal.replace(/[^0-9.\-]/g, ''));
+                var cleanVal = parseFloat(val.replace(/[^0-9.\-]/g, ''));
+                if (isNaN(cleanVal) || cleanCell !== cleanVal) { visible = false; break; }
             } else if (col.type === 'select') {
                 if (cellVal !== val) { visible = false; break; }
             } else {
