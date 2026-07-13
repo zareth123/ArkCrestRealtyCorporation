@@ -158,38 +158,64 @@ class SettingsController extends Controller
     }
 
     private function getSettingsData(): array
-    {
-        $settings = \DB::table('app_settings')->pluck('value', 'key');
-        $rawEmails          = $settings['notification_email'] ?? '';
-        $notificationEmails = array_values(array_filter(array_map('trim', explode(',', $rawEmails))));
-        return [
-            'notificationEmails' => $notificationEmails,
-            'notificationTime'   => $settings['notification_time'] ?? '08:00',
-            'smtpHost'           => $settings['smtp_host'] ?? '',
-            'smtpPort'           => $settings['smtp_port'] ?? '587',
-            'smtpUsername'       => $settings['smtp_username'] ?? '',
-            'smtpPassword'       => $settings['smtp_password'] ?? '',
-            'smtpFromName'       => $settings['smtp_from_name'] ?? config('app.name'),
-            'pendingUsers'       => User::where('status', 'pending')->where('email', 'not like', 'pending_%')->orderBy('created_at', 'desc')->get(),
-            'activeUsers'        => User::whereIn('status', ['active', 'pre_registered', 'pending'])->orderBy('employee_id')->get(),
-            'activityLogs'       => ActivityLog::with('user')->orderBy('created_at', 'desc')->limit(200)->get(),
-            'hiddenSections'     => array_values(json_decode(\DB::table('app_settings')->where('key', 'hidden_pages')->value('value') ?? '[]', true) ?: []),
-            'salesTeams'         => \App\Models\SalesTeam::with(['agents.user', 'quotas' => fn($q) => $q->orderBy('date_from', 'desc')])->orderBy('leader_name')->get(),
-            'properties'         => \Schema::hasTable('properties') ? \App\Models\Property::orderBy('name')->get() : collect(),
-            'privacyContent'     => \DB::table('app_settings')->where('key', 'privacy_policy')->value('value') ?? "Data Privacy Notice\n\nArckrest Realty Corporation is committed to protecting the privacy and confidentiality of all personal information collected through this system.\n\nInformation We Collect\n\nWe collect your full name, email address, employee ID, position, and date hired for account management and system access purposes.\n\nHow We Use Your Information\n\n- To manage and authenticate your system account\n- To track activity logs for security and audit purposes\n- To send email notifications related to your account\n- To generate internal reports and analytics\n\nSystem Usage Policy\n\n- Keep your login credentials confidential at all times.\n- Unauthorized access or sharing of credentials is strictly prohibited.\n- All data entered must be accurate and truthful.\n- Misuse may result in account suspension or termination.\n- This system is for authorized Arckrest Realty Corporation employees only.",
-            'periodLocks'        => \App\Models\PeriodLock::getLocked(),
-            'rejectedTrippings'  => \App\Models\TripSchedule::where('status', 'rejected')->orderBy('updated_at', 'desc')->get()->each(function($r) {
-                $user = \App\Models\User::where('employee_id', $r->agent_name)->first();
-                if ($user) $r->agent_name = $user->name;
-            }),
-            'personnelContacts'  => \Illuminate\Support\Facades\Schema::hasColumn('personnel_contacts', 'sort_order')
-                ? \App\Models\PersonnelContact::orderBy('sort_order')->orderBy('id')->get()
-                : \App\Models\PersonnelContact::orderBy('id')->get(),
-            'onlineUserIds'      => Schema::hasColumn('users', 'last_seen_at')
-                ? User::whereNotNull('last_seen_at')->where('last_seen_at', '>=', now()->subMinutes(2))->pluck('id')->toArray()
-                : [],
-        ];
-    }
+{
+    $settings = \DB::table('app_settings')->pluck('value', 'key');
+    $rawEmails          = $settings['notification_email'] ?? '';
+    $notificationEmails = array_values(array_filter(array_map('trim', explode(',', $rawEmails))));
+
+    $activityLogs = ActivityLog::with('user')->orderBy('created_at', 'desc')->limit(200)->get();
+
+    return [
+        'notificationEmails' => $notificationEmails,
+        'notificationTime'   => $settings['notification_time'] ?? '08:00',
+        'smtpHost'           => $settings['smtp_host'] ?? '',
+        'smtpPort'           => $settings['smtp_port'] ?? '587',
+        'smtpUsername'       => $settings['smtp_username'] ?? '',
+        'smtpPassword'       => $settings['smtp_password'] ?? '',
+        'smtpFromName'       => $settings['smtp_from_name'] ?? config('app.name'),
+        'pendingUsers'       => User::where('status', 'pending')->where('email', 'not like', 'pending_%')->orderBy('created_at', 'desc')->get(),
+        'activeUsers'        => User::whereIn('status', ['active', 'pre_registered', 'pending'])->orderBy('employee_id')->get(),
+        'activityLogs'       => $activityLogs,
+        'hiddenSections'     => array_values(json_decode(\DB::table('app_settings')->where('key', 'hidden_pages')->value('value') ?? '[]', true) ?: []),
+        'salesTeams'         => \App\Models\SalesTeam::with(['agents.user', 'quotas' => fn($q) => $q->orderBy('date_from', 'desc')])->orderBy('leader_name')->get(),
+        'properties'         => \Schema::hasTable('properties') ? \App\Models\Property::orderBy('name')->get() : collect(),
+        'privacyContent'     => \DB::table('app_settings')->where('key', 'privacy_policy')->value('value') ?? "Data Privacy Notice\n\nArckrest Realty Corporation is committed to protecting the privacy and confidentiality of all personal information collected through this system.\n\nInformation We Collect\n\nWe collect your full name, email address, employee ID, position, and date hired for account management and system access purposes.\n\nHow We Use Your Information\n\n- To manage and authenticate your system account\n- To track activity logs for security and audit purposes\n- To send email notifications related to your account\n- To generate internal reports and analytics\n\nSystem Usage Policy\n\n- Keep your login credentials confidential at all times.\n- Unauthorized access or sharing of credentials is strictly prohibited.\n- All data entered must be accurate and truthful.\n- Misuse may result in account suspension or termination.\n- This system is for authorized Arckrest Realty Corporation employees only.",
+        'periodLocks'        => \App\Models\PeriodLock::getLocked(),
+        'rejectedTrippings'  => \App\Models\TripSchedule::where('status', 'rejected')->orderBy('updated_at', 'desc')->get()->each(function($r) {
+            $user = \App\Models\User::where('employee_id', $r->agent_name)->first();
+            if ($user) $r->agent_name = $user->name;
+        }),
+        'personnelContacts'  => \Illuminate\Support\Facades\Schema::hasColumn('personnel_contacts', 'sort_order')
+            ? \App\Models\PersonnelContact::orderBy('sort_order')->orderBy('id')->get()
+            : \App\Models\PersonnelContact::orderBy('id')->get(),
+        'onlineUserIds'      => Schema::hasColumn('users', 'last_seen_at')
+            ? User::whereNotNull('last_seen_at')->where('last_seen_at', '>=', now()->subMinutes(2))->pluck('id')->toArray()
+            : [],
+        'deletedExpenses'    => $this->getDeletedExpenses(),
+        'deletedLogsGrouped' => $activityLogs->where('action', 'delete')->filter(fn($l) => $l->module !== 'Departmental Expenses')->groupBy('module'),
+    ];
+}
+
+// Soft-deleted expenses, with best-effort attribution of who deleted each one via the activity log
+private function getDeletedExpenses()
+{
+    if (!\Schema::hasTable('departmental_expenses')) return collect();
+
+    $deleted = \App\Models\DepartmentalExpense::onlyTrashed()->orderBy('deleted_at', 'desc')->get();
+    if ($deleted->isEmpty()) return $deleted;
+
+    $deleteLogs = ActivityLog::with('user')
+        ->where('action', 'delete')
+        ->where('module', 'Departmental Expenses')
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return $deleted->map(function ($exp) use ($deleteLogs) {
+        $match = $deleteLogs->first(fn($l) => $l->description && str_contains($l->description, $exp->control_number));
+        $exp->deleted_by_name = $match->user->name ?? 'Unknown';
+        return $exp;
+    });
+}
 
     public function getProperties()
     {

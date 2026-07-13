@@ -95,6 +95,8 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
 
     // Settings
     Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('settings');
+    Route::post('/settings/deleted/bulk-restore', [SettingsController::class, 'bulkRestoreRecords'])->name('settings.deleted.bulk-restore');
+    Route::post('/settings/deleted/bulk-delete', [SettingsController::class, 'bulkDeleteRecords'])->name('settings.deleted.bulk-delete');
 
     // Edit History / Audit Trail (Administrator only — dedicated controller & route)
     Route::get('/settings/edit-history', [App\Http\Controllers\Admin\EditHistoryController::class, 'index'])
