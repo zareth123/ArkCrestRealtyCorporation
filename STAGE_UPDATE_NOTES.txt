@@ -1,0 +1,34 @@
+ArkCrest Downpayment / Commission Stage Update
+==============================================
+
+After extracting the project, run:
+
+    php artisan migrate
+    php artisan optimize:clear
+
+Stage rules
+-----------
+- 1-month or spot plans: 0/1, then 1/1 when fully paid.
+- 2-month plans: 0/2, 1/2 at half DP, 2/2 at full DP.
+- 3, 6, 9, or more installment terms: 0/3, 1/3, 2/3, 3/3.
+
+Commission request workflow
+---------------------------
+- Payment records determine which DP stages are financially eligible.
+- Linked rows in commission_requests determine which stages were already requested.
+- Requests always advance in order: 1/3, then 2/3, then 3/3.
+- The downpayment popup now shows every stage as Requested, Ready to request,
+  Eligible after previous stage, or Waiting for payment.
+- After a stage is requested, the popup immediately treats the next unrequested
+  stage as the next threshold, even when that threshold has not been reached yet.
+- The ready notification appears whenever the next sequential stage is eligible.
+- Commission Monitoring stores and displays the DP Stage for every linked request.
+- The Commission Status column was removed from Client Database Records; DP Stage remains.
+
+Important
+---------
+Commission requests created through the downpayment notification are linked using
+source_client_record_id. That link is what allows the downpayment popup to recognize
+that a stage has already been requested and move to the next stage.
+
+The existing .env from the uploaded project is preserved in this ZIP.

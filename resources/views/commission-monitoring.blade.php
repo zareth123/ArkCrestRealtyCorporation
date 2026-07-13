@@ -1,4 +1,4 @@
-﻿@extends('layouts.dashboard')
+@extends('layouts.dashboard')
 
 @section('content')
 <div class="commission-monitoring-container">
@@ -36,15 +36,15 @@
             </div>
         </div>
 
-        <div class="stat-card card-yellow" onclick="filterByStat('Not Yet Released')" style="cursor:pointer;" title="Click to view Not Yet Released requests">
+        <div class="stat-card card-yellow" onclick="filterByStat('Not Released')" style="cursor:pointer;" title="Click to view Not Released requests">
             <div class="stat-icon">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
             <div class="stat-content">
-                <div class="stat-label">Not Yet Released</div>
-                <div class="stat-value" id="statNotReleased">{{ $commissionRequests->where('status', 'Not Yet Released')->count() }}</div>
+                <div class="stat-label">Not Released</div>
+                <div class="stat-value" id="statNotReleased">{{ $commissionRequests->where('status', 'Not Released')->count() }}</div>
             </div>
         </div>
 
@@ -81,6 +81,10 @@
         @endif
         <form id="cmAddForm" class="commission-form" action="{{ route('commission-monitoring.store') }}" method="POST" onsubmit="return previewCommissionSubmit(event)">
             @csrf
+            <input type="hidden" name="source_client_record_id" id="cm_source_client_record_id">
+            <input type="hidden" name="commission_stage" id="cm_commission_stage">
+            <input type="hidden" name="commission_stage_total" id="cm_commission_stage_total">
+            <input type="hidden" name="stage_threshold_amount" id="cm_stage_threshold_amount">
             <div class="form-section">
                 <div class="section-title-bar">
                     <span class="section-icon">📋</span>
@@ -90,6 +94,10 @@
                     <div class="form-group">
                         <label>CLIENT'S NAME <span class="required">*</span></label>
                         <input type="text" name="client_name" placeholder="Enter client name" required>
+                    </div>
+                    <div class="form-group" id="cm_stage_group">
+                        <label>DP STAGE</label>
+                        <input type="text" id="cm_commission_stage_display" placeholder="Open from Client Database to assign stage" readonly style="background:#f3f4f6;cursor:not-allowed;color:#1e4575;font-weight:800;">
                     </div>
                     <div class="form-group">
                         <label>RESERVATION DATE <span class="required">*</span></label>
@@ -199,7 +207,7 @@
                     <div class="form-group">
                         <label>STATUS <span class="required">*</span></label>
                         <select name="status" required>
-                            <option value="Not Yet Released">Not Yet Released</option>
+                            <option value="Not Released">Not Released</option>
                             <option value="Released">Released</option>
                         </select>
                     </div>
@@ -305,6 +313,7 @@
                         <th>Date Released</th>
                         <th>Commission Terms</th>
                         <th>Value of Commission Terms</th>
+                        <th>DP Stage</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -319,6 +328,7 @@
                     @endphp
                     <tr id="cm-{{ $request->id }}" class="{{ $rowHlClasses }}" data-id="{{ $request->id }}"
                         data-status="{{ $request->status }}"
+                        data-commission-stage="{{ $request->commission_stage ? $request->commission_stage.'/'.($request->commission_stage_total ?: 1) : '' }}"
                         data-date-requested="{{ $request->date_requested ? $request->date_requested->format('Y-m-d') : '' }}"
                         data-date-released="{{ $request->date_released ? $request->date_released->format('Y-m-d') : '' }}"
                         data-client="{{ $request->client_name }}"
@@ -367,6 +377,9 @@
                         <td>{{ $request->date_released ? $request->date_released->format('M d, Y') : '-' }}</td>
                         <td>{{ $request->payment_type ?? '-' }}</td>
                         <td>{{ $request->value_of_payment_terms ? '₱'.number_format($request->value_of_payment_terms, 2) : '-' }}</td>
+                        <td style="font-weight:700;color:#1e4575;white-space:nowrap;">
+                            {{ $request->commission_stage ? $request->commission_stage.'/'.($request->commission_stage_total ?: 1) : '—' }}
+                        </td>
                         <td>
                             <span class="status-badge 
                                 @if($request->status == 'Released') status-released
@@ -412,7 +425,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ $isAdmin ? 21 : 19 }}" style="text-align: center; padding: 40px; color: #6b7280;">
+                        <td colspan="{{ $isAdmin ? 22 : 20 }}" style="text-align: center; padding: 40px; color: #6b7280;">
                             No commission requests found.
                         </td>
                     </tr>
@@ -1577,7 +1590,8 @@ const FILTERABLE_FIELDS = [
     @endif
     { key: 'commission_terms',  label: 'Commission Terms',          dataAttr: 'data-commission-terms',        type: 'text'  },
     { key: 'value_commission_terms', label: 'Value of Commission Terms', dataAttr: 'data-value-commission-terms', type: 'text' },
-    { key: 'status',            label: 'Status',                    dataAttr: 'data-status',                  type: 'select', options: ['Not Yet Released', 'Released'] },
+    { key: 'commission_stage',  label: 'DP Stage',          dataAttr: 'data-commission-stage',        type: 'text' },
+    { key: 'status',            label: 'Status',                    dataAttr: 'data-status',                  type: 'select', options: ['For Request', 'Not Released', 'Released'] },
 ];
 
 // Active per-column filters: { fieldKey: currentValue }
@@ -1786,7 +1800,7 @@ function filterByStat(status) {
     applyFilters();
 
     document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('stat-card-selected'));
-    const cardMap = { '': 'card-blue', 'Not Yet Released': 'card-yellow', 'Released': 'card-green' };
+    const cardMap = { '': 'card-blue', 'Not Released': 'card-yellow', 'Released': 'card-green' };
     const activeCard = document.querySelector('.stat-card.' + cardMap[status]);
     if (activeCard) activeCard.classList.add('stat-card-selected');
 
@@ -1821,7 +1835,7 @@ function resetFilters() {
         if (row.cells.length === 1) continue;
         total++;
         const s = row.getAttribute('data-status');
-        if (s === 'Not Yet Released') notReleased++;
+        if (s === 'Not Released') notReleased++;
         if (s === 'Released') released++;
     }
 
@@ -1862,6 +1876,7 @@ function clearCmAddForm() {
     window.showConfirmModal('Clear all entered fields? This cannot be undone.').then(function(confirmed) {
         if (confirmed) {
             document.getElementById('cmAddForm').reset();
+            document.getElementById('cm_commission_stage_display').value = '';
         }
     });
 }
@@ -1878,6 +1893,7 @@ function previewCommissionSubmit(event) {
     const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
 
     set('cmp_client_name',       val('client_name') || '-');
+    set('cmp_commission_stage',  val('commission_stage') ? val('commission_stage') + '/' + (val('commission_stage_total') || '1') : '—');
     set('cmp_reservation_date',  fmtDate(val('reservation_date')));
     set('cmp_project_name',      val('project_name') || '-');
     set('cmp_property_details',  val('property_details') || '-');
@@ -1914,6 +1930,7 @@ function viewCommission(id) {
             const fmtMoney = (v) => v ? '₱' + parseFloat(v).toLocaleString('en-PH', {minimumFractionDigits:2}) : '-';
             const fmtDate = (v) => v ? new Date(v).toLocaleDateString('en-US', {month:'short', day:'2-digit', year:'numeric'}) : '-';
             document.getElementById('cm_view_client_name').textContent = fmt(data.client_name);
+            document.getElementById('cm_view_commission_stage').textContent = data.commission_stage ? data.commission_stage + '/' + (data.commission_stage_total || 1) : '—';
             document.getElementById('cm_view_reservation_date').textContent = fmtDate(data.reservation_date);
             document.getElementById('cm_view_project_name').textContent = fmt(data.project_name);
             document.getElementById('cm_view_property_details').textContent = fmt(data.property_details);
@@ -1961,7 +1978,7 @@ function editCommission(id) {
             document.getElementById('cm_edit_commission_percent').value = data.commission_percent ?? '';
             document.getElementById('cm_edit_commission').value = data.commission ?? '';
             document.getElementById('cm_edit_date_released').value = d(data.date_released);
-            document.getElementById('cm_edit_status').value = data.status ?? 'Not Yet Released';
+            document.getElementById('cm_edit_status').value = data.status ?? 'Not Released';
             document.getElementById('cm_edit_remarks').value = data.remarks ?? '';
             document.getElementById('cmEditModal').classList.add('active');
         });
@@ -2488,6 +2505,7 @@ function submitCmPermRequest() {
         <div class="modal-body">
             <div class="modal-grid">
                 <div class="modal-field"><label>Client's Name</label><div class="field-value" id="cm_view_client_name">-</div></div>
+                <div class="modal-field"><label>DP Stage</label><div class="field-value" id="cm_view_commission_stage">—</div></div>
                 <div class="modal-field"><label>Reservation Date</label><div class="field-value" id="cm_view_reservation_date">-</div></div>
                 <div class="modal-field"><label>Project Name</label><div class="field-value" id="cm_view_project_name">-</div></div>
                 <div class="modal-field"><label>Property Details (Block & Lot No.)</label><div class="field-value" id="cm_view_property_details">-</div></div>
@@ -2640,7 +2658,7 @@ function submitCmPermRequest() {
                     <div class="modal-field">
                         <label>Status <span style="color:#ef4444">*</span></label>
                         <select id="cm_edit_status" name="status" required>
-                            <option value="Not Yet Released">Not Yet Released</option>
+                            <option value="Not Released">Not Released</option>
                             <option value="Released">Released</option>
                         </select>
                     </div>
@@ -2671,6 +2689,7 @@ function submitCmPermRequest() {
             </div>
             <div class="modal-grid">
                 <div class="modal-field"><label>Client's Name</label><div class="field-value" id="cmp_client_name">-</div></div>
+                <div class="modal-field"><label>DP Stage</label><div class="field-value" id="cmp_commission_stage">-</div></div>
                 <div class="modal-field"><label>Reservation Date</label><div class="field-value" id="cmp_reservation_date">-</div></div>
                 <div class="modal-field"><label>Project Name</label><div class="field-value" id="cmp_project_name">-</div></div>
                 <div class="modal-field"><label>Property Details</label><div class="field-value" id="cmp_property_details">-</div></div>
@@ -2706,66 +2725,100 @@ function submitCmPermRequest() {
 @endsection
 
 <script>
-// ── Prefill form from trip_done / client_done notification ──
+// ── Prefill form from Client Database or notification ──
 (function() {
     const params = new URLSearchParams(window.location.search);
-    const client    = params.get('prefill_client');
-    const project   = params.get('prefill_project');
-    const agent     = params.get('prefill_agent');
-    const date      = params.get('prefill_date');
-    const netTcp    = params.get('prefill_net_tcp');
-    const resDate   = params.get('prefill_reservation');
-    const terms     = params.get('prefill_terms');
-    const units     = params.get('prefill_units');
-    const commPct   = params.get('prefill_commission_pct');
-    const developer = params.get('prefill_developer');
-    const blockLot  = params.get('prefill_block_lot');
-    const priceSqm  = params.get('prefill_price_sqm');
-    const lotArea   = params.get('prefill_lot_area');
-    const discount  = params.get('prefill_discount');
-    const mop       = params.get('prefill_mode_of_payment');
+    const sourceId = params.get('add_request_for');
 
-    if (!client && !project) return;
-
-    document.addEventListener('DOMContentLoaded', function() {
+    function applyPrefill(data, stage) {
         const set = (name, val) => {
-            const el = document.querySelector('[name="' + name + '"]');
-            if (el && val) el.value = val;
+            const el = document.querySelector('#cmAddForm [name="' + name + '"]');
+            if (el && val !== undefined && val !== null && val !== '') {
+                el.value = val;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
         };
-        set('client_name',        client);
-        set('project_name',       project);
-        set('agent_name',         agent);
-        set('date_requested',     date);
-        set('net_tcp',            netTcp);
-        set('reservation_date',   resDate);
-        set('terms_of_payment',   terms);
-        set('number_of_units',    units);
-        set('commission_percent', commPct);
-        set('property_details',   blockLot);
-        set('price_sqm',          priceSqm);
-        set('lot_area',           lotArea);
-        set('discount',           discount);
-        set('mode_of_payment',    mop);
 
-        // Scroll to and highlight the form
+        var resolvedStage = data.commission_stage || stage || data.next_commission_stage;
+        var resolvedStageTotal = data.commission_stage_total || data.downpayment_stage_total || 1;
+
+        set('source_client_record_id', data.source_client_record_id || data.id || sourceId);
+        set('commission_stage', resolvedStage);
+        set('commission_stage_total', resolvedStageTotal);
+        set('stage_threshold_amount', data.stage_threshold_amount || data.next_threshold_amount);
+
+        var stageGroup = document.getElementById('cm_stage_group');
+        var stageDisplay = document.getElementById('cm_commission_stage_display');
+        if (resolvedStage && stageDisplay) {
+            stageDisplay.value = resolvedStage + '/' + resolvedStageTotal;
+            if (stageGroup) stageGroup.style.display = 'flex';
+        }
+        set('client_name', data.client_name);
+        set('project_name', data.project_name);
+        set('agent_name', data.agent_name);
+        set('date_requested', new Date().toISOString().slice(0, 10));
+        set('net_tcp', data.net_tcp);
+        set('reservation_date', data.reservation_date);
+        set('terms_of_payment', data.terms_of_payment);
+        set('number_of_units', data.number_of_units || 1);
+        set('commission_percent', data.commission_percent);
+        set('property_details', data.block_lot_number || data.property_details);
+        set('price_sqm', data.price_sqm);
+        set('lot_area', data.lot_area);
+        set('discount', data.discount);
+        set('mode_of_payment', data.mode_of_payment);
+
+        if (typeof computeAddTCP === 'function') computeAddTCP();
+        if (typeof computeAddNetTCP === 'function') computeAddNetTCP();
+        if (typeof computeAddCommission === 'function') computeAddCommission();
+
         const form = document.getElementById('cmAddForm');
         if (form) {
             form.scrollIntoView({ behavior: 'smooth', block: 'start' });
             form.style.transition = 'box-shadow .4s';
-            form.style.boxShadow  = '0 0 0 3px #2563eb, 0 8px 32px rgba(37,99,235,.2)';
+            form.style.boxShadow = '0 0 0 3px #2563eb, 0 8px 32px rgba(37,99,235,.2)';
             setTimeout(() => { form.style.boxShadow = ''; }, 2500);
         }
 
-        // Show a small toast
         const toast = document.createElement('div');
-        toast.textContent = '✔ Form pre-filled from client database';
-        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e4575;color:white;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2);animation:fadeIn .3s ease';
+        toast.textContent = '✔ DP stage ' + resolvedStage + '/' + resolvedStageTotal + ' pre-filled from Client Database';
+        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e4575;color:white;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2)';
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3500);
+        window.history.replaceState({}, '', window.location.pathname);
+    }
 
-        // Clean URL
-        const clean = window.location.pathname;
-        window.history.replaceState({}, '', clean);
+    document.addEventListener('DOMContentLoaded', function() {
+        if (sourceId) {
+            fetch('/api/client-database/' + encodeURIComponent(sourceId) + '/prefill')
+                .then(async r => {
+                    var data = await r.json().catch(() => ({}));
+                    if (!r.ok) throw new Error(data.message || 'Unable to load client record.');
+                    return data;
+                })
+                .then(data => applyPrefill(data, data.commission_stage || data.next_commission_stage))
+                .catch(err => alert(err.message));
+            return;
+        }
+
+        const data = {
+            client_name: params.get('prefill_client'),
+            project_name: params.get('prefill_project'),
+            agent_name: params.get('prefill_agent'),
+            date_requested: params.get('prefill_date'),
+            net_tcp: params.get('prefill_net_tcp'),
+            reservation_date: params.get('prefill_reservation'),
+            terms_of_payment: params.get('prefill_terms'),
+            number_of_units: params.get('prefill_units'),
+            commission_percent: params.get('prefill_commission_pct'),
+            block_lot_number: params.get('prefill_block_lot'),
+            price_sqm: params.get('prefill_price_sqm'),
+            lot_area: params.get('prefill_lot_area'),
+            discount: params.get('prefill_discount'),
+            mode_of_payment: params.get('prefill_mode_of_payment')
+        };
+        if (data.client_name || data.project_name) applyPrefill(data, 1);
     });
 })();
 </script>

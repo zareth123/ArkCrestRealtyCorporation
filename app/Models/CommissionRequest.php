@@ -39,9 +39,16 @@ class CommissionRequest extends Model
         'status',
         'payment_type',
         'value_of_payment_terms',
-        'payment_type',
-        'value_of_payment_terms',
+        'source_client_record_id',
+        'commission_stage',
+        'commission_stage_total',
+        'stage_threshold_amount',
     ];
+
+    public function sourceClientRecord()
+    {
+        return $this->belongsTo(CommissionRequestSales::class, 'source_client_record_id');
+    }
 
     protected $casts = [
         'date_requested' => 'date',
@@ -57,6 +64,10 @@ class CommissionRequest extends Model
         'net_tcp' => 'decimal:2',
         'commission' => 'decimal:2',
         'commission_percent' => 'decimal:4',
+        'source_client_record_id' => 'integer',
+        'commission_stage' => 'integer',
+        'commission_stage_total' => 'integer',
+        'stage_threshold_amount' => 'decimal:2',
     ];
 
     // Prevents date-only casts from being converted to UTC when serialized to
