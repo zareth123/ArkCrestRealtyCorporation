@@ -143,8 +143,20 @@ class CommissionMonitoringController extends Controller
                 return response()->json(['success' => true]);
             }
             return redirect()->route('commission-monitoring')->with('success', 'Record updated successfully.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->validator->errors()->first(),
+                    'errors'  => $e->errors(),
+                ], 422);
+            }
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Something went wrong. Please try again.'], 500);
+            }
+            return redirect()->back()->with('error', 'Something went wrong. Please try again.')->withInput();
         }
     }
 
