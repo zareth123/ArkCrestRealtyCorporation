@@ -88,10 +88,10 @@ class DepartmentalExpensesController extends Controller
                 'requestor_name' => 'required|string',
                 'department' => 'required|string',
                 'category' => 'required|string',
-                'date_requested' => 'nullable|date',
+                'date_requested' => 'required|date',
                 'requested_amount' => 'nullable|numeric|min:0',
                 'status' => 'required|in:' . implode(',', \App\Models\DepartmentalExpense::STATUSES),
-                'date_released' => 'nullable|date',
+                'date_released' => 'required_if:status,LIQUIDATED|nullable|date',
                 'total_expenses' => 'nullable|numeric',
                 'amount_returned' => 'nullable|numeric',
                 'date_of_amount_returned' => 'nullable|date'

@@ -220,8 +220,8 @@
                 <!-- Row 2: 2 fields -->
                 <div class="form-row-inline">
                     <div class="form-group">
-                        <label>Date Requested</label>
-                        <input type="date" id="date_requested" name="date_requested" class="form-control">
+                        <label>Date Requested <span class="required">*</span></label>
+                        <input type="date" id="date_requested" name="date_requested" class="form-control" required>
                     </div>
 
                     <div class="form-group">
@@ -237,9 +237,9 @@
                 <div class="form-row-inline">
                     <div class="form-group">
                         <label>Status <span class="required">*</span></label>
-                        <select id="status" name="status" class="form-control" required>
+                            <select id="status" name="status" class="form-control" required>
                             <option value="PENDING">PENDING</option>
-                            <option value="NOT LIQUIDATED">NOT LIQUIDATED</option>
+                            <option value="NOT YET LIQUIDATED">NOT YET LIQUIDATED</option>
                             <option value="LIQUIDATED">LIQUIDATED</option>
                             <option value="REJECTED">REJECTED</option>
                         </select>
@@ -808,7 +808,7 @@
                     <label>Status <span class="required">*</span></label>
                     <select id="edit_status" name="status" class="form-control form-control-sm" required>
                         <option value="PENDING">PENDING</option>
-                        <option value="NOT LIQUIDATED">NOT LIQUIDATED</option>
+                        <option value="NOT YET LIQUIDATED">NOT YET LIQUIDATED</option>
                         <option value="LIQUIDATED">LIQUIDATED</option>
                         <option value="REJECTED">REJECTED</option>
                     </select>
@@ -892,20 +892,20 @@
                         <input type="text" id="liq_status_display" class="form-control" value="LIQUIDATED" readonly style="background-color: #f4f6f8;">
                     </div>
                     <div class="form-group">
-                        <label>Date Released</label>
-                        <input type="date" id="liq_date_released" class="form-control">
+                        <label>Date Released <span class="required" style="color:#ef4444;">*</span></label>
+                        <input type="date" id="liq_date_released" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label>Total Expenses</label>
-                        <input type="text" id="liq_total_expenses" class="form-control" placeholder="0.00" inputmode="decimal">
+                        <label>Total Expenses <span class="required" style="color:#ef4444;">*</span></label>
+                        <input type="text" id="liq_total_expenses" class="form-control" placeholder="0.00" inputmode="decimal" required>
                     </div>
                     <div class="form-group">
                         <label>Amount Returned</label>
                         <input type="text" id="liq_amount_returned" class="form-control" placeholder="0.00" inputmode="decimal" readonly style="background-color: #f4f6f8;">
                     </div>
                     <div class="form-group">
-                        <label>Date of Amount Returned</label>
-                        <input type="date" id="liq_date_of_amount_returned" class="form-control">
+                        <label>Date of Amount Returned <span class="required" style="color:#ef4444;">*</span></label>
+                        <input type="date" id="liq_date_of_amount_returned" class="form-control" required>
                     </div>
                 </div>
             </div>
@@ -1492,7 +1492,17 @@ document.getElementById('edit_status').addEventListener('change', function() {
 document.getElementById('liquidationUpdateForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
-    if (!validateAmountField('liq_total_expenses', 'Total Expenses', false)) return;
+    if (!document.getElementById('liq_date_released').value) {
+        showToast('error', 'Date Released Required', 'Please select a Date Released before marking this record as liquidated.');
+        document.getElementById('liq_date_released').focus();
+        return;
+    }
+    if (!validateAmountField('liq_total_expenses', 'Total Expenses', true)) return;
+    if (!document.getElementById('liq_date_of_amount_returned').value) {
+        showToast('error', 'Date of Amount Returned Required', 'Please select a Date of Amount Returned before marking this record as liquidated.');
+        document.getElementById('liq_date_of_amount_returned').focus();
+        return;
+    }
 
     showConfirm('Are you sure you want to update this record?', function() {
         _submitLiquidationUpdate();
