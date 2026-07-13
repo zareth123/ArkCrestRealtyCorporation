@@ -496,8 +496,8 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Project Name *</label><input type="text" id="edit_project_name" name="project_name" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Block & Lot Number</label><input type="text" id="edit_block_lot_number" name="block_lot_number" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Client's Name *</label><input type="text" id="edit_client_name" name="client_name" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Lot Area</label><input type="number" id="edit_lot_area" name="lot_area" step="0.0001" oninput="computeTCP('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Price Per SQM</label><input type="number" id="edit_price_sqm" name="price_sqm" step="0.01" oninput="computeTCP('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Lot Area</label><input type="number" id="edit_lot_area" name="lot_area" step="0.0001" min="0" oninput="computeTCP('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Price Per SQM</label><input type="number" id="edit_price_sqm" name="price_sqm" step="0.01" min="0" oninput="computeTCP('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label><input type="number" id="edit_tcp" name="tcp" step="0.01" readonly style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount (%)</label><input type="number" id="edit_discount" name="discount" step="0.01" min="0" max="100" oninput="computeDiscount('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount Value <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label><input type="number" id="edit_discount_value" name="discount_value" step="0.01" min="0" readonly style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;"></div>
@@ -514,9 +514,9 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                         </div>
                     </div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Reservation Date</label><input type="date" id="edit_reservation_date" name="reservation_date" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Reservation Date</label><input type="date" id="edit_reservation_date" name="reservation_date" onchange="validateEditDownpaymentDate()" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Number of Units</label><input type="number" id="edit_number_of_units" name="number_of_units" min="1" value="1" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Date of Downpayment</label><input type="date" id="edit_date_of_downpayment" name="date_of_downpayment" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Date of Downpayment</label><input type="date" id="edit_date_of_downpayment" name="date_of_downpayment" onchange="validateEditDownpaymentDate()" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Agent's Name *</label><input type="text" id="edit_agent_name" name="agent_name" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Client Status</label>
                     <select id="edit_client_status" name="status" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px">
@@ -770,6 +770,26 @@ function validateDownpaymentDate() {
     }
 }
 
+// Same rule, same technique, for the Edit modal's date fields — kept as a
+// separate function (rather than parameterizing validateDownpaymentDate)
+// since the Edit modal isn't a native form submit, so this gets invoked
+// explicitly from submitEditForm() via form.reportValidity() as well as
+// on each date's onchange.
+function validateEditDownpaymentDate() {
+    var resInput = document.getElementById('edit_reservation_date');
+    var dpInput  = document.getElementById('edit_date_of_downpayment');
+
+    if (!resInput.value || !dpInput.value) {
+        dpInput.setCustomValidity('');
+        return;
+    }
+    if (dpInput.value < resInput.value) {
+        dpInput.setCustomValidity('Date of Downpayment cannot be earlier than the Reservation Date.');
+    } else {
+        dpInput.setCustomValidity('');
+    }
+}
+
 
 // ctx selects which form's fields to read/write: 'f' (default) is the Add
 // New Client Record form, 'edit' is the Edit Client Record modal. Both forms
@@ -871,6 +891,11 @@ function editRow(id){
         document.getElementById('edit_reservation_date').value=d.reservation_date?(d.reservation_date+'').split('T')[0]:'';
         document.getElementById('edit_number_of_units').value=d.number_of_units??1;
         document.getElementById('edit_date_of_downpayment').value=d.date_of_downpayment?(d.date_of_downpayment+'').split('T')[0]:'';
+        // The Edit modal's fields are reused across rows, so any leftover custom
+        // validity message from a previous record must be cleared before
+        // re-checking against this record's own dates.
+        document.getElementById('edit_date_of_downpayment').setCustomValidity('');
+        validateEditDownpaymentDate();
         document.getElementById('edit_agent_name').value=d.agent_name??'';
         document.getElementById('edit_client_status').value=d.status??'';
         document.getElementById('edit_date_requested').value=d.date_requested?(d.date_requested+'').split('T')[0]:'';
@@ -926,6 +951,17 @@ function submitEditForm() {
     // Reset any error state left over from a previous attempt.
     errEl.innerHTML = '';
     errEl.style.display = 'none';
+
+    // The Save button is type="button", not type="submit", so the browser
+    // never runs native constraint validation (required, min/max on Lot
+    // Area / Price per SQM / Discount, and the custom Reservation-Date-
+    // before-Downpayment-Date rule) the way it does for the Add form's real
+    // submit button. Run it explicitly here — reportValidity() shows the
+    // browser's standard inline tooltip on whichever field is invalid.
+    validateEditDownpaymentDate();
+    if (!form.reportValidity()) {
+        return;
+    }
 
     // Basic client-side validation
     var projectName = document.getElementById('edit_project_name').value.trim();
