@@ -69,4 +69,14 @@ class CommissionRequest extends Model
         'commission_stage_total' => 'integer',
         'stage_threshold_amount' => 'decimal:2',
     ];
+
+    // Prevents date-only casts from being converted to UTC when serialized to
+    // JSON (Laravel's default). Without this, a date stored as "2026-07-05"
+    // gets serialized as "2026-07-04T16:00:00.000000Z" for any timezone ahead
+    // of UTC (like Asia/Manila), which the frontend then reads as one day
+    // earlier — silently corrupting the date if the Edit form is saved as-is.
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d');
+    }
 }

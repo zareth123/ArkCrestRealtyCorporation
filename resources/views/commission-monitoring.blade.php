@@ -147,12 +147,15 @@
                     </div>
                     <div class="form-group">
                         <label>COMMISSION TERMS <span class="required">*</span></label>
-                        <select id="cm_add_payment_type" name="payment_type" onchange="computeValueOfPaymentTerms()" required>
-                            <option value="">— Select —</option>
-                            <option value="Full Payment">Full Payment</option>
-                            <option value="2 Months Commission">2 Months Commission</option>
-                            <option value="3 Months Commission">3 Months Commission</option>
-                        </select>
+                        <div class="select-wrapper">
+                            <select id="cm_add_payment_type" name="payment_type" onchange="computeValueOfPaymentTerms()" required>
+                                <option value="">— Select —</option>
+                                <option value="Full Payment">Full Payment</option>
+                                <option value="2 Months Commission">2 Months Commission</option>
+                                <option value="3 Months Commission">3 Months Commission</option>
+                            </select>
+                            <span class="select-arrow">▼</span>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>VALUE OF COMMISSION TERMS <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
@@ -534,6 +537,24 @@
     .combobox-arrow {
         position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
         background: none; border: none; cursor: pointer; color: #6b7280; font-size: 12px;
+    }
+
+    .select-wrapper { position: relative; }
+    .select-wrapper select {
+        width: 100%;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        padding-right: 36px !important;
+    }
+    .select-wrapper .select-arrow {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        color: #6b7280;
+        font-size: 11px;
     }
     .combobox-dropdown {
         position: absolute; top: 100%; left: 0; right: 0;
@@ -1404,6 +1425,15 @@
         grid-template-columns: 1fr 1fr;
         gap: 16px;
     }
+    .cm-field-error {
+        color: #dc2626;
+        font-size: 11px;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+    .cm-field-invalid {
+        border-color: #dc2626 !important;
+    }
 
     .modal-field {
         display: flex;
@@ -2180,7 +2210,30 @@ document.addEventListener('click', function(e) {
     if (wrap && !wrap.contains(e.target)) {
         document.getElementById('cmTermsDropdown').style.display = 'none';
     }
+    const editWrap = document.getElementById('cm_edit_terms_of_payment')?.closest('.combobox-wrapper');
+    if (editWrap && !editWrap.contains(e.target)) {
+        document.getElementById('cmEditTermsDropdown').style.display = 'none';
+    }
 });
+
+function toggleCmEditTermsDropdown() {
+    const dd = document.getElementById('cmEditTermsDropdown');
+    dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+function selectCmEditTerm(val) {
+    document.getElementById('cm_edit_terms_of_payment').value = val;
+    document.getElementById('cmEditTermsDropdown').style.display = 'none';
+}
+function filterCmEditTerms(val) {
+    const items = document.querySelectorAll('#cmEditTermsDropdown .dropdown-item');
+    let hasVisible = false;
+    items.forEach(item => {
+        const match = item.textContent.toLowerCase().includes(val.toLowerCase());
+        item.style.display = match ? '' : 'none';
+        if (match) hasVisible = true;
+    });
+    document.getElementById('cmEditTermsDropdown').style.display = hasVisible ? 'block' : 'none';
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
@@ -2189,10 +2242,56 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    document.getElementById('cmEditForm').addEventListener('submit', function() {
+    document.getElementById('cmEditForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = this;
         const id = document.getElementById('cm_edit_id').value;
-        this.action = `/commission-monitoring/${id}`;
+
+        // Clear any previous inline errors before retrying
+        document.querySelectorAll('.cm-field-error').forEach(el => el.remove());
+        document.querySelectorAll('.cm-field-invalid').forEach(el => el.classList.remove('cm-field-invalid'));
+
         showToast('Saving changes...', 'info');
+
+        fetch(`/commission-monitoring/${id}`, {
+            method: 'POST', // Laravel reads @method('PUT') from the hidden field
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+            },
+            body: new FormData(form),
+        })
+        .then(async (r) => {
+            const data = await r.json().catch(() => null);
+            if (r.ok && data && data.success) {
+                showToast('Record updated successfully.', 'success');
+                closeCmModal('cmEditModal');
+                setTimeout(() => window.location.reload(), 600);
+                return;
+            }
+
+            // Validation error (422) — show inline messages near each affected field
+            if (r.status === 422 && data && data.errors) {
+                Object.keys(data.errors).forEach(field => {
+                    const input = form.querySelector(`[name="${field}"]`);
+                    if (input) {
+                        input.classList.add('cm-field-invalid');
+                        const msg = document.createElement('div');
+                        msg.className = 'cm-field-error';
+                        msg.textContent = data.errors[field][0];
+                        input.closest('.modal-field')?.appendChild(msg);
+                    }
+                });
+                showToast(data.message || 'Please check the highlighted fields.', 'error', 'Validation Error');
+                return;
+            }
+
+            // Any other failure — friendly toast, never raw JSON
+            showToast((data && data.message) || 'Something went wrong. Please try again.', 'error');
+        })
+        .catch(() => {
+            showToast('Network error. Please check your connection and try again.', 'error');
+        });
     });
 
     // Auto-open edit/delete after admin approval redirect
@@ -2495,12 +2594,15 @@ function submitCmPermRequest() {
                     </div>
                     <div class="modal-field">
                         <label>Commission Terms</label>
-                        <select id="cm_edit_payment_type" name="payment_type" onchange="computeEditValueOfPaymentTerms()">
-                            <option value="">— Select —</option>
-                            <option value="Full Payment">Full Payment</option>
-                            <option value="2 Months Commission">2 Months Commission</option>
-                            <option value="3 Months Commission">3 Months Commission</option>
-                        </select>
+                        <div class="select-wrapper">
+                            <select id="cm_edit_payment_type" name="payment_type" onchange="computeEditValueOfPaymentTerms()" required>
+                                <option value="">— Select —</option>
+                                <option value="Full Payment">Full Payment</option>
+                                <option value="2 Months Commission">2 Months Commission</option>
+                                <option value="3 Months Commission">3 Months Commission</option>
+                            </select>
+                            <span class="select-arrow">▼</span>
+                        </div>
                     </div>
                     <div class="modal-field">
                         <label>Value of Commission Terms <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
@@ -2509,7 +2611,21 @@ function submitCmPermRequest() {
                     </div>
                     <div class="modal-field">
                         <label>Terms of Payment <span style="color:#ef4444">*</span></label>
-                        <input type="text" id="cm_edit_terms_of_payment" name="terms_of_payment" required>
+                        <div class="combobox-wrapper">
+                            <input type="text" id="cm_edit_terms_of_payment" name="terms_of_payment" class="combobox-input" required autocomplete="off" placeholder="Type or select payment terms" onclick="toggleCmEditTermsDropdown()" oninput="filterCmEditTerms(this.value)">
+                            <button type="button" class="combobox-arrow" onclick="toggleCmEditTermsDropdown()">▼</button>
+                            <div id="cmEditTermsDropdown" class="combobox-dropdown" style="display:none;">
+                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP - 70% BAL 5 YRS')">30% DP - 70% BAL 5 YRS</div>
+                                <div class="dropdown-item" onclick="selectCmEditTerm('50% DP - 50% BAL 5 YRS')">50% DP - 50% BAL 5 YRS</div>
+                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP (6 MOS) - 70% BAL 54 MOS')">30% DP (6 MOS) - 70% BAL 54 MOS</div>
+                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP (3 MOS) - 70% BAL 57 MOS')">30% DP (3 MOS) - 70% BAL 57 MOS</div>
+                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP (9 MOS) - 70% BAL 36 MOS')">30% DP (9 MOS) - 70% BAL 36 MOS</div>
+                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP (2 MOS) - 70% BAL 57 MOS')">30% DP (2 MOS) - 70% BAL 57 MOS</div>
+                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP (2 MOS) - 70% BAL 5 YRS')">30% DP (2 MOS) - 70% BAL 5 YRS</div>
+                                <div class="dropdown-item" onclick="selectCmEditTerm('STRAIGHT PAYMENT')">STRAIGHT PAYMENT</div>
+                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP - 70% BAL 3 YRS')">30% DP - 70% BAL 3 YRS</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-field">
                         <label>Mode of Payment</label>

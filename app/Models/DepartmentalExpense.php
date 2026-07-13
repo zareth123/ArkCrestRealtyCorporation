@@ -27,5 +27,5 @@ class DepartmentalExpense extends Model
     ];
 
     /** The allowed statuses for a departmental expense / budget request record. */
-    public const STATUSES = ['PENDING', 'NOT LIQUIDATED', 'LIQUIDATED', 'REJECTED'];
+    public const STATUSES = ['PENDING', 'NOT YET LIQUIDATED', 'LIQUIDATED', 'REJECTED'];
 }

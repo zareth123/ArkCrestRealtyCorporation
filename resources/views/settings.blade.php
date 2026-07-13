@@ -1055,77 +1055,170 @@
 
     {{-- DELETED RECORDS PANEL --}}
 
-    <div class="{{ $panelClass('deleted') }}" id="panel-deleted">
 
-      <div class="st-page-header"><div class="st-page-title">Deleted Records</div><div class="st-page-sub">Restore or permanently delete records</div></div>
+<div class="{{ $panelClass('deleted') }}" id="panel-deleted">
 
+  <div class="st-page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div class="st-page-title">Deleted Records</div>
+      <div class="st-page-sub">Restore or permanently delete records, grouped by source</div>
+    </div>
+    <select id="delFilterModule" class="st-select" onchange="filterDeletedGroups()" style="font-size:12px;">
+      <option value="">All Sources</option>
+      @if($deletedExpenses->isNotEmpty())<option value="Departmental Expenses">Departmental Expenses</option>@endif
+      @foreach($deletedLogsGrouped as $module => $logs)
+        <option value="{{ $module }}">{{ $module }}</option>
+      @endforeach
+    </select>
+  </div>
+
+  <div id="del-bulk-bar" style="display:none;align-items:center;justify-content:space-between;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+    <span id="del-selected-count" style="font-size:13px;font-weight:600;color:#1e4575;">0 selected</span>
+    <div style="display:flex;gap:8px;">
+      <button type="button" class="st-btn st-btn-primary st-btn-sm" onclick="bulkAction('restore')">Restore Selected</button>
+      <button type="button" class="st-btn st-btn-danger st-btn-sm" onclick="bulkAction('delete')">Delete Selected</button>
+      <button type="button" class="st-btn st-btn-sm" style="background:#f1f5f9;color:#374151;" onclick="clearDelSelection()">Clear</button>
+    </div>
+  </div>
+
+  @if($deletedExpenses->isEmpty() && $deletedLogsGrouped->isEmpty())
+    <div class="st-card"><div class="st-card-body"><div class="st-empty">No deleted records.</div></div></div>
+  @endif
+
+  {{-- Departmental Expenses group (own columns, doesn't mix with other modules) --}}
+  @if($deletedExpenses->isNotEmpty())
+  <div class="st-card del-group" data-module="Departmental Expenses" style="margin-bottom:16px;">
+    <div class="st-card-hdr">
+      <div class="st-card-hdr-text"><h3>Departmental Expenses</h3><p>{{ $deletedExpenses->count() }} deleted record(s)</p></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;cursor:pointer;">
+        <input type="checkbox" onchange="toggleGroupSelect(this,'expense')"> Select All
+      </label>
+    </div>
+    <div class="st-card-body" style="padding:0;overflow-x:auto;">
+      <table class="st-user-table" style="min-width:700px;">
+        <thead><tr>
+          <th style="width:30px;"></th>
+          <th>Control #</th><th>Requestor</th><th>Department</th><th>Amount</th><th>Deleted By</th><th>Deleted On</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+        @foreach($deletedExpenses as $exp)
+        @php
+          $expDetail = [
+            'title'      => $exp->control_number,
+            'module'     => 'Departmental Expenses',
+            'deleted_by' => $exp->deleted_by_name,
+            'deleted_at' => optional($exp->deleted_at)->format('M d, Y g:i A'),
+            'fields'     => [
+              'Requestor'      => $exp->requestor_name,
+              'Department'     => $exp->department,
+              'Amount'         => '₱'.number_format($exp->requested_amount, 2),
+              'Date Requested' => optional($exp->date_requested)->format('M d, Y'),
+              'Status'         => $exp->status,
+            ],
+          ];
+        @endphp
+        <tr>
+          <td><input type="checkbox" class="del-select" data-type="expense" data-id="{{ $exp->id }}"></td>
+          <td style="cursor:pointer;color:#1e4575;font-weight:600;" onclick='openDelDetail(@json($expDetail))'>{{ $exp->control_number }}</td>
+          <td>{{ $exp->requestor_name }}</td>
+          <td>{{ $exp->department }}</td>
+          <td>₱{{ number_format($exp->requested_amount, 2) }}</td>
+          <td style="font-size:12px;color:#374151;">{{ $exp->deleted_by_name }}</td>
+          <td style="font-size:11px;color:#94a3b8;">{{ $exp->deleted_at ? $exp->deleted_at->format('M d, Y g:i A') : '—' }}</td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <form method="POST" action="{{ route('expenses.restore', $exp->id) }}">@csrf
+                <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
+              </form>
+              <form method="POST" action="{{ route('expenses.purge', $exp->id) }}" onsubmit="return confirm('Permanently delete this record?')">@csrf @method('DELETE')
+                <button type="submit" class="st-btn st-btn-danger st-btn-sm">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        @endforeach
+        </tbody>
+      </table>
+    </div>
+  </div>
+  @endif
+
+  {{-- Every other module gets its own group, so field sets never collide --}}
+  @foreach($deletedLogsGrouped as $module => $logs)
+  <div class="st-card del-group" data-module="{{ $module }}" style="margin-bottom:16px;">
+    <div class="st-card-hdr">
+      <div class="st-card-hdr-text"><h3>{{ $module }}</h3><p>{{ $logs->count() }} deleted record(s)</p></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;cursor:pointer;">
+        <input type="checkbox" onchange="toggleGroupSelect(this,'log')"> Select All
+      </label>
+    </div>
+    <div class="st-card-body">
+      @foreach($logs as $log)
       @php
-        $deletedExpenses = \App\Models\DepartmentalExpense::onlyTrashed()->orderBy('deleted_at','desc')->get();
-        $deletedLogs = $activityLogs->where('action','delete')->filter(fn($l) => $l->module !== 'Departmental Expenses');
+        $logDetail = [
+          'title'      => $log->description ?: $log->module,
+          'module'     => $log->module,
+          'deleted_by' => $log->user->name ?? 'System',
+          'deleted_at' => $log->created_at->format('M d, Y g:i A'),
+          'fields'     => is_array($log->meta) ? $log->meta : [],
+        ];
       @endphp
-
-      {{-- Soft-deleted Expenses --}}
-      @if($deletedExpenses->isNotEmpty())
-      <div class="st-card" style="margin-bottom:16px;">
-        <div class="st-card-hdr"><div class="st-card-hdr-text"><h3>Deleted Expenses</h3><p>Restore or permanently remove</p></div></div>
-        <div class="st-card-body" style="padding:0;overflow-x:auto;">
-          <table class="st-user-table" style="min-width:600px;">
-            <thead><tr><th>Control #</th><th>Requestor</th><th>Department</th><th>Amount</th><th>Deleted</th><th>Actions</th></tr></thead>
-            <tbody>
-            @foreach($deletedExpenses as $exp)
-            <tr>
-              <td>{{ $exp->control_number }}</td>
-              <td>{{ $exp->requestor_name }}</td>
-              <td>{{ $exp->department }}</td>
-              <td>₱{{ number_format($exp->requested_amount, 2) }}</td>
-              <td style="font-size:11px;color:#94a3b8;">{{ $exp->deleted_at->format('M d, Y') }}</td>
-              <td>
-                <div style="display:flex;gap:6px;">
-                  <form method="POST" action="{{ route('expenses.restore', $exp->id) }}">@csrf
-                    <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
-                  </form>
-                  <form method="POST" action="{{ route('expenses.purge', $exp->id) }}" onsubmit="return confirm('Permanently delete this record?')">@csrf @method('DELETE')
-                    <button type="submit" class="st-btn st-btn-danger st-btn-sm">Delete</button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-            @endforeach
-            </tbody>
-          </table>
+      <div class="del-rec-item">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+          <input type="checkbox" class="del-select" data-type="log" data-id="{{ $log->id }}" {{ !$log->meta ? 'disabled title=Not restorable' : '' }}>
+          <div style="min-width:0;cursor:pointer;" onclick='openDelDetail(@json($logDetail))'>
+            <div style="font-size:13px;font-weight:600;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $log->description }}</div>
+            <div style="font-size:11px;color:#94a3b8;">by {{ $log->user->name ?? 'System' }} &bull; {{ $log->created_at->format('M d, Y g:i A') }}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          @if($log->meta)
+          <form method="POST" action="{{ route('settings.deleted.restore', $log->id) }}">@csrf
+            <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
+          </form>
+          @endif
+          <form method="POST" action="{{ route('settings.deleted.purge', $log->id) }}" onsubmit="return confirm('Permanently delete?')">@csrf @method('DELETE')
+            <button type="submit" class="st-btn st-btn-danger st-btn-sm">Delete</button>
+          </form>
         </div>
       </div>
+      @endforeach
+    </div>
+  </div>
+  @endforeach
+
+</div>
+
+{{-- Deleted-record detail popup --}}
+<div id="delDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this) closeDelDetail()">
+  <div style="background:white;border-radius:14px;padding:22px 26px;width:480px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">
+      <div>
+        <div id="delDetailTitle" style="font-size:15px;font-weight:700;color:#0f172a;"></div>
+        <div id="delDetailModule" style="font-size:12px;color:#94a3b8;margin-top:2px;"></div>
+      </div>
+      <button type="button" onclick="closeDelDetail()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;">&times;</button>
+    </div>
+    <div style="display:flex;gap:24px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;">Deleted By</div>
+        <div id="delDetailBy" style="font-size:13px;color:#374151;font-weight:600;"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;">Deleted On</div>
+        <div id="delDetailAt" style="font-size:13px;color:#374151;font-weight:600;"></div>
+      </div>
+    </div>
+    <div id="delDetailFields" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
       @endif
 
-      {{-- Other deleted records from activity log --}}
-      <div class="st-card"><div class="st-card-body">
-        @forelse($deletedLogs as $log)
-        <div class="del-rec-item">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#0f172a;">{{ $log->description }}</div>
-            <div style="font-size:11px;color:#94a3b8;">{{ $log->module }} &bull; {{ $log->created_at->format('M d, Y g:i A') }}</div>
-          </div>
-          <div style="display:flex;gap:8px;flex-shrink:0;">
-            @if($log->snapshot)
-            <form method="POST" action="{{ route('settings.deleted.restore', $log->id) }}">@csrf
-              <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
-            </form>
-            @endif
-            <form method="POST" action="{{ route('settings.deleted.purge', $log->id) }}" onsubmit="return confirm('Permanently delete?')">@csrf @method('DELETE')
-              <button type="submit" class="st-btn st-btn-danger st-btn-sm">Delete</button>
-            </form>
-          </div>
-        </div>
-        @empty
-        @if($deletedExpenses->isEmpty())
-        <div class="st-empty">No deleted records.</div>
-        @endif
-        @endforelse
-      </div></div>
+      
 
     </div>
 
-    @endif
+    
 
     @if($isAdmin || $canSeeS('settings.permissions'))
 
@@ -2144,6 +2237,79 @@ function toggleSettingsPwdField(inputId, btn) {
     btn.innerHTML = showing
         ? '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>'
         : '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.68 19.68 0 0 1 4.22-5.94M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a19.6 19.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+}
+// ── Deleted Records ─────────────────────────────────────────────────────────
+function openDelDetail(data) {
+    document.getElementById('delDetailTitle').textContent = data.title || '—';
+    document.getElementById('delDetailModule').textContent = data.module || '';
+    document.getElementById('delDetailBy').textContent = data.deleted_by || 'Unknown';
+    document.getElementById('delDetailAt').textContent = data.deleted_at || '—';
+    var wrap = document.getElementById('delDetailFields');
+    wrap.innerHTML = '';
+    var fields = data.fields || {};
+    var keys = Object.keys(fields).filter(k => fields[k] !== null && fields[k] !== undefined && fields[k] !== '');
+    if (!keys.length) {
+        wrap.innerHTML = '<div style="font-size:12px;color:#94a3b8;">No additional details available.</div>';
+    } else {
+        keys.forEach(function(k) {
+            var row = document.createElement('div');
+            row.style.cssText = 'display:flex;justify-content:space-between;gap:12px;padding:6px 10px;background:#f8fafc;border-radius:6px;font-size:12px;';
+            var label = k.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+            row.innerHTML = '<span style="color:#64748b;font-weight:600;">' + label + '</span><span style="color:#374151;text-align:right;">' + String(fields[k]) + '</span>';
+            wrap.appendChild(row);
+        });
+    }
+    document.getElementById('delDetailModal').style.display = 'flex';
+}
+function closeDelDetail() { document.getElementById('delDetailModal').style.display = 'none'; }
+
+function filterDeletedGroups() {
+    var val = document.getElementById('delFilterModule').value;
+    document.querySelectorAll('.del-group').forEach(function(g) {
+        g.style.display = (!val || g.dataset.module === val) ? '' : 'none';
+    });
+}
+
+function toggleGroupSelect(cb, type) {
+    cb.closest('.del-group').querySelectorAll('.del-select[data-type="' + type + '"]:not(:disabled)')
+      .forEach(function(c){ c.checked = cb.checked; });
+    updateDelBulkBar();
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target.classList && e.target.classList.contains('del-select')) updateDelBulkBar();
+});
+
+function updateDelBulkBar() {
+    var checked = document.querySelectorAll('.del-select:checked');
+    document.getElementById('del-selected-count').textContent = checked.length + ' selected';
+    document.getElementById('del-bulk-bar').style.display = checked.length ? 'flex' : 'none';
+}
+
+function clearDelSelection() {
+    document.querySelectorAll('.del-select:checked').forEach(c => c.checked = false);
+    updateDelBulkBar();
+}
+
+function bulkAction(kind) {
+    var checked = document.querySelectorAll('.del-select:checked');
+    if (!checked.length) return;
+    if (!confirm(kind === 'delete'
+        ? 'Permanently delete ' + checked.length + ' record(s)? This cannot be undone.'
+        : 'Restore ' + checked.length + ' record(s)?')) return;
+
+    var items = Array.from(checked).map(c => ({ type: c.dataset.type, id: parseInt(c.dataset.id) }));
+    var url = kind === 'delete' ? '{{ route("settings.deleted.bulk-delete") }}' : '{{ route("settings.deleted.bulk-restore") }}';
+    var csrf = document.querySelector('meta[name=csrf-token]').content;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN': csrf},
+        body: JSON.stringify({ items: items })
+    }).then(r => r.json()).then(function(d) {
+        alert(d.message || 'Done.');
+        window.location.reload();
+    }).catch(function(){ window.location.reload(); });
 }
 </script>
 @endsection

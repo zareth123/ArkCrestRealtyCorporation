@@ -553,10 +553,10 @@
                             </li>
                             @php
                                 $isAdminUser = auth()->check() && auth()->user()->isAdmin();
-                                $sHiddenGlobal = array_values(json_decode(\DB::table('app_settings')->where('key', 'hidden_pages')->value('value') ?? '[]', true) ?: []);
-                                $canSeeSetting = fn($k) => $isAdminUser || !in_array($k, $sHiddenGlobal);
+                                $userHiddenSettings = $isAdminUser ? [] : ($allHidden ?? []);
+                                $canSeeSetting = fn($k) => $isAdminUser || !in_array($k, $userHiddenSettings);
                             @endphp
-                            @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.activity','settings.deleted','settings.permissions','settings.teams','settings.period-lock'], fn($k) => !in_array($k, $sHiddenGlobal)))
+                            @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.activity','settings.deleted','settings.permissions','settings.teams','settings.period-lock','settings.backup','settings.export'], fn($k) => !in_array($k, $userHiddenSettings)))
                             <li class="nav-submenu-label">Admin</li>
                             @endif
                             @if($canSeeSetting('settings.users'))
@@ -580,6 +580,14 @@
                                 <a href="{{ route('settings') }}?panel=activity" class="nav-subitem" data-page="settings-activity">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                                     <span class="sidebar-text">Activity Log</span>
+                                </a>
+                            </li>
+                            @endif
+                            @if($isAdminUser)
+                            <li>
+                                <a href="{{ route('settings.edit-history') }}" class="nav-subitem" data-page="settings-edit-history">
+                                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span class="sidebar-text">Edit History</span>
                                 </a>
                             </li>
                             @endif

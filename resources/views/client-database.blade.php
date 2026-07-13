@@ -119,10 +119,10 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                     <label>DEVELOPER'S NAME <span class="required">*</span></label>
                     <div style="position:relative;">
                         <input type="text" name="developer_name" id="dev_name_input" placeholder="Type or select developer" autocomplete="off" required
-                            onclick="toggleDevDropdown()" oninput="filterDev(this.value)"
+                            onclick="toggleSearchDropdown('devDropdown')" oninput="filterSearchDropdown('devDropdown', this.value)"
                             style="width:100%;padding:12px 40px 12px 16px;border:2px solid #1e4575;border-radius:8px;font-size:14px;font-weight:500;background:white;color:#344054;box-sizing:border-box;">
-                        <button type="button" onclick="toggleDevDropdown()" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:36px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px;">▼</button>
-                        <div id="devDropdown" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:200px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+                        <button type="button" onclick="toggleSearchDropdown('devDropdown')" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:36px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px;">▼</button>
+                        <div id="devDropdown" data-dropdown-input="dev_name_input" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:200px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
                             {{--
                                 FIX: this used to be a @foreach over a $developers variable passed from the
                                 controller. If that variable came back empty/undefined (e.g. a broken query,
@@ -143,7 +143,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                                 ];
                             @endphp
                             @foreach($developerOptions as $dev)
-                            <div onclick="selectDev('{{ $dev }}')" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=''">{{ $dev }}</div>
+                            <div onclick="selectSearchOption('dev_name_input','devDropdown','{{ $dev }}')" data-value="{{ $dev }}" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=this.dataset.selected==='true'?'#dbeafe':''">{{ $dev }}</div>
                             @endforeach
                         </div>
                     </div>
@@ -190,11 +190,16 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                 <div class="form-group">
                     <label>TERMS OF PAYMENT <span class="required">*</span></label>
                     <div style="position:relative">
-                        <input type="text" id="terms_of_payment" name="terms_of_payment" required autocomplete="off" placeholder="Type or select payment terms" onclick="toggleTermsDropdown()" oninput="filterTerms(this.value)" style="width:100%;padding:12px 40px 12px 16px;border:2px solid #1e4575;border-radius:8px;font-size:14px;font-weight:500;background:white;color:#344054;box-sizing:border-box">
-                        <button type="button" onclick="toggleTermsDropdown()" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:36px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px">▼</button>
-                        <div id="termsDropdown" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:250px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
-                            @foreach(['30% DP - 70% BAL 5 YRS','50% DP - 50% BAL 5 YRS','30% DP (6 MOS) - 70% BAL 54 MOS','30% DP (3 MOS) - 70% BAL 57 MOS','30% DP (9 MOS) - 70% BAL 36 MOS','30% DP (2 MOS) - 70% BAL 57 MOS','30% DP (2 MOS) - 70% BAL 5 YRS','STRAIGHT PAYMENT','30% DP - 70% BAL 3 YRS'] as $term)
-                            <div onclick="selectTerm('{{ $term }}')" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=''">{{ $term }}</div>
+                        <input type="text" id="terms_of_payment" name="terms_of_payment" required autocomplete="off" placeholder="Type or select payment terms" onclick="toggleSearchDropdown('termsDropdown')" oninput="filterSearchDropdown('termsDropdown', this.value)" style="width:100%;padding:12px 40px 12px 16px;border:2px solid #1e4575;border-radius:8px;font-size:14px;font-weight:500;background:white;color:#344054;box-sizing:border-box">
+                        <button type="button" onclick="toggleSearchDropdown('termsDropdown')" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:36px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px">▼</button>
+                        <div id="termsDropdown" data-dropdown-input="terms_of_payment" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:250px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
+                            @php
+                                // Shared list of standard payment terms — also reused by the
+                                // Edit Modal's searchable dropdown further down this file.
+                                $termsOptions = ['30% DP - 70% BAL 5 YRS','50% DP - 50% BAL 5 YRS','30% DP (6 MOS) - 70% BAL 54 MOS','30% DP (3 MOS) - 70% BAL 57 MOS','30% DP (9 MOS) - 70% BAL 36 MOS','30% DP (2 MOS) - 70% BAL 57 MOS','30% DP (2 MOS) - 70% BAL 5 YRS','STRAIGHT PAYMENT','30% DP - 70% BAL 3 YRS'];
+                            @endphp
+                            @foreach($termsOptions as $term)
+                            <div onclick="selectSearchOption('terms_of_payment','termsDropdown','{{ $term }}')" data-value="{{ $term }}" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=this.dataset.selected==='true'?'#dbeafe':''">{{ $term }}</div>
                             @endforeach
                         </div>
                     </div>
@@ -474,7 +479,20 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
             <input type="hidden" id="edit_id" name="id">
             <input type="hidden" id="edit_date_requested" name="date_requested">
             <div class="cd-modal-grid" style="padding:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Developer's Name</label><input type="text" id="edit_developer_name" name="developer_name" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Developer's Name</label>
+                    <div style="position:relative;">
+                        <input type="text" name="developer_name" id="edit_developer_name" placeholder="Type or select developer" autocomplete="off"
+                            onclick="toggleSearchDropdown('edit_devDropdown')" oninput="filterSearchDropdown('edit_devDropdown', this.value)"
+                            style="width:100%;padding:10px 40px 10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:white;color:#374151;box-sizing:border-box;">
+                        <button type="button" onclick="toggleSearchDropdown('edit_devDropdown')" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:34px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px;">▼</button>
+                        <div id="edit_devDropdown" data-dropdown-input="edit_developer_name" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:200px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+                            @foreach($developerOptions as $dev)
+                            <div onclick="selectSearchOption('edit_developer_name','edit_devDropdown','{{ $dev }}')" data-value="{{ $dev }}" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=this.dataset.selected==='true'?'#dbeafe':''">{{ $dev }}</div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Project Name *</label><input type="text" id="edit_project_name" name="project_name" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Block & Lot Number</label><input type="text" id="edit_block_lot_number" name="block_lot_number" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Client's Name *</label><input type="text" id="edit_client_name" name="client_name" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
@@ -483,7 +501,18 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">TCP</label><input type="number" id="edit_tcp" name="tcp" step="0.01" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount (%)</label><input type="number" id="edit_discount" name="discount" step="0.01" min="0" max="100" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Net TCP</label><input type="number" id="edit_net_tcp" name="net_tcp" step="0.01" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Terms of Payment *</label><input type="text" id="edit_terms_of_payment" name="terms_of_payment" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Terms of Payment *</label>
+                    <div style="position:relative">
+                        <input type="text" id="edit_terms_of_payment" name="terms_of_payment" required autocomplete="off" placeholder="Type or select payment terms" onclick="toggleSearchDropdown('edit_termsDropdown')" oninput="filterSearchDropdown('edit_termsDropdown', this.value)" style="width:100%;padding:10px 40px 10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:white;color:#374151;box-sizing:border-box">
+                        <button type="button" onclick="toggleSearchDropdown('edit_termsDropdown')" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:34px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px">▼</button>
+                        <div id="edit_termsDropdown" data-dropdown-input="edit_terms_of_payment" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:250px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
+                            @foreach($termsOptions as $term)
+                            <div onclick="selectSearchOption('edit_terms_of_payment','edit_termsDropdown','{{ $term }}')" data-value="{{ $term }}" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=this.dataset.selected==='true'?'#dbeafe':''">{{ $term }}</div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Reservation Date</label><input type="date" id="edit_reservation_date" name="reservation_date" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Number of Units</label><input type="number" id="edit_number_of_units" name="number_of_units" min="1" value="1" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Date of Downpayment</label><input type="date" id="edit_date_of_downpayment" name="date_of_downpayment" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
@@ -632,12 +661,69 @@ function submitLocalPermRequest() {
     .catch(() => { btn.disabled = false; btn.textContent = 'Send Request'; });
 }
 
-function toggleTermsDropdown(){ var d=document.getElementById('termsDropdown'); d.style.display=d.style.display==='none'?'block':'none'; }
+// ── Searchable dropdown widget (shared by Add form and Edit modal) ──
+// Every "type or select" field (Developer's Name, Terms of Payment — in both
+// the Add form and the Edit modal) uses the same three generic functions
+// instead of one copy-pasted set of functions per field. Each dropdown
+// container carries data-dropdown-input="<id of its text input>" so a single
+// outside-click listener can close whichever ones are open.
 
-function toggleDevDropdown(){ var d=document.getElementById('devDropdown'); d.style.display=d.style.display==='none'?'block':'none'; }
-function selectDev(v){ document.getElementById('dev_name_input').value=v; document.getElementById('devDropdown').style.display='none'; }
-function filterDev(val){ var d=document.getElementById('devDropdown'),items=d.children,f=val.toUpperCase(),has=false; for(var i of items){ var show=i.textContent.toUpperCase().includes(f); i.style.display=show?'':'none'; if(show)has=true; } d.style.display=has?'block':'none'; }
-document.addEventListener('click',function(e){ if(!e.target.closest('#dev_name_input') && !e.target.closest('#devDropdown') && !e.target.closest('[onclick="toggleDevDropdown()"]')) document.getElementById('devDropdown').style.display='none'; });
+function toggleSearchDropdown(dropdownId) {
+    var d = document.getElementById(dropdownId);
+    if (!d) return;
+    d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+
+function filterSearchDropdown(dropdownId, value) {
+    var d = document.getElementById(dropdownId);
+    if (!d) return;
+    var items = d.children, f = (value || '').toUpperCase(), has = false;
+    for (var i of items) {
+        var show = i.textContent.toUpperCase().includes(f);
+        i.style.display = show ? '' : 'none';
+        if (show) has = true;
+    }
+    d.style.display = has ? 'block' : 'none';
+}
+
+function selectSearchOption(inputId, dropdownId, value) {
+    var input = document.getElementById(inputId);
+    if (input) input.value = value;
+    var d = document.getElementById(dropdownId);
+    if (d) d.style.display = 'none';
+    highlightSelectedOption(dropdownId, value);
+}
+
+// Closes any open searchable dropdown when a click lands outside its input,
+// toggle button, and option list (all three live together in the same
+// position:relative wrapper, so "outside the wrapper" == "outside the field").
+document.addEventListener('click', function (e) {
+    document.querySelectorAll('[data-dropdown-input]').forEach(function (dropdown) {
+        var input = document.getElementById(dropdown.dataset.dropdownInput);
+        var wrapper = input ? input.parentElement : null;
+        if (wrapper && !wrapper.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+});
+
+// Marks the option matching `value` as selected (persistent highlight, survives
+// mouseout) inside the given dropdown, and clears the highlight on the rest.
+function highlightSelectedOption(dropdownId, value) {
+    var d = document.getElementById(dropdownId);
+    if (!d) return;
+    for (var child of d.children) {
+        if (value && child.dataset.value === value) {
+            child.dataset.selected = 'true';
+            child.style.background = '#dbeafe';
+            child.style.fontWeight = '700';
+        } else {
+            child.dataset.selected = 'false';
+            child.style.background = '';
+            child.style.fontWeight = '500';
+        }
+    }
+}
 
 function fmtComma(n) {
     if (!n && n !== 0) return '';
@@ -710,9 +796,6 @@ function computeDiscountFromValue(){
     document.getElementById('f_net_tcp').value = net ? net.toFixed(2) : '';
     document.getElementById('f_net_tcp_display').value = net ? fmtComma(net) : '';
 }
-function selectTerm(t){ document.getElementById('terms_of_payment').value=t; document.getElementById('termsDropdown').style.display='none'; }
-function filterTerms(v){ var d=document.getElementById('termsDropdown'),items=d.children,f=v.toUpperCase(),has=false; for(var i of items){ var show=i.textContent.toUpperCase().includes(f); i.style.display=show?'':'none'; if(show)has=true; } d.style.display=has?'block':'none'; }
-document.addEventListener('click',function(e){ var w=document.getElementById('terms_of_payment')?.closest('div'); if(w&&!w.contains(e.target)) document.getElementById('termsDropdown').style.display='none'; });
 
 function viewRow(id){
     fetch(`/sales-marketing/${id}`).then(r=>r.json()).then(d=>{
@@ -747,6 +830,7 @@ function editRow(id){
     fetch(`/sales-marketing/${id}`).then(r=>r.json()).then(d=>{
         document.getElementById('edit_id').value=d.id;
         document.getElementById('edit_developer_name').value=d.developer_name??'';
+        highlightSelectedOption('edit_devDropdown', d.developer_name??'');
         document.getElementById('edit_project_name').value=d.project_name??'';
         document.getElementById('edit_block_lot_number').value=d.block_lot_number??'';
         document.getElementById('edit_client_name').value=d.client_name??'';
@@ -756,6 +840,7 @@ function editRow(id){
         document.getElementById('edit_discount').value=d.discount??'';
         document.getElementById('edit_net_tcp').value=d.net_tcp??'';
         document.getElementById('edit_terms_of_payment').value=d.terms_of_payment??'';
+        highlightSelectedOption('edit_termsDropdown', d.terms_of_payment??'');
         document.getElementById('edit_reservation_date').value=d.reservation_date?(d.reservation_date+'').split('T')[0]:'';
         document.getElementById('edit_number_of_units').value=d.number_of_units??1;
         document.getElementById('edit_date_of_downpayment').value=d.date_of_downpayment?(d.date_of_downpayment+'').split('T')[0]:'';
@@ -763,7 +848,10 @@ function editRow(id){
         document.getElementById('edit_client_status').value=d.status??'';
         document.getElementById('edit_date_requested').value=d.date_requested?(d.date_requested+'').split('T')[0]:'';
         document.getElementById('editForm').action=`/client-database/${d.id}`;
+        document.getElementById('editFormError').innerHTML='';
         document.getElementById('editFormError').style.display='none';
+        document.getElementById('edit_devDropdown').style.display='none';
+        document.getElementById('edit_termsDropdown').style.display='none';
         document.getElementById('editModal').style.display='flex';
     }).catch(err=>{
         alert('Failed to load record. Please try again.');
@@ -789,10 +877,28 @@ function staffDeleteConfirm(e, id, label) {
     return false;
 }
 
+// Renders one or more error messages inside the Edit modal's banner, using
+// the same bulleted-list convention the rest of the app uses for
+// $errors->all() (see tripping.blade.php / commission-monitoring.blade.php),
+// so a failed Edit submission reads exactly like a failed Add submission.
+function renderEditFormErrors(messages) {
+    var errEl = document.getElementById('editFormError');
+    var list = (Array.isArray(messages) ? messages : [messages]).filter(Boolean);
+    if (!list.length) list = ['Failed to save. Please try again.'];
+    errEl.innerHTML = list.length === 1
+        ? list[0]
+        : list.map(function (m) { return '<div>• ' + m + '</div>'; }).join('');
+    errEl.style.display = 'block';
+}
+
 function submitEditForm() {
     var form = document.getElementById('editForm');
     var btn  = document.getElementById('editSaveBtn');
     var errEl= document.getElementById('editFormError');
+
+    // Reset any error state left over from a previous attempt.
+    errEl.innerHTML = '';
+    errEl.style.display = 'none';
 
     // Basic client-side validation
     var projectName = document.getElementById('edit_project_name').value.trim();
@@ -800,14 +906,12 @@ function submitEditForm() {
     var agentName   = document.getElementById('edit_agent_name').value.trim();
     var terms       = document.getElementById('edit_terms_of_payment').value.trim();
     if (!projectName || !clientName || !agentName || !terms) {
-        errEl.textContent = 'Please fill in all required fields (Project Name, Client Name, Agent Name, Terms of Payment).';
-        errEl.style.display = 'block';
+        renderEditFormErrors('Please fill in all required fields (Project Name, Client Name, Agent Name, Terms of Payment).');
         return;
     }
 
     btn.disabled = true;
     btn.textContent = 'Saving...';
-    errEl.style.display = 'none';
 
     var formData = new FormData(form);
     var action   = form.action;
@@ -824,21 +928,26 @@ function submitEditForm() {
             return r.text().then(text => {
                 btn.disabled = false;
                 btn.textContent = 'Save Changes';
-                // Try to parse JSON error
+                // Try to parse a structured JSON error response first (this is what
+                // update() returns on validation failure: {error, errors}). Fall
+                // back to a generic, status-coded message for anything else
+                // (auth/permission errors, a 500 HTML error page, etc.)
                 try {
                     var json = JSON.parse(text);
-                    errEl.textContent = json.error || json.message || 'Failed to save. Please try again.';
-                } catch(e) {
-                    errEl.textContent = 'Failed to save. Please try again. (Status: ' + r.status + ')';
+                    if (Array.isArray(json.errors) && json.errors.length) {
+                        renderEditFormErrors(json.errors);
+                    } else {
+                        renderEditFormErrors(json.error || json.message || 'Failed to save. Please try again.');
+                    }
+                } catch (e) {
+                    renderEditFormErrors('Failed to save. Please try again. (Status: ' + r.status + ')');
                 }
-                errEl.style.display = 'block';
             });
         }
     }).catch(() => {
         btn.disabled = false;
         btn.textContent = 'Save Changes';
-        errEl.textContent = 'Network error. Please try again.';
-        errEl.style.display = 'block';
+        renderEditFormErrors('Network error. Please try again.');
     });
 }
 

@@ -63,4 +63,11 @@ class CommissionRequestSales extends Model
         'downpayment_stage' => 'integer',
         'downpayment_stage_total' => 'integer',
     ];
+
+    // Same fix as CommissionRequest — prevents date-only fields from being
+    // shifted a day earlier when serialized to JSON for the Edit modal.
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d');
+    }
 }

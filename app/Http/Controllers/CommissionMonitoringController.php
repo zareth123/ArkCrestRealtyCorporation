@@ -242,23 +242,39 @@ class CommissionMonitoringController extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['success' => true]);
             }
-
-            return redirect()->route('commission-monitoring')
+            return redirect()
+                ->route('commission-monitoring')
                 ->with('success', 'Record updated successfully.');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => collect($exception->errors())->flatten()->first(),
-                ], 422);
-            }
 
-            return redirect()->back()->withErrors($exception->errors())->withInput();
-        } catch (\Throwable $exception) {
-            return response()->json([
-                'success' => false,
-                'message' => $exception->getMessage(),
-            ], 500);
+            } catch (\Illuminate\Validation\ValidationException $exception) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => collect($exception->errors())->flatten()->first(),
+                        'errors' => $exception->errors(),
+                    ], 422);
+                }
+
+                return redirect()
+                    ->back()
+                    ->withErrors($exception->errors())
+                    ->withInput();
+
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Something went wrong. Please try again.',
+                    ], 500);
+                }
+
+                return redirect()
+                    ->back()
+                    ->with('error', 'Something went wrong. Please try again.')
+                    ->withInput();
+            }
         }
     }
 
