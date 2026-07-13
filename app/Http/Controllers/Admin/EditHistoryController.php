@@ -18,12 +18,10 @@ class EditHistoryController extends Controller
     // (login/logout/approve/reject etc. remain in the general Activity Log panel).
     const CUD_ACTIONS = ['create', 'update', 'delete', 'restore'];
 
-    // Modules whose 'delete' log entries carry enough snapshot data (meta) to be
-    // safely recreated by SettingsController::restoreLogRecord(). 'Departmental
-    // Expenses' is intentionally excluded here — it already has its own dedicated
-    // soft-delete restore flow (Settings > Deleted Records / expenses.restore),
-    // so we don't want to offer a second, less reliable "Undo" path for it here.
-    const UNDOABLE_MODULES = ['Commission Monitoring', 'Sales & Marketing', 'Human Resource', 'Site Visit Form'];
+    // Modules excluded from self-service Undo even though their logs carry enough
+    // data to technically restore/revert — these touch accounts and system config,
+    // so changes there should go through their normal admin flows, not a one-click undo.
+    const UNDO_EXCLUDED_MODULES = ['Settings'];
 
     public function index(Request $request)
     {
@@ -64,9 +62,11 @@ class EditHistoryController extends Controller
         $logs = $query->orderBy('created_at', 'desc')->paginate(25)->withQueryString();
 
         $logs->getCollection()->transform(function ($log) {
-            $log->can_undo = $log->action === 'delete'
-                && in_array($log->module, self::UNDOABLE_MODULES, true)
-                && !empty($log->meta);
+            $meta = is_array($log->meta) ? $log->meta : [];
+            $log->can_undo = in_array($log->action, ['delete', 'update'], true)
+                && !empty($meta)
+                && !empty($meta['record_id'] ?? null)
+                && !in_array($log->module, self::UNDO_EXCLUDED_MODULES, true);
             return $log;
         });
 

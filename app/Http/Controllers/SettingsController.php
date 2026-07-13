@@ -599,9 +599,20 @@ private function getDeletedExpenses()
         if (!auth()->user()->isAdmin()) abort(403);
 
         $log = ActivityLog::findOrFail($logId);
-        $result = $this->restoreLogRecord($log);
+        $result = $this->undoLogEntry($log);
 
         return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
+    // Dispatches an Edit History "Undo" click to the right handler based on what
+    // kind of log entry it is. Returns ['success'=>bool,'message'=>string]
+    private function undoLogEntry(ActivityLog $log): array
+    {
+        return match ($log->action) {
+            'delete' => $this->restoreLogRecord($log),
+            'update' => $this->revertLogUpdate($log),
+            default  => ['success' => false, 'message' => "Undo isn't supported for '{$log->action}' entries."],
+        };
     }
 
     // Shared logic: restore a single activity-log-based deleted record. Returns ['success'=>bool,'message'=>string]
@@ -613,66 +624,133 @@ private function getDeletedExpenses()
             return ['success' => false, 'message' => 'No record data available to restore.'];
         }
 
+        $modelClass = $this->resolveModelClass($meta);
+        if (!$modelClass) {
+            return ['success' => false, 'message' => 'Cannot determine what type of record this was, so it cannot be restored.'];
+        }
+
+        $recordId = $meta['record_id'] ?? null;
+
         try {
-            $module = $log->module;
-            $restoreMeta = $meta;
-            unset($restoreMeta['id']);
-
-            // Departmental Expenses
-            if (in_array($module, ['Departmental Expenses', 'Commission Monitoring'])) {
-                // Try soft-delete restore first
-                if (!empty($meta['id'])) {
-                    $existing = \App\Models\CommissionRequest::withTrashed()->find($meta['id']);
-                    if ($existing && $existing->trashed()) {
-                        $existing->restore();
-                        $log->delete();
-                        return ['success' => true, 'message' => 'Record restored successfully.'];
-                    }
+            // If the model soft-deletes, the actual row may still be sitting in the
+            // database (trashed) — restoring it is always more accurate than
+            // recreating one from the audit snapshot, so prefer that when possible.
+            if ($recordId && in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive($modelClass), true)) {
+                $existing = $modelClass::withTrashed()->find($recordId);
+                if ($existing && $existing->trashed()) {
+                    $existing->restore();
+                    $log->delete();
+                    return ['success' => true, 'message' => 'Record restored successfully.'];
                 }
-                $fillable = ['control_number','requestor_name','department','category','date_requested',
-                    'requested_amount','status','date_released','total_expenses','amount_returned','date_of_amount_returned'];
-                $data = array_filter(array_intersect_key($restoreMeta, array_flip($fillable)), fn($v) => $v !== null);
-                \App\Models\CommissionRequest::create($data);
-                $log->delete();
-                return ['success' => true, 'message' => 'Record restored to Departmental Expenses.'];
             }
 
-            // Sales & Marketing / Client Database
-            if ($module === 'Sales & Marketing') {
-                $fillable = ['developer_name','date_requested','reservation_date','date_of_downpayment',
-                    'project_name','property_details','block_lot_number','price_sqm','lot_area','tcp',
-                    'discount','client_name','terms_of_payment','agent_name','number_of_units','net_tcp',
-                    'commission_percent','commission','mode_of_payment','remarks','date_released','status','client_status'];
-                $data = array_filter(array_intersect_key($restoreMeta, array_flip($fillable)), fn($v) => $v !== null);
-                \App\Models\CommissionRequestSales::create($data);
-                $log->delete();
-                return ['success' => true, 'message' => 'Record restored to Client Database.'];
+            // Hard-deleted (or the trashed row is gone) — recreate it from the
+            // pre-delete snapshot captured in meta['changes'][field]['old'].
+            $flat = $this->flattenOldValues($meta);
+            $fillable = (new $modelClass)->getFillable();
+            $data = array_filter(array_intersect_key($flat, array_flip($fillable)), fn($v) => $v !== null);
+
+            if (empty($data)) {
+                return ['success' => false, 'message' => 'Not enough data was captured for this entry to recreate the record.'];
             }
 
-            // Human Resource (saved HR forms: day-off, absences, voucher)
-            if ($module === 'Human Resource') {
-                $fillable = ['type', 'title', 'data', 'created_by'];
-                $data = array_filter(array_intersect_key($restoreMeta, array_flip($fillable)), fn($v) => $v !== null);
-                \App\Models\HrForm::create($data);
-                $log->delete();
-                return ['success' => true, 'message' => 'Record restored to Human Resource.'];
-            }
-
-            // Site Visit Form (tripping schedules)
-            if ($module === 'Site Visit Form') {
-                $fillable = ['agent_name','team_name','client_name','client_email','client_phone','client_phone_code',
-                    'client_address','property_name','company_name','tripping_date','tripping_time','tripping_type','status'];
-                $data = array_filter(array_intersect_key($restoreMeta, array_flip($fillable)), fn($v) => $v !== null);
-                \App\Models\TripSchedule::create($data);
-                $log->delete();
-                return ['success' => true, 'message' => 'Record restored to Site Visit Form.'];
-            }
-
-            return ['success' => false, 'message' => "Restore not supported for module: {$module}"];
+            $modelClass::create($data);
+            $log->delete();
+            return ['success' => true, 'message' => 'Record restored successfully.'];
 
         } catch (\Exception $e) {
             return ['success' => false, 'message' => 'Failed to restore: ' . $e->getMessage()];
         }
+    }
+
+    // Reverts an 'update' log entry: writes the pre-edit ("old") values for just the
+    // fields that changed back onto the live record. Saving triggers the audit
+    // observer again, so the revert itself is automatically logged as a new entry.
+    private function revertLogUpdate(ActivityLog $log): array
+    {
+        $meta = $log->meta;
+
+        if (!$meta || empty($meta['changes'])) {
+            return ['success' => false, 'message' => 'No change data available to revert.'];
+        }
+
+        $modelClass = $this->resolveModelClass($meta);
+        if (!$modelClass) {
+            return ['success' => false, 'message' => 'Cannot determine what type of record this was, so this edit cannot be reverted.'];
+        }
+
+        $recordId = $meta['record_id'] ?? null;
+        if (!$recordId) {
+            return ['success' => false, 'message' => 'No record reference was captured for this entry.'];
+        }
+
+        try {
+            $record = $modelClass::find($recordId);
+            if (!$record) {
+                return ['success' => false, 'message' => 'The original record no longer exists, so this edit cannot be reverted.'];
+            }
+
+            $flat = $this->flattenOldValues($meta);
+            $fillable = $record->getFillable();
+            $data = array_intersect_key($flat, array_flip($fillable));
+
+            if (empty($data)) {
+                return ['success' => false, 'message' => 'Not enough data was captured for this entry to revert it.'];
+            }
+
+            $record->fill($data)->save();
+            $log->delete();
+
+            return ['success' => true, 'message' => 'Edit reverted successfully.'];
+
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => 'Failed to revert: ' . $e->getMessage()];
+        }
+    }
+
+    // Resolves the FQCN a log entry belongs to. New entries carry meta['model_class']
+    // directly; this falls back to a record_type lookup for logs created before that
+    // was captured.
+    private function resolveModelClass(array $meta): ?string
+    {
+        if (!empty($meta['model_class']) && class_exists($meta['model_class'])) {
+            return $meta['model_class'];
+        }
+
+        $legacy = [
+            'Commission Request'       => \App\Models\CommissionRequest::class,
+            'Commission Request Sales' => \App\Models\CommissionRequestSales::class,
+            'Downpayment Installment'  => \App\Models\DownpaymentInstallment::class,
+            'Arkcrest Commission Rate' => \App\Models\ArkcrestCommissionRate::class,
+            'Departmental Expense'     => \App\Models\DepartmentalExpense::class,
+            'Expense'                  => \App\Models\Expense::class,
+            'Expense Category'         => \App\Models\ExpenseCategory::class,
+            'Sales Team'               => \App\Models\SalesTeam::class,
+            'Sales Agent'              => \App\Models\SalesAgent::class,
+            'Team Monthly Quota'       => \App\Models\TeamMonthlyQuota::class,
+            'Hr Form'                  => \App\Models\HrForm::class,
+            'Trip Schedule'            => \App\Models\TripSchedule::class,
+            'Client'                   => \App\Models\Client::class,
+            'Reserved Client'          => \App\Models\ReservedClient::class,
+            'Personnel Contact'        => \App\Models\PersonnelContact::class,
+            'Note'                     => \App\Models\Note::class,
+            'Permission Request'       => \App\Models\PermissionRequest::class,
+            'Summary Report'           => \App\Models\SummaryReport::class,
+        ];
+
+        $class = $legacy[$meta['record_type'] ?? ''] ?? null;
+        return ($class && class_exists($class)) ? $class : null;
+    }
+
+    // Flattens meta['changes'][field] = ['old'=>.., 'new'=>..] down to field => old value,
+    // which is what both a delete-restore snapshot and an update-revert need.
+    private function flattenOldValues(array $meta): array
+    {
+        $flat = [];
+        foreach (($meta['changes'] ?? []) as $field => $vals) {
+            $flat[$field] = is_array($vals) ? ($vals['old'] ?? $vals['new'] ?? null) : null;
+        }
+        return $flat;
     }
 
     // Restore a soft-deleted Departmental Expense record (used by bulk restore)
@@ -736,7 +814,7 @@ private function getDeletedExpenses()
                 $result = $this->restoreExpenseRecordById($item['id']);
             } else {
                 $log = ActivityLog::find($item['id']);
-                $result = $log ? $this->restoreLogRecord($log) : ['success' => false, 'message' => 'Record not found.'];
+                $result = $log ? $this->undoLogEntry($log) : ['success' => false, 'message' => 'Record not found.'];
             }
             if ($result['success']) {
                 $restored++;

@@ -115,6 +115,7 @@ class ActivityLogObserver
                 'ip'          => request()->ip(),
                 'meta'        => [
                     'record_type'  => $this->modelName($model),
+                    'model_class'  => get_class($model),
                     'record_id'    => $model->getKey(),
                     'record_label' => $label,
                     'changes'      => $changes,
@@ -155,10 +156,14 @@ class ActivityLogObserver
         return $changes;
     }
 
-    protected function stringify(mixed $value): ?string
+    protected function stringify(mixed $value): mixed
     {
-        if ($value === null) return null;
-        if (is_bool($value)) return $value ? 'true' : 'false';
+        // Preserve real types for bool/int/float so a later restore/revert can write
+        // them straight back into the database without lossy string coercion
+        // (e.g. MySQL treats BOTH "true" and "false" as 0 in a numeric column).
+        if ($value === null || is_bool($value) || is_int($value) || is_float($value)) {
+            return $value;
+        }
         if (is_array($value)) $value = json_encode($value);
         $value = (string) $value;
         return mb_strlen($value) > 300 ? mb_substr($value, 0, 300) . '…' : $value;

@@ -46,7 +46,8 @@
 .eh-diff-old{color:#991b1b;background:#fef2f2;border-radius:4px;padding:1px 5px;text-decoration:line-through;word-break:break-word}
 .eh-diff-new{color:#166534;background:#f0fdf4;border-radius:4px;padding:1px 5px;word-break:break-word}
 .eh-diff-arrow{color:#94a3b8;margin:0 4px}
-.eh-diff-more{font-size:11px;color:#94a3b8;font-weight:600}
+.eh-diff-more{font-size:11px;color:#1e4575;font-weight:700;background:none;border:none;padding:2px 0;cursor:pointer;text-align:left;text-decoration:underline}
+.eh-diff-more:hover{color:#163458}
 .eh-empty{text-align:center;padding:48px;color:#94a3b8;font-size:13px}
 .eh-check-col{width:36px;text-align:center}
 .eh-actions-col{width:170px}
@@ -168,17 +169,17 @@
             <td><span class="eh-badge eh-badge-{{ $log->action }}">{{ $log->action }}</span></td>
             <td>
               @if(count($changes))
-                <div class="eh-diff-list">
-                  @foreach(array_slice($changes, 0, 6, true) as $field => $vals)
-                    <div class="eh-diff-row">
+                <div class="eh-diff-list" data-diff-list>
+                  @foreach($changes as $field => $vals)
+                    <div class="eh-diff-row" @if($loop->index >= 6) style="display:none;" data-diff-extra @endif>
                       <span class="eh-diff-field">{{ str_replace('_',' ', $field) }}:</span>
-                      @if(($vals['old'] ?? null) !== null)
+                      @if(($vals['old'] ?? null) !== null && $vals['old'] !== '')
                         <span class="eh-diff-old">{{ $vals['old'] }}</span>
                       @else
                         <span style="color:#94a3b8;">—</span>
                       @endif
                       <span class="eh-diff-arrow">&rarr;</span>
-                      @if(($vals['new'] ?? null) !== null)
+                      @if(($vals['new'] ?? null) !== null && $vals['new'] !== '')
                         <span class="eh-diff-new">{{ $vals['new'] }}</span>
                       @else
                         <span style="color:#94a3b8;">—</span>
@@ -186,7 +187,8 @@
                     </div>
                   @endforeach
                   @if(count($changes) > 6)
-                    <div class="eh-diff-more">+ {{ count($changes) - 6 }} more field(s) changed</div>
+                    @php $moreLabel = '+ ' . (count($changes) - 6) . ' more field(s) changed — view all'; @endphp
+                    <button type="button" class="eh-diff-more" data-more-label="{{ $moreLabel }}" onclick="ehToggleDiff(this)">{{ $moreLabel }}</button>
                   @endif
                 </div>
               @else
@@ -195,8 +197,8 @@
             </td>
             <td class="eh-actions-col">
               <div class="eh-row-actions">
-                @if($log->can_undo && $log->action === 'update')
-                  <button type="button" class="eh-row-btn eh-row-btn-undo" onclick="ehSingleAction({{ $log->id }}, 'restore')">Undo</button>
+                @if($log->can_undo)
+                  <button type="button" class="eh-row-btn eh-row-btn-undo" onclick="ehSingleAction({{ $log->id }}, 'restore', '{{ $log->action }}')">{{ $log->action === 'update' ? 'Revert' : 'Undo' }}</button>
                 @endif
                 <button type="button" class="eh-row-btn eh-row-btn-delete" onclick="ehSingleAction({{ $log->id }}, 'delete')">Delete</button>
               </div>
@@ -267,6 +269,14 @@
     ehUpdateBulkBar();
   };
 
+  window.ehToggleDiff = function(btn) {
+    const list = btn.closest('[data-diff-list]');
+    const hidden = list.querySelectorAll('[data-diff-extra]');
+    const isCollapsed = hidden.length > 0 && hidden[0].style.display === 'none';
+    hidden.forEach(row => { row.style.display = isCollapsed ? '' : 'none'; });
+    btn.textContent = isCollapsed ? 'Show fewer fields' : btn.dataset.moreLabel;
+  };
+
   async function ehCallBulk(action, ids) {
     const url = action === 'restore'
       ? '{{ route('settings.deleted.bulkRestore') }}'
@@ -276,12 +286,23 @@
       headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': ehCsrf(), 'Accept': 'application/json' },
       body: JSON.stringify({ items: ids.map(id => ({ type: 'log', id: id })) })
     });
-    return res.json();
+
+    let result;
+    try {
+      result = await res.json();
+    } catch (e) {
+      // Server returned something that wasn't JSON (e.g. a 419/500 error page) —
+      // treat it as a hard failure rather than letting res.json() throw upstream.
+      throw new Error(`Unexpected response (status ${res.status}).`);
+    }
+    return result;
   }
 
-  window.ehSingleAction = async function(id, action) {
+  window.ehSingleAction = async function(id, action, logAction) {
     const message = action === 'restore'
-      ? 'Undo this deletion and restore the underlying record?'
+      ? (logAction === 'update'
+          ? 'Revert this edit back to its previous values?'
+          : 'Undo this deletion and restore the underlying record?')
       : 'Permanently delete this entry from the Edit History log? This cannot be undone.';
     const confirmed = window.showConfirmModal ? await window.showConfirmModal(message) : window.confirm(message);
     if (!confirmed) return;
@@ -295,7 +316,7 @@
         window.showToast ? window.showToast(result.message || 'Action failed.', 'error') : alert(result.message || 'Action failed.');
       }
     } catch (e) {
-      window.showToast ? window.showToast('Something went wrong. Please try again.', 'error') : alert('Something went wrong. Please try again.');
+      window.showToast ? window.showToast(e.message || 'Something went wrong. Please try again.', 'error') : alert('Something went wrong. Please try again.');
     }
   };
 
@@ -304,17 +325,32 @@
     if (!ids.length) return;
 
     const message = action === 'restore'
-      ? `Undo deletion and restore ${ids.length} selected record(s)?`
+      ? `Undo/revert ${ids.length} selected entr${ids.length === 1 ? 'y' : 'ies'}?`
       : `Permanently delete ${ids.length} selected entr${ids.length === 1 ? 'y' : 'ies'} from the Edit History log? This cannot be undone.`;
     const confirmed = window.showConfirmModal ? await window.showConfirmModal(message) : window.confirm(message);
     if (!confirmed) return;
 
     try {
       const result = await ehCallBulk(action, ids);
-      window.showToast ? window.showToast(result.message || 'Done.', result.success ? 'success' : 'error') : alert(result.message || 'Done.');
-      setTimeout(() => location.reload(), 600);
+      // Backend reports counts, not just a single pass/fail flag — use them so a
+      // partial success doesn't get shown (or hidden) as a blanket error.
+      const doneCount = result.restored ?? result.deleted ?? 0;
+      const failCount = result.failed ?? 0;
+      const anySucceeded = doneCount > 0;
+
+      let message2 = result.message || 'Done.';
+      if (failCount > 0 && Array.isArray(result.errors) && result.errors.length) {
+        message2 += ' (' + result.errors.slice(0, 3).join('; ') + (result.errors.length > 3 ? '…' : '') + ')';
+      }
+      window.showToast ? window.showToast(message2, anySucceeded ? 'success' : 'error') : alert(message2);
+
+      // Only reload if something actually changed — otherwise the list would
+      // refresh for no reason after a fully-failed batch.
+      if (anySucceeded) {
+        setTimeout(() => location.reload(), 600);
+      }
     } catch (e) {
-      window.showToast ? window.showToast('Something went wrong. Please try again.', 'error') : alert('Something went wrong. Please try again.');
+      window.showToast ? window.showToast(e.message || 'Something went wrong. Please try again.', 'error') : alert('Something went wrong. Please try again.');
     }
   };
 
