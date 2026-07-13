@@ -180,7 +180,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                 </div>
                 <div class="form-group">
                     <label>DISCOUNT VALUE <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
-                    <input type="number" id="f_discount_val" placeholder="0.00" step="0.01" min="0" oninput="computeDiscountFromValue()" style="color:#374151;">
+                    <input type="number" name="discount_value" id="f_discount_val" placeholder="0.00" step="0.01" min="0" oninput="computeDiscountFromValue()" style="color:#374151;">
                 </div>
                 <div class="form-group">
                     <label>NET TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
@@ -496,11 +496,12 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Project Name *</label><input type="text" id="edit_project_name" name="project_name" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Block & Lot Number</label><input type="text" id="edit_block_lot_number" name="block_lot_number" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Client's Name *</label><input type="text" id="edit_client_name" name="client_name" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Lot Area</label><input type="number" id="edit_lot_area" name="lot_area" step="0.0001" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Price Per SQM</label><input type="number" id="edit_price_sqm" name="price_sqm" step="0.01" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">TCP</label><input type="number" id="edit_tcp" name="tcp" step="0.01" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount (%)</label><input type="number" id="edit_discount" name="discount" step="0.01" min="0" max="100" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Net TCP</label><input type="number" id="edit_net_tcp" name="net_tcp" step="0.01" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Lot Area</label><input type="number" id="edit_lot_area" name="lot_area" step="0.0001" oninput="computeTCP('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Price Per SQM</label><input type="number" id="edit_price_sqm" name="price_sqm" step="0.01" oninput="computeTCP('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label><input type="number" id="edit_tcp" name="tcp" step="0.01" readonly style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount (%)</label><input type="number" id="edit_discount" name="discount" step="0.01" min="0" max="100" oninput="computeDiscount('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount Value <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label><input type="number" id="edit_discount_value" name="discount_value" step="0.01" min="0" readonly style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Net TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label><input type="number" id="edit_net_tcp" name="net_tcp" step="0.01" readonly style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;"></div>
                 <div style="display:flex;flex-direction:column;gap:4px">
                     <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Terms of Payment *</label>
                     <div style="position:relative">
@@ -770,15 +771,38 @@ function validateDownpaymentDate() {
 }
 
 
-function computeTCP(){
+// ctx selects which form's fields to read/write: 'f' (default) is the Add
+// New Client Record form, 'edit' is the Edit Client Record modal. Both forms
+// share the same TCP / Discount Value / Net TCP formulas — only the element
+// ids (and whether there's a separate comma-formatted display field) differ.
+function computeTCP(ctx){
+    ctx = ctx || 'f';
+    if (ctx === 'edit') {
+        var area = parseFloat(document.getElementById('edit_lot_area').value) || 0;
+        var psqm = parseFloat(document.getElementById('edit_price_sqm').value) || 0;
+        var tcp  = area * psqm;
+        document.getElementById('edit_tcp').value = tcp ? tcp.toFixed(2) : '';
+        computeDiscount('edit');
+        return;
+    }
     var area = parseFloat(document.getElementById('f_lot_area').value) || 0;
     var psqm = parseFloat(document.getElementById('f_price_sqm').value) || 0;
     var tcp  = area * psqm;
     document.getElementById('f_tcp').value = tcp ? tcp.toFixed(2) : '';
     document.getElementById('f_tcp_display').value = tcp ? fmtComma(tcp) : '';
-    computeDiscount();
+    computeDiscount('f');
 }
-function computeDiscount(){
+function computeDiscount(ctx){
+    ctx = ctx || 'f';
+    if (ctx === 'edit') {
+        var tcp = parseFloat(document.getElementById('edit_tcp').value) || 0;
+        var pct = parseFloat(document.getElementById('edit_discount').value) || 0;
+        var val = tcp * (pct / 100);
+        var net = tcp - val;
+        document.getElementById('edit_discount_value').value = val ? val.toFixed(2) : '';
+        document.getElementById('edit_net_tcp').value = net ? net.toFixed(2) : '';
+        return;
+    }
     var tcp  = parseFloat(document.getElementById('f_tcp').value) || 0;
     var pct  = parseFloat(document.getElementById('f_discount_pct').value) || 0;
     var val  = tcp * (pct / 100);
@@ -836,9 +860,12 @@ function editRow(id){
         document.getElementById('edit_client_name').value=d.client_name??'';
         document.getElementById('edit_lot_area').value=d.lot_area??'';
         document.getElementById('edit_price_sqm').value=d.price_sqm??'';
-        document.getElementById('edit_tcp').value=d.tcp??'';
         document.getElementById('edit_discount').value=d.discount??'';
-        document.getElementById('edit_net_tcp').value=d.net_tcp??'';
+        // TCP, Discount Value, and Net TCP are read-only/derived fields — recompute
+        // them from Lot Area, Price/SQM, and Discount % instead of trusting the
+        // stored tcp/net_tcp columns, so the modal never opens showing figures
+        // that don't match the record's own inputs.
+        computeTCP('edit');
         document.getElementById('edit_terms_of_payment').value=d.terms_of_payment??'';
         highlightSelectedOption('edit_termsDropdown', d.terms_of_payment??'');
         document.getElementById('edit_reservation_date').value=d.reservation_date?(d.reservation_date+'').split('T')[0]:'';

@@ -532,6 +532,7 @@ class SalesMarketingController extends Controller
             'price_sqm'           => 'nullable|numeric',
             'tcp'                 => 'nullable|numeric',
             'discount'            => 'nullable|numeric',
+            'discount_value'      => 'nullable|numeric',
             'net_tcp'             => 'nullable|numeric',
             'terms_of_payment'    => 'required|string|max:255',
             'agent_name'          => 'required|string|max:255',
