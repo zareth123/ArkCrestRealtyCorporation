@@ -276,7 +276,7 @@ class CommissionMonitoringController extends Controller
                     ->withInput();
             }
         }
-    }
+    
 
     public function destroy($id)
     {
