@@ -39,9 +39,16 @@ class CommissionRequest extends Model
         'status',
         'payment_type',
         'value_of_payment_terms',
-        'payment_type',
-        'value_of_payment_terms',
+        'source_client_record_id',
+        'commission_stage',
+        'commission_stage_total',
+        'stage_threshold_amount',
     ];
+
+    public function sourceClientRecord()
+    {
+        return $this->belongsTo(CommissionRequestSales::class, 'source_client_record_id');
+    }
 
     protected $casts = [
         'date_requested' => 'date',
@@ -57,5 +64,19 @@ class CommissionRequest extends Model
         'net_tcp' => 'decimal:2',
         'commission' => 'decimal:2',
         'commission_percent' => 'decimal:4',
+        'source_client_record_id' => 'integer',
+        'commission_stage' => 'integer',
+        'commission_stage_total' => 'integer',
+        'stage_threshold_amount' => 'decimal:2',
     ];
+
+    // Prevents date-only casts from being converted to UTC when serialized to
+    // JSON (Laravel's default). Without this, a date stored as "2026-07-05"
+    // gets serialized as "2026-07-04T16:00:00.000000Z" for any timezone ahead
+    // of UTC (like Asia/Manila), which the frontend then reads as one day
+    // earlier — silently corrupting the date if the Edit form is saved as-is.
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d');
+    }
 }

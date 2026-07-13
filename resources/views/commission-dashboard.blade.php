@@ -248,7 +248,7 @@ $byAgent = $all->groupBy('agent_name')->map(function($rows, $agent) {
                 data-net-tcp="{{ $tx->net_tcp ?? 0 }}"
                 data-commission="{{ $tx->commission ?? 0 }}"
                 data-date="{{ $tx->date_requested ? $tx->date_requested->format('Y-m-d') : '' }}"
-                data-status="{{ $tx->status ?: 'Not Yet Released' }}">
+                data-status="{{ $tx->status ?: 'Not Released' }}">
                 <td style="color:#cbd5e1;font-weight:600;text-align:center;">{{ $i + 1 }}</td>
                 <td style="font-weight:600;color:#0f172a;">{{ $tx->agent_name ?: '—' }}</td>
                 <td>{{ $tx->client_name ?: '—' }}</td>
@@ -257,7 +257,7 @@ $byAgent = $all->groupBy('agent_name')->map(function($rows, $agent) {
                 <td style="color:#16a34a;font-weight:600;">{{ $tx->commission ? '₱'.number_format($tx->commission, 2) : '—' }}</td>
                 <td style="color:#64748b;">{{ $tx->date_requested ? $tx->date_requested->format('M d, Y') : '—' }}</td>
                 <td>
-                    <span class="cd-badge {{ $tx->status === 'Released' ? 'cd-badge-released' : 'cd-badge-pending' }}">{{ $tx->status ?: 'Not Yet Released' }}</span>
+                    <span class="cd-badge {{ $tx->status === 'Released' ? 'cd-badge-released' : 'cd-badge-pending' }}">{{ $tx->status ?: 'Not Released' }}</span>
                 </td>
             </tr>
             @empty
@@ -407,7 +407,7 @@ var CD_TX_COLUMNS = [
     { key: 'net-tcp',    label: 'Net TCP',    type: 'number', data: 'netTcp' },
     { key: 'commission', label: 'Commission', type: 'number', data: 'commission' },
     { key: 'date',       label: 'Date',       type: 'daterange',   data: 'date' },
-    { key: 'status',     label: 'Status',     type: 'select', data: 'status', options: ['Released', 'Not Yet Released'] },
+    { key: 'status',     label: 'Status',     type: 'select', data: 'status', options: ['Released', 'Not Released'] },
 ];
 var cdTxFilters = {};
 

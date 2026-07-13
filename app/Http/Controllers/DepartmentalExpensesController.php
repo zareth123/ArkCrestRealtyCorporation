@@ -52,6 +52,32 @@ class DepartmentalExpensesController extends Controller
         ]
     ];
 
+    /**
+     * How much of a department's allowable budget is already committed:
+     *  - "liquidated" => sum of total_expenses for LIQUIDATED records
+     *                    (money actually spent — reduces remaining budget)
+     *  - "remaining"  => allowable_budget - liquidated
+     * $excludeId lets an update() call check against the budget as if its
+     * own (pre-edit) record didn't count yet, so editing a record you're
+     * about to re-liquidate doesn't double-count its old total_expenses.
+     */
+    private function remainingBudget(string $departmentName, ?int $excludeId = null): array
+    {
+        $department = \App\Models\Department::where('name', $departmentName)->first();
+        $allowable = $department ? (float) $department->allowable_budget : 0;
+
+        $liquidated = (float) DepartmentalExpense::where('department', $departmentName)
+            ->where('status', 'LIQUIDATED')
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->sum('total_expenses');
+
+        return [
+            'allowable'  => $allowable,
+            'liquidated' => $liquidated,
+            'remaining'  => $allowable - $liquidated,
+        ];
+    }
+
     public function index()
     {
         $requests = DepartmentalExpense::orderBy('control_number', 'asc')->orderBy('id', 'asc')->get();
@@ -77,8 +103,16 @@ class DepartmentalExpensesController extends Controller
             ->distinct()
             ->orderBy('requestor_name')
             ->pluck('requestor_name');
-        
-        return view('departmental-expenses', compact('requests', 'categories', 'departments', 'requestorNames'));
+
+        // Budget commitments per department, driven by actual LIQUIDATED
+        // DepartmentalExpense records — used by the "Departments Allowable
+        // Budgets" card grid so Remaining/progress bar reflect real spend.
+        $commitments = [];
+        foreach ($departments as $dept) {
+            $commitments[$dept->name] = $this->remainingBudget($dept->name);
+        }
+
+        return view('departmental-expenses', compact('requests', 'categories', 'departments', 'requestorNames', 'commitments'));
     }
 
     public function store(Request $request)
@@ -88,10 +122,10 @@ class DepartmentalExpensesController extends Controller
                 'requestor_name' => 'required|string',
                 'department' => 'required|string',
                 'category' => 'required|string',
-                'date_requested' => 'nullable|date',
+                'date_requested' => 'required|date',
                 'requested_amount' => 'nullable|numeric|min:0',
                 'status' => 'required|in:' . implode(',', \App\Models\DepartmentalExpense::STATUSES),
-                'date_released' => 'nullable|date',
+                'date_released' => 'required_if:status,LIQUIDATED|nullable|date',
                 'total_expenses' => 'nullable|numeric',
                 'amount_returned' => 'nullable|numeric',
                 'date_of_amount_returned' => 'nullable|date'
@@ -105,6 +139,22 @@ class DepartmentalExpensesController extends Controller
             $d = Carbon::parse($lockDate);
             if (\App\Models\PeriodLock::isLocked((int)$d->month, (int)$d->year)) {
                 return response()->json(['success' => false, 'message' => date('F Y', mktime(0,0,0,$d->month,1,$d->year)) . ' is locked. No changes allowed for this period.'], 422);
+            }
+        }
+
+        if ($validated['status'] === 'LIQUIDATED') {
+            $totalExpenses = (float) ($validated['total_expenses'] ?? 0);
+            $budget = $this->remainingBudget($validated['department']);
+            if ($totalExpenses > $budget['remaining']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => sprintf(
+                        'This exceeds %s\'s remaining budget. Remaining: ₱%s, Attempted: ₱%s.',
+                        $validated['department'],
+                        number_format($budget['remaining'], 2),
+                        number_format($totalExpenses, 2)
+                    ),
+                ], 422);
             }
         }
 
@@ -221,6 +271,22 @@ class DepartmentalExpensesController extends Controller
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['success' => false, 'message' => $e->validator->errors()->first()], 422);
+        }
+
+        if ($validated['status'] === 'LIQUIDATED') {
+            $totalExpenses = (float) ($validated['total_expenses'] ?? 0);
+            $budget = $this->remainingBudget($validated['department'], (int) $id);
+            if ($totalExpenses > $budget['remaining']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => sprintf(
+                        'This exceeds %s\'s remaining budget. Remaining: ₱%s, Attempted: ₱%s.',
+                        $validated['department'],
+                        number_format($budget['remaining'], 2),
+                        number_format($totalExpenses, 2)
+                    ),
+                ], 422);
+            }
         }
 
         if (!empty($validated['date_requested']) && !empty($validated['date_released'])) {

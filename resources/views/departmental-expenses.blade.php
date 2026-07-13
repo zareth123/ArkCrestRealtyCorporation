@@ -112,7 +112,7 @@
             @foreach($departments as $dept)
                 @if($dept->slug !== 'capex')
                 @php
-                    $totalExpenses = \App\Models\CommissionRequest::where('department', $dept->name)->sum('requested_amount');
+                    $totalExpenses = $commitments[$dept->name]['liquidated'] ?? 0;
                     $remaining = $dept->allowable_budget - $totalExpenses;
                     $pct = $dept->allowable_budget > 0 ? min(100, ($totalExpenses / $dept->allowable_budget) * 100) : 0;
                     $barColor = $pct >= 90 ? '#ef4444' : ($pct >= 70 ? '#f59e0b' : '#16a34a');
@@ -220,8 +220,8 @@
                 <!-- Row 2: 2 fields -->
                 <div class="form-row-inline">
                     <div class="form-group">
-                        <label>Date Requested</label>
-                        <input type="date" id="date_requested" name="date_requested" class="form-control">
+                        <label>Date Requested <span class="required">*</span></label>
+                        <input type="date" id="date_requested" name="date_requested" class="form-control" required>
                     </div>
 
                     <div class="form-group">
@@ -237,9 +237,9 @@
                 <div class="form-row-inline">
                     <div class="form-group">
                         <label>Status <span class="required">*</span></label>
-                        <select id="status" name="status" class="form-control" required>
+                            <select id="status" name="status" class="form-control" required>
                             <option value="PENDING">PENDING</option>
-                            <option value="NOT LIQUIDATED">NOT LIQUIDATED</option>
+                            <option value="NOT YET LIQUIDATED">NOT YET LIQUIDATED</option>
                             <option value="LIQUIDATED">LIQUIDATED</option>
                             <option value="REJECTED">REJECTED</option>
                         </select>
@@ -795,8 +795,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Date Requested</label>
-                    <input type="date" id="edit_date_requested" name="date_requested" class="form-control form-control-sm">
+                    <label>Date Requested <span class="required" style="color:#ef4444;">*</span></label>
+                    <input type="date" id="edit_date_requested" name="date_requested" class="form-control form-control-sm" required>
                 </div>
 
                 <div class="form-group">
@@ -808,7 +808,7 @@
                     <label>Status <span class="required">*</span></label>
                     <select id="edit_status" name="status" class="form-control form-control-sm" required>
                         <option value="PENDING">PENDING</option>
-                        <option value="NOT LIQUIDATED">NOT LIQUIDATED</option>
+                        <option value="NOT YET LIQUIDATED">NOT YET LIQUIDATED</option>
                         <option value="LIQUIDATED">LIQUIDATED</option>
                         <option value="REJECTED">REJECTED</option>
                     </select>
@@ -892,12 +892,12 @@
                         <input type="text" id="liq_status_display" class="form-control" value="LIQUIDATED" readonly style="background-color: #f4f6f8;">
                     </div>
                     <div class="form-group">
-                        <label>Date Released</label>
-                        <input type="date" id="liq_date_released" class="form-control">
+                        <label>Date Released <span class="required" style="color:#ef4444;">*</span></label>
+                        <input type="date" id="liq_date_released" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label>Total Expenses</label>
-                        <input type="text" id="liq_total_expenses" class="form-control" placeholder="0.00" inputmode="decimal">
+                        <label>Total Expenses <span class="required" style="color:#ef4444;">*</span></label>
+                        <input type="text" id="liq_total_expenses" class="form-control" placeholder="0.00" inputmode="decimal" required>
                     </div>
                     <div class="form-group">
                         <label>Amount Returned</label>
@@ -1007,27 +1007,23 @@ try {
 const categories = @json($categories);
 
 // Department name mapping function
-function mapDepartmentName(shortName) {
-    const mapping = {
-        'Admin': 'Administrative',
-        'HR': 'Human Resources',
-        'Sales & Marketing': 'Sales & Marketing',
-        'Finance': 'Finance',
-        'Executive': 'Executive'
-    };
-    return mapping[shortName] || shortName;
+// NOTE: previously this translated short codes ("Admin", "HR") to/from
+// the full department names ("Administrative", "Human Resource") used
+// by the Departments table. That translation caused a real bug: every
+// save (including liquidation via the "UPDATE RECORD" popup) wrote the
+// short code back into departmental_expenses.department, which never
+// matched Department::name, so remainingBudget() saw allowable_budget=0
+// for that department and reported wildly negative "remaining" values.
+// All dropdowns already emit the real department name directly, so
+// these are now no-ops kept only so existing call sites don't need to
+// change.
+function mapDepartmentName(name) {
+    return name;
 }
 
 // Reverse mapping for saving to database
-function reverseDepartmentName(fullName) {
-    const reverseMapping = {
-        'Administrative': 'Admin',
-        'Human Resources': 'HR',
-        'Sales & Marketing': 'Sales & Marketing',
-        'Finance': 'Finance',
-        'Executive': 'Executive'
-    };
-    return reverseMapping[fullName] || fullName;
+function reverseDepartmentName(name) {
+    return name;
 }
 
 // Save and restore scroll position of page-content
@@ -1492,7 +1488,12 @@ document.getElementById('edit_status').addEventListener('change', function() {
 document.getElementById('liquidationUpdateForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
-    if (!validateAmountField('liq_total_expenses', 'Total Expenses', false)) return;
+    if (!document.getElementById('liq_date_released').value) {
+        showToast('error', 'Date Released Required', 'Please select a Date Released before marking this record as liquidated.');
+        document.getElementById('liq_date_released').focus();
+        return;
+    }
+    if (!validateAmountField('liq_total_expenses', 'Total Expenses', true)) return;
 
     showConfirm('Are you sure you want to update this record?', function() {
         _submitLiquidationUpdate();
@@ -1542,6 +1543,9 @@ function _submitLiquidationUpdate() {
         .catch(error => {
             console.error('Error:', error);
             showToast('error', 'Error', error.message || 'Error updating request');
+            // Re-open the liquidation modal so the user can correct the amount
+            // instead of silently losing the entered data.
+            document.getElementById('liquidationUpdateModal').style.display = 'block';
         });
     } else {
         fetch('/api/departmental-expenses', {
@@ -1567,6 +1571,7 @@ function _submitLiquidationUpdate() {
         .catch(error => {
             console.error('Error:', error);
             showToast('error', 'Error', error.message || 'Error adding request');
+            document.getElementById('liquidationUpdateModal').style.display = 'block';
         });
     }
 }
@@ -1758,12 +1763,12 @@ function _doEditRequest(id) {
     document.getElementById('edit_control_number').value = row.getAttribute('data-control') || cells[1].textContent.trim();
     document.getElementById('edit_requestor_name').value = cells[2].textContent;
     
-    // Get original department value from data attribute
+    // Department is now stored consistently as the real Department name,
+    // so it's used directly (no more short-code mapping).
     const originalDepartment = row.getAttribute('data-department');
-    const mappedDepartment = mapDepartmentName(originalDepartment);
-    document.getElementById('edit_department').value = mappedDepartment;
+    document.getElementById('edit_department').value = originalDepartment;
     
-    updateEditCategoryDropdown(mappedDepartment);
+    updateEditCategoryDropdown(originalDepartment);
     
     setTimeout(() => {
         document.getElementById('edit_category').value = cells[4].textContent;
@@ -1955,7 +1960,25 @@ document.getElementById('budgetUpdateForm').addEventListener('submit', function(
 
     if (!validateNameField('edit_requestor_name', 'Requestor Name')) return;
     if (!validateAmountField('edit_requested_amount', 'Requested Amount', true)) return;
-    if (!validateAmountField('edit_total_expenses', 'Total Expenses', false)) return;
+
+    if (!document.getElementById('edit_date_requested').value) {
+        showToast('error', 'Date Requested Required', 'Please select a Date Requested.');
+        document.getElementById('edit_date_requested').focus();
+        return;
+    }
+
+    const isLiquidated = document.getElementById('edit_status').value === 'LIQUIDATED';
+
+    if (isLiquidated) {
+        if (!document.getElementById('edit_date_released').value) {
+            showToast('error', 'Date Released Required', 'Please select a Date Released before saving a liquidated record.');
+            document.getElementById('edit_date_released').focus();
+            return;
+        }
+        if (!validateAmountField('edit_total_expenses', 'Total Expenses', true)) return;
+    } else {
+        if (!validateAmountField('edit_total_expenses', 'Total Expenses', false)) return;
+    }
 
     const id = document.getElementById('edit_id').value;
     const formData = {
@@ -2263,11 +2286,8 @@ function checkNoResults() {
 
 // Initialize filters on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Map department names in table
-    document.querySelectorAll('.department-cell').forEach(cell => {
-        cell.textContent = mapDepartmentName(cell.textContent);
-    });
-
+    // Department names are now stored consistently as the real Department
+    // name (e.g. "Administrative"), so no more mapping needed here.
     applyFilters();
 });
 

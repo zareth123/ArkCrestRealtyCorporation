@@ -15,4 +15,9 @@ class ReservedClient extends Model
     ];
 
     protected $casts = ['tripping_date' => 'date'];
+
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d');
+    }
 }

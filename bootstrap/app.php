@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'page.visible' => \App\Http\Middleware\CheckPageVisibility::class,
             'sales.only'   => \App\Http\Middleware\RestrictSalesPersons::class,
             'no.cache'     => \App\Http\Middleware\PreventBackHistoryCache::class,
+            'admin'        => \App\Http\Middleware\EnsureIsAdmin::class,
         ]);
         $middleware->appendToGroup('web', \App\Http\Middleware\RestrictSalesPersons::class);
     })

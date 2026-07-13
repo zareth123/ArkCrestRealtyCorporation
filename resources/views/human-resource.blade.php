@@ -208,8 +208,9 @@ function closeHrForm() {
 function saveHrForm() {
     var type = document.getElementById('hrFormModal').getAttribute('data-type');
     var fields = {};
-    document.querySelectorAll('#hrFormContent input, #hrFormContent textarea').forEach(function(el, i) {
-        fields['field_'+i] = el.value;
+    document.querySelectorAll('#hrFormContent input, #hrFormContent textarea, #hrFormContent select').forEach(function(el, i) {
+        var key = el.getAttribute('data-field') || ('field_'+i);
+        fields[key] = el.value;
     });
     var csrf = document.querySelector('meta[name=csrf-token]').content;
     var isEditing = !!_editingFormId;
@@ -249,8 +250,9 @@ function printHrForm() {
     // Auto-save before printing
     var type = document.getElementById('hrFormModal').getAttribute('data-type');
     var fields = {};
-    document.querySelectorAll('#hrFormContent input, #hrFormContent textarea').forEach(function(el, i) {
-        fields['field_'+i] = el.value;
+    document.querySelectorAll('#hrFormContent input, #hrFormContent textarea, #hrFormContent select').forEach(function(el, i) {
+        var key = el.getAttribute('data-field') || ('field_'+i);
+        fields[key] = el.value;
     });
     var csrf = document.querySelector('meta[name=csrf-token]').content;
     var isEditing = !!_editingFormId;
@@ -576,9 +578,9 @@ function viewSavedForm(type, idx) {
     setTimeout(function() {
         var inputs = document.querySelectorAll('#hrFormContent input, #hrFormContent textarea, #hrFormContent select');
         var data = f.data || {};
-        var keys = Object.keys(data);
         inputs.forEach(function(el, i) {
-            if (keys[i] !== undefined) el.value = data[keys[i]];
+            var key = el.getAttribute('data-field') || ('field_'+i);
+            if (data[key] !== undefined) el.value = data[key];
             el.setAttribute('readonly', 'readonly');
             if (el.tagName === 'SELECT') el.setAttribute('disabled', 'disabled');
             el.style.background = '#f1f5f9';
@@ -600,9 +602,9 @@ function editSavedForm(type, idx) {
     setTimeout(function() {
         var inputs = document.querySelectorAll('#hrFormContent input, #hrFormContent textarea, #hrFormContent select');
         var data = f.data || {};
-        var keys = Object.keys(data);
         inputs.forEach(function(el, i) {
-            if (keys[i] !== undefined) el.value = data[keys[i]];
+            var key = el.getAttribute('data-field') || ('field_'+i);
+            if (data[key] !== undefined) el.value = data[key];
         });
     }, 100);
 }

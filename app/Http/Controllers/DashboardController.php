@@ -79,7 +79,7 @@ class DashboardController extends Controller
             $monthlySales[] = $report ? (float)$report->gross_sales : 0;
         }
 
-        $receivables = CommissionRequest::where('status', 'Not Yet Released')->sum('commission');
+        $receivables = CommissionRequest::where('status', 'Not Released')->sum('commission');
 
         $departments = Department::where('slug', '!=', 'capex')->get();
 
@@ -124,13 +124,13 @@ class DashboardController extends Controller
         }
         
         $tomorrowReleases = CommissionRequestSales::whereDate('date_released', Carbon::tomorrow()->toDateString())
-            ->where('status', 'Not Yet Released')
+            ->where('status', 'Not Released')
             ->orderBy('agent_name')
             ->get();
 
         $today = Carbon::today()->toDateString();
         $todayTrips     = TripSchedule::whereDate('tripping_date', $today)->whereIn('status', ['confirmed', 'pending'])->count();
-        $todayReleases  = CommissionRequestSales::whereDate('date_released', $today)->where('status', 'Not Yet Released')->count();
+        $todayReleases  = CommissionRequestSales::whereDate('date_released', $today)->where('status', 'Not Released')->count();
         $todayEvents    = CommissionRequestSales::where(function($q) use ($today) {
             $q->whereDate('reservation_date', $today)
               ->orWhereDate('date_of_downpayment', $today);

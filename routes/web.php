@@ -95,6 +95,12 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
 
     // Settings
     Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('settings');
+    Route::post('/settings/deleted/bulk-restore', [SettingsController::class, 'bulkRestoreRecords'])->name('settings.deleted.bulk-restore');
+    Route::post('/settings/deleted/bulk-delete', [SettingsController::class, 'bulkDeleteRecords'])->name('settings.deleted.bulk-delete');
+
+    // Edit History / Audit Trail (Administrator only — dedicated controller & route)
+    Route::get('/settings/edit-history', [App\Http\Controllers\Admin\EditHistoryController::class, 'index'])
+        ->name('settings.edit-history')->middleware('admin');
     Route::post('/settings/notifications', [App\Http\Controllers\SettingsController::class, 'saveNotifications'])->name('settings.notifications');
     Route::post('/settings/smtp', [App\Http\Controllers\SettingsController::class, 'saveSmtp'])->name('settings.smtp');
     Route::post('/settings/profile', [App\Http\Controllers\SettingsController::class, 'updateProfile'])->name('settings.profile');
@@ -112,6 +118,19 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::delete('/expenses/{id}/purge', [App\Http\Controllers\DepartmentalExpensesController::class, 'purge'])->name('expenses.purge');
     Route::post('/settings/period-lock', [App\Http\Controllers\SettingsController::class, 'lockPeriod'])->name('settings.period-lock.store');
     Route::delete('/settings/period-lock/{id}', [App\Http\Controllers\SettingsController::class, 'unlockPeriod'])->name('settings.period-lock.destroy');
+
+    // Backup & Restore
+    Route::get('/settings/backup', [App\Http\Controllers\BackupController::class, 'index'])->name('backup.index');
+    Route::post('/settings/backup/create-csv', [App\Http\Controllers\BackupController::class, 'createCsv'])->name('backup.create-csv');
+    Route::post('/settings/backup/create-pdf', [App\Http\Controllers\BackupController::class, 'createPdf'])->name('backup.create-pdf');
+    Route::post('/settings/backup/upload-restore', [App\Http\Controllers\BackupController::class, 'uploadAndRestore'])->name('backup.upload-restore');
+    Route::get('/settings/backup/{filename}/download', [App\Http\Controllers\BackupController::class, 'download'])->name('backup.download');
+    Route::post('/settings/backup/{filename}/restore', [App\Http\Controllers\BackupController::class, 'restore'])->name('backup.restore');
+    Route::delete('/settings/backup/{filename}', [App\Http\Controllers\BackupController::class, 'destroy'])->name('backup.destroy');
+
+    // Export Records
+    Route::get('/admin/export', [App\Http\Controllers\AdminExportController::class, 'index'])->name('admin.export');
+    Route::post('/admin/export/download', [App\Http\Controllers\AdminExportController::class, 'download'])->name('admin.export.download');
 
     // User management (admin only)
     Route::get('/settings/users', [App\Http\Controllers\SettingsController::class, 'users'])->name('settings.users');
@@ -163,6 +182,7 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::patch('/client-database/{id}/downpayment-status', [App\Http\Controllers\SalesMarketingController::class, 'updateDownpaymentStatus'])->name('client-database.downpayment-status');
     Route::patch('/client-database/{id}/downpayment-installment', [App\Http\Controllers\SalesMarketingController::class, 'updateDownpaymentInstallment'])->name('client-database.downpayment-installment');
     Route::get('/api/client-database/{id}/installments', [App\Http\Controllers\SalesMarketingController::class, 'getInstallments']);
+    Route::get('/api/client-database/{id}/downpayment-summary', [App\Http\Controllers\SalesMarketingController::class, 'downpaymentSummary']);
     Route::post('/api/client-database/{id}/installments/setup', [App\Http\Controllers\SalesMarketingController::class, 'setupInstallments']);
     Route::patch('/api/installments/{id}/amount', [App\Http\Controllers\SalesMarketingController::class, 'updateInstallmentAmount']);
     Route::patch('/api/installments/{id}/paid', [App\Http\Controllers\SalesMarketingController::class, 'markInstallmentPaid']);

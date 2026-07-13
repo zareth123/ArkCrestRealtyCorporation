@@ -59,6 +59,31 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
     .cd-modal-box { width: 100% !important; max-width: 100% !important; height: 100%; max-height: 100%; overflow-y: auto !important; -webkit-overflow-scrolling: touch; border-radius: 0 !important; }
     .cd-modal-grid { grid-template-columns: 1fr !important; }
 }
+/* Downpayment modal — responsive on all sizes */
+
+/* Desktop / tablet default: let rows wrap gracefully at any width instead
+   of relying on a fixed min-width, and keep the toolbar from ever
+   overflowing when the browser window itself is resized narrow. */
+.dp-installment-row > * { flex: 1 1 auto; }
+.dp-installment-row input[type="number"] { min-width: 120px; }
+.dp-installment-toolbar-btn { white-space: nowrap; }
+
+/* Small desktop windows / tablets — start stacking the toolbar before
+   things get cramped, well above the phone breakpoint. */
+@media (max-width: 900px) {
+    .dp-installment-toolbar > div { flex: 1 1 140px; }
+}
+
+/* Phones — full-screen modal + fully stacked rows */
+@media (max-width: 768px) {
+    #dpModal { padding: 0; }
+    #dpModal > div { width: 100% !important; max-width: 100% !important; height: 100% !important; max-height: 100% !important; border-radius: 0 !important; }
+    .dp-installment-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+    .dp-installment-toolbar > div { width: 100% !important; }
+    .dp-installment-toolbar-btn { width: 100%; }
+    .dp-installment-row > * { flex: 1 1 100% !important; border-right: none !important; }
+    .dp-installment-row > span:first-child { border-bottom: 1.5px solid #e2e8f0; }
+}
 
 /* ---- Filter dropdown + chips (matches Commission Monitoring / ARC Sales pattern) ---- */
 .column-filter-dropdown{position:relative}
@@ -119,10 +144,10 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                     <label>DEVELOPER'S NAME <span class="required">*</span></label>
                     <div style="position:relative;">
                         <input type="text" name="developer_name" id="dev_name_input" placeholder="Type or select developer" autocomplete="off" required
-                            onclick="toggleDevDropdown()" oninput="filterDev(this.value)"
+                            onclick="toggleSearchDropdown('devDropdown')" oninput="filterSearchDropdown('devDropdown', this.value)"
                             style="width:100%;padding:12px 40px 12px 16px;border:2px solid #1e4575;border-radius:8px;font-size:14px;font-weight:500;background:white;color:#344054;box-sizing:border-box;">
-                        <button type="button" onclick="toggleDevDropdown()" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:36px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px;">▼</button>
-                        <div id="devDropdown" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:200px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+                        <button type="button" onclick="toggleSearchDropdown('devDropdown')" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:36px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px;">▼</button>
+                        <div id="devDropdown" data-dropdown-input="dev_name_input" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:200px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
                             {{--
                                 FIX: this used to be a @foreach over a $developers variable passed from the
                                 controller. If that variable came back empty/undefined (e.g. a broken query,
@@ -143,7 +168,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                                 ];
                             @endphp
                             @foreach($developerOptions as $dev)
-                            <div onclick="selectDev('{{ $dev }}')" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=''">{{ $dev }}</div>
+                            <div onclick="selectSearchOption('dev_name_input','devDropdown','{{ $dev }}')" data-value="{{ $dev }}" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=this.dataset.selected==='true'?'#dbeafe':''">{{ $dev }}</div>
                             @endforeach
                         </div>
                     </div>
@@ -180,7 +205,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                 </div>
                 <div class="form-group">
                     <label>DISCOUNT VALUE <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
-                    <input type="number" id="f_discount_val" placeholder="0.00" step="0.01" min="0" oninput="computeDiscountFromValue()" style="color:#374151;">
+                    <input type="number" name="discount_value" id="f_discount_val" placeholder="0.00" step="0.01" min="0" oninput="computeDiscountFromValue()" style="color:#374151;">
                 </div>
                 <div class="form-group">
                     <label>NET TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
@@ -190,11 +215,16 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                 <div class="form-group">
                     <label>TERMS OF PAYMENT <span class="required">*</span></label>
                     <div style="position:relative">
-                        <input type="text" id="terms_of_payment" name="terms_of_payment" required autocomplete="off" placeholder="Type or select payment terms" onclick="toggleTermsDropdown()" oninput="filterTerms(this.value)" style="width:100%;padding:12px 40px 12px 16px;border:2px solid #1e4575;border-radius:8px;font-size:14px;font-weight:500;background:white;color:#344054;box-sizing:border-box">
-                        <button type="button" onclick="toggleTermsDropdown()" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:36px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px">▼</button>
-                        <div id="termsDropdown" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:250px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
-                            @foreach(['30% DP - 70% BAL 5 YRS','50% DP - 50% BAL 5 YRS','30% DP (6 MOS) - 70% BAL 54 MOS','30% DP (3 MOS) - 70% BAL 57 MOS','30% DP (9 MOS) - 70% BAL 36 MOS','30% DP (2 MOS) - 70% BAL 57 MOS','30% DP (2 MOS) - 70% BAL 5 YRS','STRAIGHT PAYMENT','30% DP - 70% BAL 3 YRS'] as $term)
-                            <div onclick="selectTerm('{{ $term }}')" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=''">{{ $term }}</div>
+                        <input type="text" id="terms_of_payment" name="terms_of_payment" required autocomplete="off" placeholder="Type or select payment terms" onclick="toggleSearchDropdown('termsDropdown')" oninput="filterSearchDropdown('termsDropdown', this.value)" style="width:100%;padding:12px 40px 12px 16px;border:2px solid #1e4575;border-radius:8px;font-size:14px;font-weight:500;background:white;color:#344054;box-sizing:border-box">
+                        <button type="button" onclick="toggleSearchDropdown('termsDropdown')" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:36px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px">▼</button>
+                        <div id="termsDropdown" data-dropdown-input="terms_of_payment" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:250px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
+                            @php
+                                // Shared list of standard payment terms — also reused by the
+                                // Edit Modal's searchable dropdown further down this file.
+                                $termsOptions = ['30% DP - 70% BAL 5 YRS','50% DP - 50% BAL 5 YRS','30% DP (6 MOS) - 70% BAL 54 MOS','30% DP (3 MOS) - 70% BAL 57 MOS','30% DP (9 MOS) - 70% BAL 36 MOS','30% DP (2 MOS) - 70% BAL 57 MOS','30% DP (2 MOS) - 70% BAL 5 YRS','STRAIGHT PAYMENT','30% DP - 70% BAL 3 YRS'];
+                            @endphp
+                            @foreach($termsOptions as $term)
+                            <div onclick="selectSearchOption('terms_of_payment','termsDropdown','{{ $term }}')" data-value="{{ $term }}" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=this.dataset.selected==='true'?'#dbeafe':''">{{ $term }}</div>
                             @endforeach
                         </div>
                     </div>
@@ -219,9 +249,10 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                     <label>CLIENT STATUS</label>
                     <select name="status" style="width:100%;padding:12px 16px;border:2px solid #1e4575;border-radius:8px;font-size:14px;font-weight:500;background:white;color:#344054;">
                         <option value="">No Status</option>
-                        <option value="Done">Done</option>
+                        <option value="Pending">Pending</option>
                         <option value="Cancelled">Cancelled</option>
                     </select>
+                    {{-- "Done" is intentionally not offered here — a brand new record can't have a completed downpayment yet. Done is set automatically once the client finishes paying. --}}
                 </div>
             </div>
             <input type="hidden" name="date_requested" value="{{ date('Y-m-d') }}">
@@ -290,7 +321,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                             <input type="checkbox" id="cdSelectAll" onchange="cdToggleSelectAll(this)" title="Select all">
                         </th>
                         <th class="cd-sticky-col cd-sticky-index" style="padding:14px 8px;color:white;text-transform:uppercase;font-size:11px;">#</th>
-                        @foreach(['Developer','Project','Block & Lot','Client','Lot Area','Price/SQM','TCP','Discount (%)','Discount Value','Net TCP','Terms','Reservation Date','Units','Downpayment Date','Agent','Status','Downpayment Status','Actions'] as $h)
+                        @foreach(['Developer','Project','Block & Lot','Client','Lot Area','Price/SQM','TCP','Discount (%)','Discount Value','Net TCP','Terms','Reservation Date','Units','Downpayment Date','Agent','Client Status','DP Stage','Downpayment Status','Actions'] as $h)
                         <th style="padding:14px 12px;text-align:left;font-weight:600;color:white;text-transform:uppercase;font-size:11px;white-space:nowrap">{{ $h }}</th>
                         @endforeach
                     </tr>
@@ -316,6 +347,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                         data-downpayment-date="{{ $req->date_of_downpayment ? $req->date_of_downpayment->format('Y-m-d') : '' }}"
                         data-agent="{{ strtolower($req->agent_name ?? '') }}"
                         data-client-status="{{ strtolower($req->client_status ?? '') }}"
+                        data-downpayment-stage="{{ ($req->downpayment_stage ?? 0).'/'.($req->downpayment_stage_total ?? 1) }}"
                         data-downpayment-status="{{ strtolower($req->downpayment_status ?? '') }}"
                         style="border-bottom:1px solid #e5e7eb">
                         <td class="cd-sticky-col cd-sticky-checkbox" style="padding:14px 8px">
@@ -350,10 +382,14 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                                     color:{{ $req->client_status === 'Done' ? '#166534' : ($req->client_status === 'Cancelled' ? '#991b1b' : ($req->client_status === 'Pending' ? '#92400e' : '#64748b')) }};">
                                     <option value="" {{ !$req->client_status ? 'selected' : '' }}>— Set Status —</option>
                                     <option value="Pending" {{ $req->client_status === 'Pending' ? 'selected' : '' }} style="background:#fef3c7;color:#92400e;">Pending</option>
-                                    <option value="Done" {{ $req->client_status === 'Done' ? 'selected' : '' }} style="background:#dcfce7;color:#166534;">Done</option>
+                                    {{-- Done is system-driven only (set automatically once the full downpayment is paid) — kept as a disabled option so it still displays correctly on records that are already Done, but cannot be manually selected. --}}
+                                    <option value="Done" disabled {{ $req->client_status === 'Done' ? 'selected' : '' }} style="background:#dcfce7;color:#166534;">Done (auto)</option>
                                     <option value="Cancelled" {{ $req->client_status === 'Cancelled' ? 'selected' : '' }} style="background:#fee2e2;color:#991b1b;">Cancelled</option>
                                 </select>
                             </form>
+                        </td>
+                        <td id="dpStage_{{ $req->id }}" style="padding:10px 12px;white-space:nowrap;text-align:center;font-weight:700;color:#1e4575">
+                            {{ ($req->downpayment_stage ?? 0).'/'.($req->downpayment_stage_total ?? 1) }}
                         </td>
                         <td style="padding:10px 12px;white-space:nowrap">
                             <button id="dpBtn_{{ $req->id }}" onclick="openDPModalFromBtn(this)"
@@ -363,6 +399,10 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                                 data-per-term="{{ $req->downpayment_per_term ?? 0 }}"
                                 data-status="{{ addslashes($req->downpayment_status ?? '') }}"
                                 data-dp-date="{{ $req->downpayment_date ? $req->downpayment_date->format('Y-m-d') : '' }}"
+                                data-tcp="{{ $req->tcp ?? 0 }}"
+                                data-terms-label="{{ addslashes($req->terms_of_payment ?? '') }}"
+                                data-stage="{{ $req->downpayment_stage ?? 0 }}"
+                                data-stage-total="{{ $req->downpayment_stage_total ?? 1 }}"
                                 style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;border:none;cursor:pointer;
                                 background:{{ $req->downpayment_status === 'Paid' || $req->downpayment_status === 'Spot Paid' ? '#dcfce7' : ($req->downpayment_status && $req->downpayment_status !== '— Set —' ? '#fef3c7' : '#f1f5f9') }};
                                 color:{{ $req->downpayment_status === 'Paid' || $req->downpayment_status === 'Spot Paid' ? '#166534' : ($req->downpayment_status && $req->downpayment_status !== '— Set —' ? '#92400e' : '#64748b') }};">
@@ -394,7 +434,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="20" style="text-align:center;padding:40px;color:#6b7280">No client records yet.</td></tr>
+                    <tr><td colspan="21" style="text-align:center;padding:40px;color:#6b7280">No client records yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -464,24 +504,50 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
             <input type="hidden" id="edit_id" name="id">
             <input type="hidden" id="edit_date_requested" name="date_requested">
             <div class="cd-modal-grid" style="padding:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Developer's Name</label><input type="text" id="edit_developer_name" name="developer_name" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Developer's Name</label>
+                    <div style="position:relative;">
+                        <input type="text" name="developer_name" id="edit_developer_name" placeholder="Type or select developer" autocomplete="off"
+                            onclick="toggleSearchDropdown('edit_devDropdown')" oninput="filterSearchDropdown('edit_devDropdown', this.value)"
+                            style="width:100%;padding:10px 40px 10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:white;color:#374151;box-sizing:border-box;">
+                        <button type="button" onclick="toggleSearchDropdown('edit_devDropdown')" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:34px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px;">▼</button>
+                        <div id="edit_devDropdown" data-dropdown-input="edit_developer_name" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:200px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+                            @foreach($developerOptions as $dev)
+                            <div onclick="selectSearchOption('edit_developer_name','edit_devDropdown','{{ $dev }}')" data-value="{{ $dev }}" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=this.dataset.selected==='true'?'#dbeafe':''">{{ $dev }}</div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Project Name *</label><input type="text" id="edit_project_name" name="project_name" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Block & Lot Number</label><input type="text" id="edit_block_lot_number" name="block_lot_number" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Client's Name *</label><input type="text" id="edit_client_name" name="client_name" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Lot Area</label><input type="number" id="edit_lot_area" name="lot_area" step="0.0001" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Price Per SQM</label><input type="number" id="edit_price_sqm" name="price_sqm" step="0.01" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">TCP</label><input type="number" id="edit_tcp" name="tcp" step="0.01" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount (%)</label><input type="number" id="edit_discount" name="discount" step="0.01" min="0" max="100" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Net TCP</label><input type="number" id="edit_net_tcp" name="net_tcp" step="0.01" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Terms of Payment *</label><input type="text" id="edit_terms_of_payment" name="terms_of_payment" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Reservation Date</label><input type="date" id="edit_reservation_date" name="reservation_date" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Lot Area</label><input type="number" id="edit_lot_area" name="lot_area" step="0.0001" min="0" oninput="computeTCP('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Price Per SQM</label><input type="number" id="edit_price_sqm" name="price_sqm" step="0.01" min="0" oninput="computeTCP('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label><input type="number" id="edit_tcp" name="tcp" step="0.01" readonly style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount (%)</label><input type="number" id="edit_discount" name="discount" step="0.01" min="0" max="100" oninput="computeDiscount('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount Value <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label><input type="number" id="edit_discount_value" name="discount_value" step="0.01" min="0" readonly style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Net TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label><input type="number" id="edit_net_tcp" name="net_tcp" step="0.01" readonly style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;"></div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                    <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Terms of Payment *</label>
+                    <div style="position:relative">
+                        <input type="text" id="edit_terms_of_payment" name="terms_of_payment" required autocomplete="off" placeholder="Type or select payment terms" onclick="toggleSearchDropdown('edit_termsDropdown')" oninput="filterSearchDropdown('edit_termsDropdown', this.value)" style="width:100%;padding:10px 40px 10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:white;color:#374151;box-sizing:border-box">
+                        <button type="button" onclick="toggleSearchDropdown('edit_termsDropdown')" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:34px;height:calc(100% - 4px);background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:0 6px 6px 0;cursor:pointer;font-size:12px">▼</button>
+                        <div id="edit_termsDropdown" data-dropdown-input="edit_terms_of_payment" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:white;border:2px solid #1e4575;border-radius:8px;max-height:250px;overflow-y:auto;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
+                            @foreach($termsOptions as $term)
+                            <div onclick="selectSearchOption('edit_terms_of_payment','edit_termsDropdown','{{ $term }}')" data-value="{{ $term }}" style="padding:12px 16px;cursor:pointer;font-size:14px;color:#374151;font-weight:500;border-bottom:1px solid #f3f4f6" onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background=this.dataset.selected==='true'?'#dbeafe':''">{{ $term }}</div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Reservation Date</label><input type="date" id="edit_reservation_date" name="reservation_date" onchange="validateEditDownpaymentDate()" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Number of Units</label><input type="number" id="edit_number_of_units" name="number_of_units" min="1" value="1" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Date of Downpayment</label><input type="date" id="edit_date_of_downpayment" name="date_of_downpayment" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Date of Downpayment</label><input type="date" id="edit_date_of_downpayment" name="date_of_downpayment" onchange="validateEditDownpaymentDate()" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Agent's Name *</label><input type="text" id="edit_agent_name" name="agent_name" required style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Client Status</label>
                     <select id="edit_client_status" name="status" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px">
                         <option value="">No Status</option>
-                        <option value="Done">Done</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Done" id="edit_status_done_option" disabled>Done (auto)</option>
                         <option value="Cancelled">Cancelled</option>
                     </select>
                 </div>
@@ -621,12 +687,69 @@ function submitLocalPermRequest() {
     .catch(() => { btn.disabled = false; btn.textContent = 'Send Request'; });
 }
 
-function toggleTermsDropdown(){ var d=document.getElementById('termsDropdown'); d.style.display=d.style.display==='none'?'block':'none'; }
+// ── Searchable dropdown widget (shared by Add form and Edit modal) ──
+// Every "type or select" field (Developer's Name, Terms of Payment — in both
+// the Add form and the Edit modal) uses the same three generic functions
+// instead of one copy-pasted set of functions per field. Each dropdown
+// container carries data-dropdown-input="<id of its text input>" so a single
+// outside-click listener can close whichever ones are open.
 
-function toggleDevDropdown(){ var d=document.getElementById('devDropdown'); d.style.display=d.style.display==='none'?'block':'none'; }
-function selectDev(v){ document.getElementById('dev_name_input').value=v; document.getElementById('devDropdown').style.display='none'; }
-function filterDev(val){ var d=document.getElementById('devDropdown'),items=d.children,f=val.toUpperCase(),has=false; for(var i of items){ var show=i.textContent.toUpperCase().includes(f); i.style.display=show?'':'none'; if(show)has=true; } d.style.display=has?'block':'none'; }
-document.addEventListener('click',function(e){ if(!e.target.closest('#dev_name_input') && !e.target.closest('#devDropdown') && !e.target.closest('[onclick="toggleDevDropdown()"]')) document.getElementById('devDropdown').style.display='none'; });
+function toggleSearchDropdown(dropdownId) {
+    var d = document.getElementById(dropdownId);
+    if (!d) return;
+    d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+
+function filterSearchDropdown(dropdownId, value) {
+    var d = document.getElementById(dropdownId);
+    if (!d) return;
+    var items = d.children, f = (value || '').toUpperCase(), has = false;
+    for (var i of items) {
+        var show = i.textContent.toUpperCase().includes(f);
+        i.style.display = show ? '' : 'none';
+        if (show) has = true;
+    }
+    d.style.display = has ? 'block' : 'none';
+}
+
+function selectSearchOption(inputId, dropdownId, value) {
+    var input = document.getElementById(inputId);
+    if (input) input.value = value;
+    var d = document.getElementById(dropdownId);
+    if (d) d.style.display = 'none';
+    highlightSelectedOption(dropdownId, value);
+}
+
+// Closes any open searchable dropdown when a click lands outside its input,
+// toggle button, and option list (all three live together in the same
+// position:relative wrapper, so "outside the wrapper" == "outside the field").
+document.addEventListener('click', function (e) {
+    document.querySelectorAll('[data-dropdown-input]').forEach(function (dropdown) {
+        var input = document.getElementById(dropdown.dataset.dropdownInput);
+        var wrapper = input ? input.parentElement : null;
+        if (wrapper && !wrapper.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+});
+
+// Marks the option matching `value` as selected (persistent highlight, survives
+// mouseout) inside the given dropdown, and clears the highlight on the rest.
+function highlightSelectedOption(dropdownId, value) {
+    var d = document.getElementById(dropdownId);
+    if (!d) return;
+    for (var child of d.children) {
+        if (value && child.dataset.value === value) {
+            child.dataset.selected = 'true';
+            child.style.background = '#dbeafe';
+            child.style.fontWeight = '700';
+        } else {
+            child.dataset.selected = 'false';
+            child.style.background = '';
+            child.style.fontWeight = '500';
+        }
+    }
+}
 
 function fmtComma(n) {
     if (!n && n !== 0) return '';
@@ -672,16 +795,59 @@ function validateDownpaymentDate() {
     }
 }
 
+// Same rule, same technique, for the Edit modal's date fields — kept as a
+// separate function (rather than parameterizing validateDownpaymentDate)
+// since the Edit modal isn't a native form submit, so this gets invoked
+// explicitly from submitEditForm() via form.reportValidity() as well as
+// on each date's onchange.
+function validateEditDownpaymentDate() {
+    var resInput = document.getElementById('edit_reservation_date');
+    var dpInput  = document.getElementById('edit_date_of_downpayment');
 
-function computeTCP(){
+    if (!resInput.value || !dpInput.value) {
+        dpInput.setCustomValidity('');
+        return;
+    }
+    if (dpInput.value < resInput.value) {
+        dpInput.setCustomValidity('Date of Downpayment cannot be earlier than the Reservation Date.');
+    } else {
+        dpInput.setCustomValidity('');
+    }
+}
+
+
+// ctx selects which form's fields to read/write: 'f' (default) is the Add
+// New Client Record form, 'edit' is the Edit Client Record modal. Both forms
+// share the same TCP / Discount Value / Net TCP formulas — only the element
+// ids (and whether there's a separate comma-formatted display field) differ.
+function computeTCP(ctx){
+    ctx = ctx || 'f';
+    if (ctx === 'edit') {
+        var area = parseFloat(document.getElementById('edit_lot_area').value) || 0;
+        var psqm = parseFloat(document.getElementById('edit_price_sqm').value) || 0;
+        var tcp  = area * psqm;
+        document.getElementById('edit_tcp').value = tcp ? tcp.toFixed(2) : '';
+        computeDiscount('edit');
+        return;
+    }
     var area = parseFloat(document.getElementById('f_lot_area').value) || 0;
     var psqm = parseFloat(document.getElementById('f_price_sqm').value) || 0;
     var tcp  = area * psqm;
     document.getElementById('f_tcp').value = tcp ? tcp.toFixed(2) : '';
     document.getElementById('f_tcp_display').value = tcp ? fmtComma(tcp) : '';
-    computeDiscount();
+    computeDiscount('f');
 }
-function computeDiscount(){
+function computeDiscount(ctx){
+    ctx = ctx || 'f';
+    if (ctx === 'edit') {
+        var tcp = parseFloat(document.getElementById('edit_tcp').value) || 0;
+        var pct = parseFloat(document.getElementById('edit_discount').value) || 0;
+        var val = tcp * (pct / 100);
+        var net = tcp - val;
+        document.getElementById('edit_discount_value').value = val ? val.toFixed(2) : '';
+        document.getElementById('edit_net_tcp').value = net ? net.toFixed(2) : '';
+        return;
+    }
     var tcp  = parseFloat(document.getElementById('f_tcp').value) || 0;
     var pct  = parseFloat(document.getElementById('f_discount_pct').value) || 0;
     var val  = tcp * (pct / 100);
@@ -699,9 +865,6 @@ function computeDiscountFromValue(){
     document.getElementById('f_net_tcp').value = net ? net.toFixed(2) : '';
     document.getElementById('f_net_tcp_display').value = net ? fmtComma(net) : '';
 }
-function selectTerm(t){ document.getElementById('terms_of_payment').value=t; document.getElementById('termsDropdown').style.display='none'; }
-function filterTerms(v){ var d=document.getElementById('termsDropdown'),items=d.children,f=v.toUpperCase(),has=false; for(var i of items){ var show=i.textContent.toUpperCase().includes(f); i.style.display=show?'':'none'; if(show)has=true; } d.style.display=has?'block':'none'; }
-document.addEventListener('click',function(e){ var w=document.getElementById('terms_of_payment')?.closest('div'); if(w&&!w.contains(e.target)) document.getElementById('termsDropdown').style.display='none'; });
 
 function viewRow(id){
     fetch(`/sales-marketing/${id}`).then(r=>r.json()).then(d=>{
@@ -724,7 +887,8 @@ function viewRow(id){
             ['Downpayment Status',fmt(d.downpayment_status)||'— Not Set —'],
             ['Downpayment Amount',fmtP(d.downpayment_amount)],
             ['Downpayment Terms',d.downpayment_terms?d.downpayment_terms+' month'+(d.downpayment_terms>1?'s':''):'-'],
-            ['Per Term Amount',fmtP(d.downpayment_per_term)],
+            ['DP Stage',(d.downpayment_stage ?? 0)+'/'+(d.downpayment_stage_total ?? 1)],
+            ['Commission Status',fmt(d.status || 'Not Released')],
             ['Date of Downpayment',fmtD(d.downpayment_date || d.date_of_downpayment)],
         ];
         document.getElementById('viewContent').innerHTML=fields.map(([l,v])=>`<div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">${l}</label><div style="font-size:14px;color:#374151;font-weight:500;padding:10px 14px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">${v}</div></div>`).join('');
@@ -735,23 +899,36 @@ function editRow(id){
     fetch(`/sales-marketing/${id}`).then(r=>r.json()).then(d=>{
         document.getElementById('edit_id').value=d.id;
         document.getElementById('edit_developer_name').value=d.developer_name??'';
+        highlightSelectedOption('edit_devDropdown', d.developer_name??'');
         document.getElementById('edit_project_name').value=d.project_name??'';
         document.getElementById('edit_block_lot_number').value=d.block_lot_number??'';
         document.getElementById('edit_client_name').value=d.client_name??'';
         document.getElementById('edit_lot_area').value=d.lot_area??'';
         document.getElementById('edit_price_sqm').value=d.price_sqm??'';
-        document.getElementById('edit_tcp').value=d.tcp??'';
         document.getElementById('edit_discount').value=d.discount??'';
-        document.getElementById('edit_net_tcp').value=d.net_tcp??'';
+        // TCP, Discount Value, and Net TCP are read-only/derived fields — recompute
+        // them from Lot Area, Price/SQM, and Discount % instead of trusting the
+        // stored tcp/net_tcp columns, so the modal never opens showing figures
+        // that don't match the record's own inputs.
+        computeTCP('edit');
         document.getElementById('edit_terms_of_payment').value=d.terms_of_payment??'';
+        highlightSelectedOption('edit_termsDropdown', d.terms_of_payment??'');
         document.getElementById('edit_reservation_date').value=d.reservation_date?(d.reservation_date+'').split('T')[0]:'';
         document.getElementById('edit_number_of_units').value=d.number_of_units??1;
         document.getElementById('edit_date_of_downpayment').value=d.date_of_downpayment?(d.date_of_downpayment+'').split('T')[0]:'';
+        // The Edit modal's fields are reused across rows, so any leftover custom
+        // validity message from a previous record must be cleared before
+        // re-checking against this record's own dates.
+        document.getElementById('edit_date_of_downpayment').setCustomValidity('');
+        validateEditDownpaymentDate();
         document.getElementById('edit_agent_name').value=d.agent_name??'';
         document.getElementById('edit_client_status').value=d.status??'';
         document.getElementById('edit_date_requested').value=d.date_requested?(d.date_requested+'').split('T')[0]:'';
         document.getElementById('editForm').action=`/client-database/${d.id}`;
+        document.getElementById('editFormError').innerHTML='';
         document.getElementById('editFormError').style.display='none';
+        document.getElementById('edit_devDropdown').style.display='none';
+        document.getElementById('edit_termsDropdown').style.display='none';
         document.getElementById('editModal').style.display='flex';
     }).catch(err=>{
         alert('Failed to load record. Please try again.');
@@ -777,10 +954,39 @@ function staffDeleteConfirm(e, id, label) {
     return false;
 }
 
+// Renders one or more error messages inside the Edit modal's banner, using
+// the same bulleted-list convention the rest of the app uses for
+// $errors->all() (see tripping.blade.php / commission-monitoring.blade.php),
+// so a failed Edit submission reads exactly like a failed Add submission.
+function renderEditFormErrors(messages) {
+    var errEl = document.getElementById('editFormError');
+    var list = (Array.isArray(messages) ? messages : [messages]).filter(Boolean);
+    if (!list.length) list = ['Failed to save. Please try again.'];
+    errEl.innerHTML = list.length === 1
+        ? list[0]
+        : list.map(function (m) { return '<div>• ' + m + '</div>'; }).join('');
+    errEl.style.display = 'block';
+}
+
 function submitEditForm() {
     var form = document.getElementById('editForm');
     var btn  = document.getElementById('editSaveBtn');
     var errEl= document.getElementById('editFormError');
+
+    // Reset any error state left over from a previous attempt.
+    errEl.innerHTML = '';
+    errEl.style.display = 'none';
+
+    // The Save button is type="button", not type="submit", so the browser
+    // never runs native constraint validation (required, min/max on Lot
+    // Area / Price per SQM / Discount, and the custom Reservation-Date-
+    // before-Downpayment-Date rule) the way it does for the Add form's real
+    // submit button. Run it explicitly here — reportValidity() shows the
+    // browser's standard inline tooltip on whichever field is invalid.
+    validateEditDownpaymentDate();
+    if (!form.reportValidity()) {
+        return;
+    }
 
     // Basic client-side validation
     var projectName = document.getElementById('edit_project_name').value.trim();
@@ -788,14 +994,12 @@ function submitEditForm() {
     var agentName   = document.getElementById('edit_agent_name').value.trim();
     var terms       = document.getElementById('edit_terms_of_payment').value.trim();
     if (!projectName || !clientName || !agentName || !terms) {
-        errEl.textContent = 'Please fill in all required fields (Project Name, Client Name, Agent Name, Terms of Payment).';
-        errEl.style.display = 'block';
+        renderEditFormErrors('Please fill in all required fields (Project Name, Client Name, Agent Name, Terms of Payment).');
         return;
     }
 
     btn.disabled = true;
     btn.textContent = 'Saving...';
-    errEl.style.display = 'none';
 
     var formData = new FormData(form);
     var action   = form.action;
@@ -812,21 +1016,26 @@ function submitEditForm() {
             return r.text().then(text => {
                 btn.disabled = false;
                 btn.textContent = 'Save Changes';
-                // Try to parse JSON error
+                // Try to parse a structured JSON error response first (this is what
+                // update() returns on validation failure: {error, errors}). Fall
+                // back to a generic, status-coded message for anything else
+                // (auth/permission errors, a 500 HTML error page, etc.)
                 try {
                     var json = JSON.parse(text);
-                    errEl.textContent = json.error || json.message || 'Failed to save. Please try again.';
-                } catch(e) {
-                    errEl.textContent = 'Failed to save. Please try again. (Status: ' + r.status + ')';
+                    if (Array.isArray(json.errors) && json.errors.length) {
+                        renderEditFormErrors(json.errors);
+                    } else {
+                        renderEditFormErrors(json.error || json.message || 'Failed to save. Please try again.');
+                    }
+                } catch (e) {
+                    renderEditFormErrors('Failed to save. Please try again. (Status: ' + r.status + ')');
                 }
-                errEl.style.display = 'block';
             });
         }
     }).catch(() => {
         btn.disabled = false;
         btn.textContent = 'Save Changes';
-        errEl.textContent = 'Network error. Please try again.';
-        errEl.style.display = 'block';
+        renderEditFormErrors('Network error. Please try again.');
     });
 }
 
@@ -1054,7 +1263,8 @@ var CD_FILTERABLE_FIELDS = [
     { key: 'units',              label: 'Units',              dataAttr: 'data-units',             type: 'text'   },
     { key: 'downpayment-date',   label: 'Downpayment Date',   dataAttr: 'data-downpayment-date',  type: 'daterange' },
     { key: 'agent',              label: 'Agent',              dataAttr: 'data-agent',             type: 'text'   },
-    { key: 'status',             label: 'Status',             dataAttr: 'data-client-status',     type: 'select', options: ['Pending','Done','Cancelled'] },
+    { key: 'status',             label: 'Client Status',      dataAttr: 'data-client-status',     type: 'select', options: ['Pending','Done','Cancelled'] },
+    { key: 'downpayment-stage',  label: 'DP Stage',           dataAttr: 'data-downpayment-stage', type: 'text'   },
     { key: 'downpayment-status', label: 'Downpayment Status', dataAttr: 'data-downpayment-status',type: 'text'   },
 ];
 
@@ -1470,15 +1680,54 @@ function goToDuplicateRecord() {
 </script>
 <!-- Downpayment Installment Modal -->
 <div id="dpModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
-    <div style="background:white;border-radius:16px;width:90%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;max-height:90vh;display:flex;flex-direction:column;">
+    <div style="background:white;border-radius:16px;width:90%;max-width:580px;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;">
         <div style="background:linear-gradient(135deg,#1e4575,#2563eb);color:white;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
             <h3 style="margin:0;font-size:18px;font-weight:700">Downpayment</h3>
             <button onclick="document.getElementById('dpModal').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:white;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px">✕</button>
         </div>
 
+        {{-- Read-only summary header: Terms of Payment / TCP / Total DP / Remaining Balance.
+             These are all derived values — never directly editable by the user. --}}
+        <div id="dp_summary_header" style="padding:16px 24px;background:#f8fafc;border-bottom:1.5px solid #e5e7eb;display:flex;flex-direction:column;gap:10px;">
+            <div>
+                <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px">Terms of Payment</label>
+                <div id="dp_summary_terms" style="font-size:13px;font-weight:700;color:#1e4575;">—</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                    <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px">TCP</label>
+                    <div id="dp_summary_tcp" style="font-size:14px;font-weight:700;color:#374151;">₱0.00</div>
+                </div>
+                <div>
+                    <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px">Total Downpayment</label>
+                    <div id="dp_summary_total" style="font-size:14px;font-weight:700;color:#374151;">₱0.00</div>
+                </div>
+            </div>
+            <div style="border-top:1px dashed #d0d5dd;padding-top:8px">
+                <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px">Remaining DP Balance</label>
+                <div id="dp_summary_remaining" style="font-size:16px;font-weight:700;color:#A37929;">₱0.00</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px dashed #d0d5dd;padding-top:8px">
+                <div>
+                    <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px">Payment Stage</label>
+                    <div id="dp_summary_stage" style="font-size:15px;font-weight:800;color:#1e4575;">0/1</div>
+                </div>
+                <div>
+                    <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px">Next Commission Stage</label>
+                    <div id="dp_summary_next_stage" style="font-size:15px;font-weight:800;color:#A37929;">—</div>
+                </div>
+            </div>
+            <div style="border-top:1px dashed #d0d5dd;padding-top:8px">
+                <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:7px">Commission Request Progress</label>
+                <div id="dp_commission_progress" style="display:flex;flex-direction:column;gap:6px;">
+                    <div style="font-size:12px;color:#94a3b8;">Loading stage records…</div>
+                </div>
+            </div>
+        </div>
+
         {{-- Step 1: Choose type --}}
         <div id="dp_step_type" style="padding:24px;display:flex;flex-direction:column;gap:12px;flex-shrink:0">
-            <p style="font-size:13px;color:#64748b;margin:0;">Select downpayment type:</p>
+            <p style="font-size:13px;color:#64748b;margin:0;">Select the payment mode. TCP, total downpayment, and installment count are calculated automatically from the client record.</p>
             <div style="display:flex;gap:12px">
                 <button onclick="selectDPType('spot')" style="flex:1;padding:14px;border:2px solid #e2e8f0;border-radius:10px;background:white;cursor:pointer;font-size:14px;font-weight:600;color:#374151;transition:all .2s" onmouseover="this.style.background='#eff6ff';this.style.borderColor='#1e4575'" onmouseout="this.style.background='white';this.style.borderColor='#e2e8f0'">
                     💰 Spot Downpayment
@@ -1502,8 +1751,8 @@ function goToDuplicateRecord() {
             <div>
                 <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Amount</label>
                 <div style="display:flex;align-items:center;border:2px solid #d0d5dd;border-radius:8px;overflow:hidden;background:white;">
-                    <input type="number" id="dp_spot_amount" step="0.01" min="0" placeholder="Enter amount here"
-                        style="flex:1;padding:10px 12px;border:none;outline:none;font-size:14px;background:transparent;">
+                    <input type="number" id="dp_spot_amount" step="0.01" min="0" placeholder="0.00" readonly
+                        style="flex:1;padding:10px 12px;border:none;outline:none;font-size:14px;background:#f3f4f6;cursor:not-allowed;font-weight:700;color:#374151;">
                     <button id="dp_spot_paid_btn" onclick="saveSpotDP()" style="padding:10px 16px;background:linear-gradient(135deg,#A37929,#d4a03a);color:white;border:none;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Paid</button>
                 </div>
             </div>
@@ -1514,24 +1763,24 @@ function goToDuplicateRecord() {
         </div>
 
         {{-- Installment DP --}}
-        <div id="dp_installment_section" style="display:none;flex-direction:column;flex:1;min-height:0">
-            <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;display:flex;gap:12px;align-items:flex-end;flex-shrink:0">
+        <div id="dp_installment_section" style="display:none;flex-direction:column;">
+            <div class="dp-installment-toolbar" style="padding:16px 24px;border-bottom:1px solid #e5e7eb;display:flex;gap:12px;align-items:flex-end;flex-shrink:0;flex-wrap:wrap">
                 <div style="flex:1">
                     <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Total Amount</label>
-                    <input type="number" id="dp_total_amount" step="0.01" min="0" placeholder="0.00"
-                        style="width:100%;padding:9px 12px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;box-sizing:border-box">
+                    <input type="number" id="dp_total_amount" step="0.01" min="0" placeholder="0.00" readonly
+                        style="width:100%;padding:9px 12px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;box-sizing:border-box;background:#f3f4f6;cursor:not-allowed;font-weight:700;color:#374151">
                 </div>
                 <div>
                     <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Terms</label>
-                    <select id="dp_terms_select" style="padding:9px 12px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px">
+                    <select id="dp_terms_select" disabled style="padding:9px 12px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;width:100%;box-sizing:border-box;">
                         @for($i = 1; $i <= 6; $i++)
                         <option value="{{ $i }}">{{ $i }}</option>
                         @endfor
                     </select>
                 </div>
-                <button onclick="setupInstallments()" style="padding:9px 16px;background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Set Terms</button>
+                <button onclick="setupInstallments()" class="dp-installment-toolbar-btn" style="padding:9px 16px;background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Generate Terms</button>
             </div>
-            <div id="dp_installments_list" style="padding:16px 24px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1;display:flex;flex-direction:column;gap:10px;min-height:60px">
+            <div id="dp_installments_list" style="padding:16px 24px;display:flex;flex-direction:column;gap:10px;">
                 <div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">Set amount and terms, then click "Set Terms".</div>
             </div>
         </div>
@@ -1554,10 +1803,10 @@ function goToDuplicateRecord() {
                 </div>
                 <button onclick="setupOthersInstallments()" style="padding:9px 16px;background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Set Terms</button>
             </div>
-            <div id="dp_others_list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;"></div>
+            <div id="dp_others_list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;"></div>
         </div>
 
-        <div style="padding:16px 24px;border-top:1px solid #e5e7eb;flex-shrink:0">
+        <div style="padding:16px 24px;border-top:1px solid #e5e7eb;flex-shrink:0;position:sticky;bottom:0;background:white;z-index:10;">
             <div id="dp_footer_type" style="display:flex">
             </div>
             <div id="dp_footer_spot" style="display:none;gap:10px">
@@ -1576,8 +1825,42 @@ function goToDuplicateRecord() {
     </div>
 </div>
 
+<!-- Commission Request Ready Notification Modal -->
+<div id="commissionReadyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;align-items:center;justify-content:center" onclick="if(event.target===this)dismissCommissionReadyModal()">
+    <div style="background:white;border-radius:16px;max-width:440px;width:90%;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.3);">
+        <div style="background:linear-gradient(135deg,#A37929,#d4a03a);padding:20px 22px;display:flex;align-items:center;gap:12px;">
+            <div style="width:38px;height:38px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;">💰</div>
+            <div style="flex:1;">
+                <div style="color:rgba(255,255,255,.75);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;">Commission Update</div>
+                <div style="color:white;font-size:15px;font-weight:700;margin-top:1px;">Commission Ready to Request</div>
+            </div>
+        </div>
+        <div style="padding:22px;">
+            <p id="commissionReadyText" style="font-size:14px;color:#374151;margin:0 0 20px;line-height:1.5;">
+                The agent's commission for this client is now ready to request.
+            </p>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button onclick="dismissCommissionReadyModal()" style="padding:9px 18px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">Not Now</button>
+                <button onclick="continueToCommissionRequest()" style="padding:9px 20px;background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Continue</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let _dpRecordId = null;
+let _dpTcp = 0;
+let _dpTermsLabel = '';
+let _dpTotalAmount = 0; // total downpayment amount, computed from TCP x DP%
+let _dpPaidAmount = 0;
+let _dpRemainingBalance = 0;
+let _dpStage = 0;
+let _dpStageTotal = 1;
+let _dpNextCommissionStage = null;
+let _dpCommissionReady = false;
+let _dpAllCommissionStagesRequested = false;
+let _dpCommissionStages = [];
+let _dpPendingReload = false; // set true when a page reload was deferred so the commission-ready popup could show first
 const _dpCsrf = document.querySelector('meta[name=csrf-token]')?.content || '';
 const _isAdmin = {{ auth()->user()->isAdmin() ? 'true' : 'false' }};
 
@@ -1588,8 +1871,196 @@ function openDPModalFromBtn(btn) {
         parseInt(btn.dataset.terms) || 1,
         parseFloat(btn.dataset.perTerm) || 0,
         btn.dataset.status || '',
-        btn.dataset.dpDate || ''
+        btn.dataset.dpDate || '',
+        parseFloat(btn.dataset.tcp) || 0,
+        btn.dataset.termsLabel || '',
+        parseInt(btn.dataset.stage) || 0,
+        parseInt(btn.dataset.stageTotal) || 1
     );
+}
+
+// Parses the DP percentage out of a terms-of-payment label.
+// Examples: "30% DP - 70% BAL 5 YRS" -> 0.30, "50% DP - 50% BAL 5 YRS" -> 0.50,
+// "STRAIGHT PAYMENT" -> 1 (the full TCP is due, no separate "DP" concept).
+// Falls back to 0.30 if nothing recognizable is found, since 30% DP is the
+// most common plan — this keeps the header from showing ₱0.00 on odd/legacy labels.
+function parseDPPercent(termsLabel) {
+    if (!termsLabel) return 0;
+    var label = termsLabel.toUpperCase();
+    if (label.includes('STRAIGHT')) return 1;
+    var m = label.match(/(\d+(?:\.\d+)?)\s*%\s*DP/);
+    return m ? parseFloat(m[1]) / 100 : 0;
+}
+
+// Reads the installment count from labels such as "30% DP (6 MOS) - 70% BAL 54 MOS".
+// Plans without an explicit DP month count are treated as a single/spot downpayment.
+function parseDPMonths(termsLabel) {
+    if (!termsLabel) return 1;
+    var label = termsLabel.toUpperCase();
+    if (label.includes('STRAIGHT')) return 1;
+    var m = label.match(/DP\s*\(\s*(\d+)\s*MOS?\s*\)/);
+    return m ? Math.max(1, parseInt(m[1], 10)) : 1;
+}
+
+function fmtPeso(n) {
+    n = parseFloat(n) || 0;
+    return '₱' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderCommissionStageProgress(stages) {
+    var container = document.getElementById('dp_commission_progress');
+    if (!container) return;
+
+    if (!Array.isArray(stages) || !stages.length) {
+        container.innerHTML = '<div style="font-size:12px;color:#94a3b8;">No DP stage information available.</div>';
+        return;
+    }
+
+    container.innerHTML = stages.map(function (item) {
+        var status = item.status || 'waiting_payment';
+        var label = item.status_label || 'Waiting for payment';
+        var bg = '#f8fafc';
+        var border = '#e2e8f0';
+        var color = '#64748b';
+        var icon = '○';
+
+        if (status === 'requested') {
+            bg = '#f0fdf4'; border = '#bbf7d0'; color = '#166534'; icon = '✓';
+        } else if (status === 'ready') {
+            bg = '#fffbeb'; border = '#fde68a'; color = '#92400e'; icon = '●';
+        } else if (status === 'eligible_waiting') {
+            bg = '#eff6ff'; border = '#bfdbfe'; color = '#1d4ed8'; icon = '↗';
+        }
+
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 9px;border:1px solid ' + border + ';background:' + bg + ';border-radius:8px;">'
+            + '<div style="display:flex;align-items:center;gap:7px;min-width:0;">'
+            + '<span style="font-size:12px;font-weight:800;color:' + color + ';">' + icon + '</span>'
+            + '<div style="min-width:0;">'
+            + '<div style="font-size:12px;font-weight:800;color:#1e4575;">DP Stage ' + item.label + '</div>'
+            + '<div style="font-size:10px;color:#64748b;">Threshold: ' + fmtPeso(item.threshold_amount) + '</div>'
+            + '</div></div>'
+            + '<span style="font-size:10px;font-weight:800;color:' + color + ';text-align:right;white-space:nowrap;">' + label + '</span>'
+            + '</div>';
+    }).join('');
+}
+
+function refreshDPStageSummary(summary) {
+    if (summary) {
+        _dpStage = parseInt(summary.downpayment_stage) || 0;
+        _dpStageTotal = parseInt(summary.downpayment_stage_total) || 1;
+        _dpNextCommissionStage = summary.next_commission_stage === null
+            || summary.next_commission_stage === undefined
+            ? null
+            : parseInt(summary.next_commission_stage);
+        _dpCommissionReady = !!summary.commission_ready;
+        _dpAllCommissionStagesRequested = !!summary.all_commission_stages_requested;
+        _dpCommissionStages = Array.isArray(summary.commission_stages)
+            ? summary.commission_stages
+            : [];
+    }
+
+    var stageEl = document.getElementById('dp_summary_stage');
+    var nextEl = document.getElementById('dp_summary_next_stage');
+    var rowStageEl = document.getElementById('dpStage_' + _dpRecordId);
+    var button = document.getElementById('dpBtn_' + _dpRecordId);
+
+    var stageText = _dpStage + '/' + _dpStageTotal;
+    if (stageEl) stageEl.textContent = stageText;
+    if (rowStageEl) rowStageEl.textContent = stageText;
+
+    if (button) {
+        button.dataset.stage = _dpStage;
+        button.dataset.stageTotal = _dpStageTotal;
+    }
+
+    if (nextEl) {
+        if (_dpAllCommissionStagesRequested) {
+            nextEl.textContent = 'All requested';
+            nextEl.style.color = '#166534';
+        } else if (_dpNextCommissionStage) {
+            nextEl.textContent = _dpNextCommissionStage + '/' + _dpStageTotal
+                + (_dpCommissionReady ? ' — Ready' : '');
+            nextEl.style.color = _dpCommissionReady ? '#A37929' : '#1e4575';
+        } else {
+            nextEl.textContent = '—';
+            nextEl.style.color = '#A37929';
+        }
+    }
+
+    renderCommissionStageProgress(_dpCommissionStages);
+}
+
+async function loadDownpaymentSummary(showReadyPopup) {
+    if (!_dpRecordId) return null;
+
+    try {
+        var response = await fetch('/api/client-database/' + _dpRecordId + '/downpayment-summary', {
+            headers: { 'Accept': 'application/json' }
+        });
+        var summary = await response.json();
+
+        if (!response.ok || !summary.success) return null;
+
+        _dpTotalAmount = Number(summary.total_downpayment) || _dpTotalAmount;
+        refreshDPSummaryHeader(summary.paid_total);
+        refreshDPStageSummary(summary);
+
+        if (showReadyPopup) handleCommissionTrigger(summary);
+        return summary;
+    } catch (error) {
+        return null;
+    }
+}
+
+// Recomputes and redraws the read-only summary header (Terms / TCP / Total DP / Remaining).
+// paidSum = however much of the total DP has actually been paid so far
+// (sum of paid installment amounts, or the full spot amount once paid).
+function refreshDPSummaryHeader(paidSum) {
+    paidSum = Number(paidSum);
+
+    if (!Number.isFinite(paidSum) || paidSum < 0) {
+        paidSum = 0;
+    }
+
+    _dpPaidAmount = paidSum;
+    _dpRemainingBalance = Math.max(0, _dpTotalAmount - _dpPaidAmount);
+
+    document.getElementById('dp_summary_terms').textContent = _dpTermsLabel || '—';
+    document.getElementById('dp_summary_tcp').textContent = fmtPeso(_dpTcp);
+    document.getElementById('dp_summary_total').textContent = fmtPeso(_dpTotalAmount);
+    document.getElementById('dp_summary_remaining').textContent = fmtPeso(_dpRemainingBalance);
+}
+
+// ---- Commission-request threshold notification ----
+// The threshold must be calculated and persisted by the controller on every payment save.
+// The frontend only reacts to the server response so the notification works across browsers
+// and cannot be duplicated or bypassed through localStorage.
+function handleCommissionTrigger(response) {
+    if (!response || !response.commission_ready) return false;
+
+    var stageText = response.next_commission_stage
+        ? response.next_commission_stage + '/' + (response.downpayment_stage_total || _dpStageTotal)
+        : '';
+    var text = response.message || (stageText
+        ? 'Commission stage ' + stageText + ' is ready to request.'
+        : "The agent's commission for this client is now ready to request.");
+    if (response.paid_total !== undefined && response.threshold_amount !== undefined) {
+        text += ' Paid: ' + fmtPeso(response.paid_total) + ' / Threshold: ' + fmtPeso(response.threshold_amount) + '.';
+    }
+    document.getElementById('commissionReadyText').textContent = text;
+    showCommissionReadyModal();
+    return true;
+}
+
+function showCommissionReadyModal() {
+    document.getElementById('commissionReadyModal').style.display = 'flex';
+}
+function dismissCommissionReadyModal() {
+    document.getElementById('commissionReadyModal').style.display = 'none';
+    if (_dpPendingReload) { _dpPendingReload = false; window.location.reload(); }
+}
+function continueToCommissionRequest() {
+    window.location.href = '/commission-monitoring?add_request_for=' + _dpRecordId;
 }
 
 function updateClientStatusSelect(id, clientStatus) {
@@ -1617,20 +2088,37 @@ function updateDPStatusBadge(id, status, terms, amount) {
     if (amount !== undefined) btn.dataset.amount = amount;
 }
 
-function openDPModal(id, amount, terms, perTerm, status, dpDate) {
-    _dpRecordId = id;
+function openDPModal(id, amount, terms, perTerm, status, dpDate, tcp, termsLabel, stage, stageTotal) {
+    _dpRecordId    = id;
+    _dpTcp         = parseFloat(tcp) || 0;
+    _dpTermsLabel  = termsLabel || '';
+    _dpTotalAmount = _dpTcp * parseDPPercent(_dpTermsLabel);
+    _dpStage = parseInt(stage) || 0;
+    _dpStageTotal = parseInt(stageTotal) || 1;
+    _dpNextCommissionStage = null;
+    _dpCommissionReady = false;
+    _dpAllCommissionStagesRequested = false;
+    _dpCommissionStages = [];
+    refreshDPStageSummary();
 
     const isSpotPaid = status === 'Spot Paid';
     const locked     = isSpotPaid && !_isAdmin;
 
+    // Paid-so-far for the header's Remaining Balance:
+    // - Spot Paid means the whole thing was paid in one go -> paidSum = _dpTotalAmount.
+    // - Otherwise (installments not yet loaded) start at 0; renderInstallments()
+    //   will correct this once the real per-term paid amounts come back.
+    refreshDPSummaryHeader(isSpotPaid ? _dpTotalAmount : 0);
+
     // Populate fields
-    document.getElementById('dp_total_amount').value  = amount > 0 ? amount : '';
+    document.getElementById('dp_total_amount').value  = _dpTotalAmount > 0 ? _dpTotalAmount.toFixed(2) : '';
 
     // The quick picker only has options 1–6 built in. If this plan has more
     // terms (created via "Others"), add a matching option on the fly so the
     // dropdown actually reflects the real count instead of clamping to 6.
     var termsSelect = document.getElementById('dp_terms_select');
-    var actualTerms  = terms || 1;
+    var parsedTerms  = parseDPMonths(_dpTermsLabel);
+    var actualTerms  = parsedTerms > 0 ? parsedTerms : (terms || 1);
     if (actualTerms > 6 && !termsSelect.querySelector('option[value="' + actualTerms + '"]')) {
         var opt = document.createElement('option');
         opt.value = actualTerms;
@@ -1638,9 +2126,9 @@ function openDPModal(id, amount, terms, perTerm, status, dpDate) {
         termsSelect.appendChild(opt);
     }
     termsSelect.value = actualTerms;
-    document.getElementById('dp_spot_amount').value   = amount > 0 ? amount : '';
+    document.getElementById('dp_spot_amount').value   = _dpTotalAmount > 0 ? _dpTotalAmount.toFixed(2) : '';
     document.getElementById('dp_spot_date').value     = dpDate || '';
-    document.getElementById('dp_others_amount').value = amount > 0 ? amount : '';
+    document.getElementById('dp_others_amount').value = _dpTotalAmount > 0 ? _dpTotalAmount.toFixed(2) : '';
     document.getElementById('dp_others_terms').value  = '';
 
     // Apply lock/unlock to spot DP fields
@@ -1680,9 +2168,12 @@ function openDPModal(id, amount, terms, perTerm, status, dpDate) {
     } else if (terms > 1) {
         selectDPType('installment');
         loadInstallments();
+    } else if (parseDPMonths(_dpTermsLabel) > 1) {
+        selectDPType('installment');
     }
 
     document.getElementById('dpModal').style.display = 'flex';
+    loadDownpaymentSummary(true);
 }
 
 function selectDPType(type) {
@@ -1712,10 +2203,14 @@ function selectDPType(type) {
 }
 
 function saveSpotDP() {
-    const amount = document.getElementById('dp_spot_amount').value;
+    const amount = _dpTotalAmount;
     const date   = document.getElementById('dp_spot_date').value;
     if (!amount || parseFloat(amount) <= 0) {
-        alert('Please enter the downpayment amount.');
+        alert('The total downpayment could not be calculated from TCP and Terms of Payment.');
+        return;
+    }
+    if (!date) {
+        alert('Please select the date of payment.');
         return;
     }
     fetch(`/client-database/${_dpRecordId}/downpayment-status`, {
@@ -1723,8 +2218,15 @@ function saveSpotDP() {
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _dpCsrf },
         body: JSON.stringify({ downpayment_status: 'Spot Paid', downpayment_amount: amount, downpayment_date: date })
     }).then(r => r.json()).then(d => {
+        refreshDPSummaryHeader(parseFloat(d.paid_total ?? amount) || 0);
         document.getElementById('dpModal').style.display = 'none';
-        window.location.reload();
+        updateDPStatusBadge(_dpRecordId, d.status || 'Spot Paid');
+        updateClientStatusSelect(_dpRecordId, d.client_status || 'Done');
+        if (handleCommissionTrigger(d)) {
+            _dpPendingReload = true;
+        } else {
+            window.location.reload();
+        }
     }).catch(() => {
         const form = document.createElement('form');
         form.method = 'POST'; form.action = `/client-database/${_dpRecordId}/downpayment-status`;
@@ -1776,8 +2278,16 @@ function loadInstallments() {
 }
 
 function setupInstallments() {
-    const terms  = document.getElementById('dp_terms_select').value;
-    const amount = parseFloat(document.getElementById('dp_total_amount').value) || 0;
+    const terms  = parseDPMonths(_dpTermsLabel);
+    const amount = _dpTotalAmount;
+    if (!terms || terms < 2) {
+        alert('This payment plan does not contain an installment DP month count. Please use Spot Downpayment.');
+        return;
+    }
+    if (!amount || amount <= 0) {
+        alert('The total downpayment could not be calculated from TCP and Terms of Payment.');
+        return;
+    }
     fetch(`/api/client-database/${_dpRecordId}/installments/setup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _dpCsrf },
@@ -1792,6 +2302,12 @@ function setupInstallments() {
 
 function renderInstallments(list) {
     const container = document.getElementById('dp_installments_list');
+
+    // Recompute how much of the total DP has actually been paid, and refresh
+    // the read-only summary header (Remaining Balance + commission threshold check).
+    const paidSum = list.reduce((sum, inst) => sum + (inst.is_paid ? (parseFloat(inst.amount) || 0) : 0), 0);
+    refreshDPSummaryHeader(paidSum);
+
     if (!list.length) {
         container.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">Set amount and terms, then click "Set Terms".</div>';
         return;
@@ -1810,8 +2326,9 @@ function renderInstallments(list) {
         // Amount input — editable for both admin and staff BEFORE paid; locked after paid
         const amountInput = inst.is_paid
             ? `<span style="flex:1;padding:10px 12px;font-size:13px;color:#166534;font-weight:600;">₱${Number(inst.amount||0).toLocaleString()}${paidDate}</span>`
-            : `<input type="number" id="inst_amount_${inst.id}" value="${inst.amount || ''}" placeholder="Enter amount" step="0.01" min="0"
-                onblur="saveInstallmentAmount(${inst.id})"
+            : `<input type="number" id="inst_amount_${inst.id}" value="${inst.amount || ''}" placeholder="Enter amount" step="0.01" min="0.01" max="${_dpRemainingBalance.toFixed(2)}" inputmode="decimal"
+                onkeydown="return !['e','E','+','-'].includes(event.key)"
+                onblur="saveInstallmentAmount(${inst.id}, true)"
                 style="flex:1;padding:10px 12px;border:none;outline:none;font-size:13px;background:transparent;">`;
 
         // Date input — only show when not yet paid
@@ -1819,7 +2336,7 @@ function renderInstallments(list) {
             `<input type="date" id="inst_date_${inst.id}" style="padding:8px 10px;border:none;border-left:1.5px solid #e2e8f0;outline:none;font-size:12px;background:transparent;color:#374151;" title="Date of payment">`;
 
         return `
-            <div style="display:flex;align-items:center;gap:0;border:1.5px solid ${border};border-radius:10px;overflow:hidden;background:${bg};min-width:460px;">
+            <div class="dp-installment-row" style="display:flex;align-items:center;flex-wrap:wrap;gap:0;border:1.5px solid ${border};border-radius:10px;overflow:hidden;background:${bg};">
                 <span style="font-size:13px;font-weight:700;color:#1e4575;padding:10px 14px;white-space:nowrap;border-right:1.5px solid ${border};">Term ${inst.term_number}</span>
                 ${amountInput}
                 ${dateInput}
@@ -1828,46 +2345,165 @@ function renderInstallments(list) {
     }).join('');
 }
 
-function saveInstallmentAmount(instId) {
-    const amount = document.getElementById(`inst_amount_${instId}`).value;
-    fetch(`/api/installments/${instId}/amount`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _dpCsrf },
-        body: JSON.stringify({ amount })
-    });
+function getInstallmentApiError(data, fallback) {
+    if (data && data.message) return data.message;
+    if (data && data.error) return data.error;
+
+    if (data && data.errors) {
+        var firstKey = Object.keys(data.errors)[0];
+        if (firstKey && data.errors[firstKey] && data.errors[firstKey][0]) {
+            return data.errors[firstKey][0];
+        }
+    }
+
+    return fallback || 'Unable to save the installment.';
+}
+
+function readInstallmentAmount(instId) {
+    var amountEl = document.getElementById('inst_amount_' + instId);
+    var rawAmount = amountEl ? amountEl.value.trim() : '';
+    var amount = Number(rawAmount);
+
+    if (!rawAmount || !Number.isFinite(amount) || amount <= 0) {
+        throw new Error('Enter a valid finite payment amount greater than zero.');
+    }
+
+    if (_dpRemainingBalance > 0 && amount > _dpRemainingBalance + 0.01) {
+        throw new Error(
+            'The payment cannot exceed the remaining DP balance of '
+            + fmtPeso(_dpRemainingBalance) + '.'
+        );
+    }
+
+    return {
+        raw: rawAmount,
+        value: amount,
+        element: amountEl
+    };
+}
+
+async function saveInstallmentAmount(instId, silent) {
+    var payment;
+
+    try {
+        payment = readInstallmentAmount(instId);
+    } catch (error) {
+        if (!silent) alert(error.message);
+        return false;
+    }
+
+    try {
+        var response = await fetch(`/api/installments/${instId}/amount`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': _dpCsrf
+            },
+            body: JSON.stringify({ amount: payment.raw })
+        });
+
+        var data = await response.json().catch(function () { return {}; });
+
+        if (!response.ok || !data.success) {
+            throw new Error(getInstallmentApiError(
+                data,
+                'Unable to save the installment amount.'
+            ));
+        }
+
+        return true;
+    } catch (error) {
+        payment.element.setCustomValidity(error.message);
+        payment.element.reportValidity();
+        payment.element.setCustomValidity('');
+
+        if (!silent) alert(error.message);
+        return false;
+    }
 }
 
 function markPaid(instId) {
-    if (!confirm('Mark this term as paid?')) return;
-    fetch(`/api/installments/${instId}/paid`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _dpCsrf },
-        body: JSON.stringify({})
-    }).then(r => r.json()).then(() => loadInstallments());
+    var btn = document.querySelector(
+        `button[onclick="markPaidWithDate(${instId}, this)"]`
+    );
+
+    markPaidWithDate(instId, btn);
 }
 
-function markPaidWithDate(instId, btn) {
-    var dateEl = document.getElementById('inst_date_'+instId);
+async function markPaidWithDate(instId, btn) {
+    var dateEl = document.getElementById('inst_date_' + instId);
     var date = dateEl ? dateEl.value : '';
-    // Save amount first if it has a value
-    var amountEl = document.getElementById('inst_amount_'+instId);
-    if (amountEl && amountEl.value) {
-        saveInstallmentAmount(instId);
+
+    if (!date) {
+        alert('Date of payment is required.');
+        if (dateEl) dateEl.focus();
+        return;
     }
-    if (!confirm('Mark Term ' + instId + ' as paid?')) return;
-    btn.disabled = true;
-    btn.textContent = 'Saving...';
-    fetch(`/api/installments/${instId}/paid`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _dpCsrf },
-        body: JSON.stringify({ paid_date: date })
-    }).then(r => r.json()).then(res => {
-        loadInstallments();
-        if (res.status) {
-            updateDPStatusBadge(_dpRecordId, res.status);
-            if (res.status === 'Paid') updateClientStatusSelect(_dpRecordId, 'Done');
+
+    var payment;
+
+    try {
+        payment = readInstallmentAmount(instId);
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
+
+    if (!confirm('Mark this term as paid for ' + fmtPeso(payment.value) + '?')) {
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+    }
+
+    try {
+        var response = await fetch(`/api/installments/${instId}/paid`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': _dpCsrf
+            },
+            body: JSON.stringify({
+                amount: payment.raw,
+                paid_date: date
+            })
+        });
+
+        var res = await response.json().catch(function () { return {}; });
+
+        if (!response.ok || !res.success) {
+            throw new Error(getInstallmentApiError(
+                res,
+                'Failed to mark the installment as paid.'
+            ));
         }
-    }).catch(() => { btn.disabled = false; btn.textContent = 'Paid'; alert('Failed to save. Please try again.'); });
+
+        await loadInstallments();
+
+        if (res.status) updateDPStatusBadge(_dpRecordId, res.status);
+
+        if (res.client_status) {
+            updateClientStatusSelect(_dpRecordId, res.client_status);
+        } else if (res.status === 'Paid') {
+            updateClientStatusSelect(_dpRecordId, 'Done');
+        } else {
+            updateClientStatusSelect(_dpRecordId, 'Pending');
+        }
+
+        refreshDPStageSummary(res);
+        handleCommissionTrigger(res);
+    } catch (error) {
+        alert(error.message);
+
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Paid';
+        }
+    }
 }
 
 function unmarkPaid(instId) {
@@ -1879,6 +2515,8 @@ function unmarkPaid(instId) {
     }).then(r => r.json()).then(res => {
         loadInstallments();
         updateDPStatusBadge(_dpRecordId, res.status || '');
+        updateClientStatusSelect(_dpRecordId, res.client_status || 'Pending');
+        refreshDPStageSummary(res);
     });
 }
 </script>

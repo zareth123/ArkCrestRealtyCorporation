@@ -178,8 +178,7 @@
 
 .st-panel.active { display: block !important; animation: panelIn .3s ease forwards; }
 
-@keyframes panelIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
+@keyframes panelIn { from { opacity: 0; } to { opacity: 1; } }
 /* Page header */
 
 .st-page-header { margin-bottom: 20px; padding: 32px 0 0 0; }
@@ -356,53 +355,13 @@
 
 .del-rec-item { padding: 12px 14px; border-radius: 8px; background: #f8fafc; border: 1px solid #f1f5f9; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
-.dr-filter-label { display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
-
-.dr-filter-input { width: 100%; padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #374151; background: #fff; }
-
-.dr-filter-input:focus { outline: none; border-color: #1e4575; box-shadow: 0 0 0 3px rgba(30,69,117,.1); }
-
-.dr-row-selected td { background: #eff6ff !important; }
-
-.dr-name-cell { font-weight: 600; color: #0f172a; cursor: pointer; }
-
-.dr-sub-cell { font-size: 11px; color: #94a3b8; }
-
-.dr-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9999; align-items: center; justify-content: center; }
-
-.dr-modal-overlay.active { display: flex; }
-
-.dr-modal-box { background: #fff; border-radius: 16px; width: 92%; max-width: 700px; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
-
-.dr-modal-header { background: #1e4575; color: #fff; padding: 16px 22px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center; }
-
-.dr-modal-header h3 { margin: 0; font-size: 15px; font-weight: 700; }
-
-.dr-modal-close { background: rgba(255,255,255,.2); border: none; color: #fff; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 18px; line-height: 1; }
-
-.dr-modal-close:hover { background: rgba(255,255,255,.35); }
-
-.dr-modal-body { padding: 22px; }
-
-.dr-modal-banner { margin-bottom: 16px; padding: 10px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 12px; color: #991b1b; font-weight: 600; }
-
-.dr-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-
-.dr-modal-field label { display: block; font-size: 10px; font-weight: 700; color: #1e4575; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
-
-.dr-modal-field .dr-field-value { font-size: 13px; color: #374151; font-weight: 500; padding: 9px 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; word-break: break-word; }
-
-.dr-modal-footer { padding: 14px 22px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 10px; }
-
-@media (max-width: 640px) { .dr-modal-grid { grid-template-columns: 1fr; } }
-
 .period-lock-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #f8fafc; border-radius: 8px; border: 1px solid #f1f5f9; margin-bottom: 8px; }
 
 </style>
 
 <div class="st-page-wrap">
   @php
-    $isAdmin = auth()->user()->isAdmin(); $sHidden = $isAdmin ? [] : (auth()->user()->hidden_pages ?? []); $canSeeS = fn($k) => $isAdmin || !in_array($k, $sHidden);
+    $sHidden = $hiddenSections ?? []; $isAdmin = auth()->user()->isAdmin(); $canSeeS = fn($k) => $isAdmin || !in_array($k, $sHidden);
     $activePanel = request('panel') ?: session('open_section', 'profile');
     $panelClass = fn($key) => 'st-panel' . ($activePanel === $key ? ' active' : '');
   @endphp
@@ -931,6 +890,8 @@
               'settings.permissions'             => 'Permission Requests',
               'settings.teams'                   => 'Team Management',
               'settings.period-lock'             => 'Period Lock',
+              'settings.backup'                  => 'Backup & Restore',
+              'settings.export'                  => 'Export Records',
             ],
           ];
           $staffUsers = $activeUsers->whereNotIn('status', ['pre_registered'])->where('role', '!=', 'admin');
@@ -940,41 +901,56 @@
         @endphp
 
         {{-- User selector --}}
-        {{-- User selector --}}
         <div style="margin-bottom:20px;">
-          <label style="font-weight:700;font-size:13px;color:#1e4575;display:block;margin-bottom:8px;">Page Visibility — Select User</label>
-          @if($staffUsers->isEmpty())
-            <div style="color:#6b7280;font-size:13px;padding:10px 0;">No users yet. Click "Add User" to add one.</div>
-          @else
-
-          {{-- Department filter + name search --}}
-          <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
-            <select id="visDeptFilter" onchange="filterVisUsers()" style="padding:8px 12px;border:1.5px solid #d0d5dd;border-radius:8px;font-size:13px;font-weight:600;color:#374151;background:#fff;cursor:pointer;">
-              <option value="">All Departments</option>
-              <option value="finance">Finance</option>
-              <option value="sales">Sales &amp; Marketing</option>
-              <option value="hr">Human Resource</option>
-            </select>
-            <div style="position:relative;flex:1;min-width:200px;max-width:320px;">
-              <input type="text" id="visNameSearch" oninput="filterVisUsers()" placeholder="Search staff by name..."
-                style="width:100%;padding:8px 12px 8px 34px;border:1.5px solid #d0d5dd;border-radius:8px;font-size:13px;color:#374151;box-sizing:border-box;">
-              <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:#9ca3af;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-              </svg>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
+            <label style="font-weight:700;font-size:13px;color:#1e4575;margin:0;">Page Visibility — Select User</label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <select id="visDeptFilter" class="st-select" onchange="filterVisUserTabs()" style="min-width:170px;">
+                <option value="">All Departments</option>
+                <option value="finance">Finance</option>
+                <option value="sales & marketing">Sales & Marketing</option>
+                <option value="human resource">Human Resource</option>
+              </select>
+              <div style="position:relative;">
+                <input type="text" id="visUserSearch" class="st-input" placeholder="Search staff by name..." oninput="filterVisUserTabs()" style="width:220px;padding-left:32px;">
+                <svg width="14" height="14" fill="none" stroke="#94a3b8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8" stroke-width="2"/><path d="m21 21-4.3-4.3" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
             </div>
           </div>
-
+          @if($staffUsers->isEmpty())
+            <div style="color:#6b7280;font-size:13px;padding:10px 0;">No users yet.</div>
+          @else
+          @php
+            // Department filter is derived from each user's Position (the
+            // field editable on the Employee Data page), not a separate
+            // department column — so choosing "Finance" in the dropdown
+            // surfaces anyone whose position reads as a finance role
+            // (Finance Officer, Finance Manager, Accountant, etc.), not
+            // just users explicitly tagged with an exact department value.
+            // Add/adjust keywords below to match your actual position titles.
+            $deptPositionKeywords = [
+                'finance'           => ['finance', 'accounting', 'accountant', 'treasury', 'audit', 'bookkeep'],
+                'sales & marketing' => ['sales', 'marketing'],
+                'human resource'    => ['human resource', 'hr'],
+            ];
+            $resolveUserDept = function ($position) use ($deptPositionKeywords) {
+                $position = strtolower(trim($position ?? ''));
+                if ($position === '') return '';
+                foreach ($deptPositionKeywords as $dept => $keywords) {
+                    foreach ($keywords as $kw) {
+                        // word-boundary match so short keywords like "hr"
+                        // don't false-positive inside unrelated words
+                        if (preg_match('/\b' . preg_quote($kw, '/') . '\b/', $position)) {
+                            return $dept;
+                        }
+                    }
+                }
+                return '';
+            };
+          @endphp
           <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;" id="vis-user-tabs">
             @foreach($staffUsers as $u)
-              @php
-                $pos = strtolower($u->position ?? '');
-                $dept = '';
-                if (str_contains($pos, 'financ')) $dept = 'finance';
-                elseif (str_contains($pos, 'sales') || str_contains($pos, 'market')) $dept = 'sales';
-                elseif (str_contains($pos, 'hr') || str_contains($pos, 'human resource')) $dept = 'hr';
-              @endphp
-              <button type="button" onclick="selectVisUser({{ $u->id }}, this, '{{ addslashes($u->name) }}')"
-                data-name="{{ strtolower($u->name) }}" data-dept="{{ $dept }}"
+              <button type="button" data-name="{{ strtolower($u->name) }}" data-department="{{ $resolveUserDept($u->position) }}" onclick="selectVisUser({{ $u->id }}, this, '{{ addslashes($u->name) }}')"
                 style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 18px;border-radius:12px;cursor:pointer;border:2px solid {{ $selectedUserId == $u->id ? '#1e4575' : '#e5e7eb' }};background:{{ $selectedUserId == $u->id ? '#1e4575' : '#fff' }};color:{{ $selectedUserId == $u->id ? '#fff' : '#374151' }};width:110px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
                 <div style="position:relative;">
                 @if($u->avatar)
@@ -993,7 +969,7 @@
               </button>
             @endforeach
           </div>
-          <div id="visNoUsersFound" style="display:none;color:#9ca3af;font-size:13px;padding:16px 0;text-align:center;">No staff found matching your filters.</div>
+          <div id="vis-user-no-results" style="display:none;color:#94a3b8;font-size:13px;padding:10px 0;">No users match your search.</div>
           @endif
         </div>
 
@@ -1086,179 +1062,170 @@
 
     {{-- DELETED RECORDS PANEL --}}
 
-    <div class="{{ $panelClass('deleted') }}" id="panel-deleted">
 
-      <div class="st-page-header"><div class="st-page-title">Deleted Records</div><div class="st-page-sub">Restore or permanently delete records</div></div>
+<div class="{{ $panelClass('deleted') }}" id="panel-deleted">
 
-      @php
-        $deletedExpenses = \App\Models\DepartmentalExpense::onlyTrashed()->orderBy('deleted_at','desc')->get();
-        $deletedLogsRaw  = $activityLogs->where('action','delete')->filter(fn($l) => $l->module !== 'Departmental Expenses')->values();
-
-        $actorLabel = function($user) {
-            if (!$user || !$user->id) return 'System';
-            $role = !empty($user->role) ? ucfirst($user->role) : '';
-            return trim($role . ' ' . $user->name);
-        };
-
-        $deletedRecordsData = [];
-
-        foreach ($deletedLogsRaw as $log) {
-            $meta = $log->meta ?? [];
-            $name = $meta['client_name'] ?? $meta['requestor_name'] ?? $meta['agent_name'] ?? $meta['title'] ?? null;
-            $project = $meta['project_name'] ?? $meta['property_name'] ?? null;
-            $details = !empty($meta) ? $meta : ['info' => $log->description];
-            unset($details['id']);
-
-            $deletedRecordsData[] = [
-                'id'               => 'log-' . $log->id,
-                'type'             => 'log',
-                'refId'            => $log->id,
-                'name'             => $name ?: '—',
-                'project'          => $project ?: '—',
-                'module'           => $log->module,
-                'deletedBy'        => $actorLabel($log->user),
-                'deletedAt'        => optional($log->created_at)->toIso8601String(),
-                'deletedAtDisplay' => optional($log->created_at)->format('M d, Y g:i A'),
-                'monthKey'         => optional($log->created_at)->format('Y-m'),
-                'monthLabel'       => optional($log->created_at)->format('F Y'),
-                'summary'          => "{$actorLabel($log->user)} deleted from {$log->module}",
-                'canRestore'       => !empty($meta),
-                'details'          => $details,
-            ];
-        }
-
-        foreach ($deletedExpenses as $exp) {
-            $matchLog = collect($activityLogs)->first(function($l) use ($exp) {
-                return $l->module === 'Departmental Expenses' && $l->action === 'delete'
-                    && preg_match('/ID:\s*' . $exp->id . '\s*\(/', $l->description);
-            });
-
-            $deletedRecordsData[] = [
-                'id'               => 'expense-' . $exp->id,
-                'type'             => 'expense',
-                'refId'            => $exp->id,
-                'name'             => $exp->requestor_name ?: '—',
-                'project'          => $exp->department ?: '—',
-                'module'           => 'Departmental Expenses',
-                'deletedBy'        => $matchLog ? $actorLabel($matchLog->user) : 'Unknown',
-                'deletedAt'        => optional($exp->deleted_at)->toIso8601String(),
-                'deletedAtDisplay' => optional($exp->deleted_at)->format('M d, Y g:i A'),
-                'monthKey'         => optional($exp->deleted_at)->format('Y-m'),
-                'monthLabel'       => optional($exp->deleted_at)->format('F Y'),
-                'summary'          => ($matchLog ? $actorLabel($matchLog->user) : 'Unknown') . ' deleted from Departmental Expenses',
-                'canRestore'       => true,
-                'details'          => [
-                    'control_number'          => $exp->control_number,
-                    'requestor_name'          => $exp->requestor_name,
-                    'department'              => $exp->department,
-                    'category'                => $exp->category,
-                    'date_requested'          => optional($exp->date_requested)->format('M d, Y'),
-                    'requested_amount'        => '₱' . number_format($exp->requested_amount, 2),
-                    'status'                  => $exp->status,
-                    'date_released'           => optional($exp->date_released)->format('M d, Y'),
-                    'total_expenses'          => '₱' . number_format($exp->total_expenses, 2),
-                    'amount_returned'         => '₱' . number_format($exp->amount_returned, 2),
-                ],
-            ];
-        }
-
-        usort($deletedRecordsData, fn($a, $b) => strcmp($b['deletedAt'] ?? '', $a['deletedAt'] ?? ''));
-      @endphp
-
-      <script>window.__deletedRecordsData = @json($deletedRecordsData);</script>
-
-      {{-- Filters --}}
-      <div class="st-card" style="margin-bottom:16px;">
-        <div class="st-card-body" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-          <div style="flex:1;min-width:160px;">
-            <label class="dr-filter-label">Name</label>
-            <input type="text" id="drFilterName" class="dr-filter-input" placeholder="Filter by name..." oninput="drRenderTable()">
-          </div>
-          <div style="flex:1;min-width:160px;">
-            <label class="dr-filter-label">Project Name</label>
-            <input type="text" id="drFilterProject" class="dr-filter-input" placeholder="Filter by project..." oninput="drRenderTable()">
-          </div>
-          <div style="flex:1;min-width:160px;">
-            <label class="dr-filter-label">Month Deleted</label>
-            <select id="drFilterMonth" class="dr-filter-input" onchange="drRenderTable()">
-              <option value="">All Months</option>
-            </select>
-          </div>
-          <button type="button" class="st-btn st-btn-sm" style="background:#f1f5f9;color:#374151;" onclick="drResetFilters()">Reset Filters</button>
-        </div>
-      </div>
-
-      {{-- Unified Deleted Records Table --}}
-      <div class="st-card">
-        <div class="st-card-hdr" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-          <div class="st-card-hdr-text"><h3>Deleted Records</h3><p><span id="drCount">0</span> record(s) &bull; click a row to view full details</p></div>
-          <div style="display:flex;gap:8px;">
-            <button type="button" class="st-btn st-btn-primary st-btn-sm" id="drBulkRestoreBtn" onclick="drBulkAction('restore')" disabled>Restore Selected</button>
-            <button type="button" class="st-btn st-btn-danger st-btn-sm" id="drBulkDeleteBtn" onclick="drBulkAction('delete')" disabled>Delete Selected</button>
-          </div>
-        </div>
-        <div class="st-card-body" style="padding:0;overflow-x:auto;">
-          <table class="st-user-table" style="min-width:820px;">
-            <thead>
-              <tr>
-                <th style="width:36px;"><input type="checkbox" id="drSelectAll" onclick="drToggleSelectAll(this)"></th>
-                <th>Name</th>
-                <th>Project</th>
-                <th>Deleted From / By</th>
-                <th>Date Deleted</th>
-                <th style="width:170px;">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="drTableBody"></tbody>
-          </table>
-          <div class="st-empty" id="drEmptyMsg" style="display:none;">No deleted records found.</div>
-        </div>
-      </div>
-
-      {{-- View / Restore / Delete Modal --}}
-      <div class="dr-modal-overlay" id="drViewModal">
-        <div class="dr-modal-box">
-          <div class="dr-modal-header">
-            <h3>Deleted Record Details</h3>
-            <button type="button" class="dr-modal-close" onclick="drCloseModal()">&times;</button>
-          </div>
-          <div class="dr-modal-body">
-            <div class="dr-modal-banner" id="drModalSummary"></div>
-            <div class="dr-modal-grid" id="drModalGrid"></div>
-          </div>
-          <div class="dr-modal-footer">
-            <button type="button" class="st-btn st-btn-sm" style="background:#f1f5f9;color:#374151;" onclick="drCloseModal()">Close</button>
-            <button type="button" class="st-btn st-btn-danger st-btn-sm" id="drModalDeleteBtn" onclick="drModalAction('delete')">Delete Permanently</button>
-            <button type="button" class="st-btn st-btn-primary st-btn-sm" id="drModalRestoreBtn" onclick="drModalAction('restore')">Restore</button>
-          </div>
-        </div>
-      </div>
-
-      {{-- Confirmation Modal (Restore: yes/no, Delete: type DELETE) --}}
-      <div class="dr-modal-overlay" id="drConfirmModal">
-        <div class="dr-modal-box" style="max-width:420px;">
-          <div class="dr-modal-header">
-            <h3 id="drConfirmTitle">Confirm</h3>
-            <button type="button" class="dr-modal-close" onclick="drCloseConfirm()">&times;</button>
-          </div>
-          <div class="dr-modal-body">
-            <p id="drConfirmMessage" style="font-size:13px;color:#374151;margin:0 0 14px;line-height:1.5;"></p>
-            <div id="drConfirmTypedWrap" style="display:none;">
-              <label class="dr-filter-label">Type <strong>DELETE</strong> to confirm</label>
-              <input type="text" id="drConfirmTypedInput" class="dr-filter-input" placeholder="Type DELETE" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();drConfirmProceed();}">
-              <div id="drConfirmTypedError" style="display:none;color:#dc2626;font-size:11.5px;margin-top:6px;">Please type DELETE exactly (all caps) to confirm.</div>
-            </div>
-          </div>
-          <div class="dr-modal-footer">
-            <button type="button" class="st-btn st-btn-sm" style="background:#f1f5f9;color:#374151;" onclick="drCloseConfirm()">Cancel</button>
-            <button type="button" class="st-btn st-btn-danger st-btn-sm" id="drConfirmProceedBtn" onclick="drConfirmProceed()">Confirm</button>
-          </div>
-        </div>
-      </div>
-
+  <div class="st-page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div class="st-page-title">Deleted Records</div>
+      <div class="st-page-sub">Restore or permanently delete records, grouped by source</div>
     </div>
+    <select id="delFilterModule" class="st-select" onchange="filterDeletedGroups()" style="font-size:12px;">
+      <option value="">All Sources</option>
+      @if($deletedExpenses->isNotEmpty())<option value="Departmental Expenses">Departmental Expenses</option>@endif
+      @foreach($deletedLogsGrouped as $module => $logs)
+        <option value="{{ $module }}">{{ $module }}</option>
+      @endforeach
+    </select>
+  </div>
 
-    @endif
+  <div id="del-bulk-bar" style="display:none;align-items:center;justify-content:space-between;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+    <span id="del-selected-count" style="font-size:13px;font-weight:600;color:#1e4575;">0 selected</span>
+    <div style="display:flex;gap:8px;">
+      <button type="button" class="st-btn st-btn-primary st-btn-sm" onclick="bulkAction('restore')">Restore Selected</button>
+      <button type="button" class="st-btn st-btn-danger st-btn-sm" onclick="bulkAction('delete')">Delete Selected</button>
+      <button type="button" class="st-btn st-btn-sm" style="background:#f1f5f9;color:#374151;" onclick="clearDelSelection()">Clear</button>
+    </div>
+  </div>
+
+  @if($deletedExpenses->isEmpty() && $deletedLogsGrouped->isEmpty())
+    <div class="st-card"><div class="st-card-body"><div class="st-empty">No deleted records.</div></div></div>
+  @endif
+
+  {{-- Departmental Expenses group (own columns, doesn't mix with other modules) --}}
+  @if($deletedExpenses->isNotEmpty())
+  <div class="st-card del-group" data-module="Departmental Expenses" style="margin-bottom:16px;">
+    <div class="st-card-hdr">
+      <div class="st-card-hdr-text"><h3>Departmental Expenses</h3><p>{{ $deletedExpenses->count() }} deleted record(s)</p></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;cursor:pointer;">
+        <input type="checkbox" onchange="toggleGroupSelect(this,'expense')"> Select All
+      </label>
+    </div>
+    <div class="st-card-body" style="padding:0;overflow-x:auto;">
+      <table class="st-user-table" style="min-width:700px;">
+        <thead><tr>
+          <th style="width:30px;"></th>
+          <th>Control #</th><th>Requestor</th><th>Department</th><th>Amount</th><th>Deleted By</th><th>Deleted On</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+        @foreach($deletedExpenses as $exp)
+        @php
+          $expDetail = [
+            'title'      => $exp->control_number,
+            'module'     => 'Departmental Expenses',
+            'deleted_by' => $exp->deleted_by_name,
+            'deleted_at' => optional($exp->deleted_at)->format('M d, Y g:i A'),
+            'fields'     => [
+              'Requestor'      => $exp->requestor_name,
+              'Department'     => $exp->department,
+              'Amount'         => '₱'.number_format($exp->requested_amount, 2),
+              'Date Requested' => optional($exp->date_requested)->format('M d, Y'),
+              'Status'         => $exp->status,
+            ],
+          ];
+        @endphp
+        <tr>
+          <td><input type="checkbox" class="del-select" data-type="expense" data-id="{{ $exp->id }}"></td>
+          <td style="cursor:pointer;color:#1e4575;font-weight:600;" onclick='openDelDetail(@json($expDetail))'>{{ $exp->control_number }}</td>
+          <td>{{ $exp->requestor_name }}</td>
+          <td>{{ $exp->department }}</td>
+          <td>₱{{ number_format($exp->requested_amount, 2) }}</td>
+          <td style="font-size:12px;color:#374151;">{{ $exp->deleted_by_name }}</td>
+          <td style="font-size:11px;color:#94a3b8;">{{ $exp->deleted_at ? $exp->deleted_at->format('M d, Y g:i A') : '—' }}</td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <form method="POST" action="{{ route('expenses.restore', $exp->id) }}">@csrf
+                <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
+              </form>
+              <form method="POST" action="{{ route('expenses.purge', $exp->id) }}" onsubmit="return confirm('Permanently delete this record?')">@csrf @method('DELETE')
+                <button type="submit" class="st-btn st-btn-danger st-btn-sm">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        @endforeach
+        </tbody>
+      </table>
+    </div>
+  </div>
+  @endif
+
+  {{-- Every other module gets its own group, so field sets never collide --}}
+  @foreach($deletedLogsGrouped as $module => $logs)
+  <div class="st-card del-group" data-module="{{ $module }}" style="margin-bottom:16px;">
+    <div class="st-card-hdr">
+      <div class="st-card-hdr-text"><h3>{{ $module }}</h3><p>{{ $logs->count() }} deleted record(s)</p></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;cursor:pointer;">
+        <input type="checkbox" onchange="toggleGroupSelect(this,'log')"> Select All
+      </label>
+    </div>
+    <div class="st-card-body">
+      @foreach($logs as $log)
+      @php
+        $logDetail = [
+          'title'      => $log->description ?: $log->module,
+          'module'     => $log->module,
+          'deleted_by' => $log->user->name ?? 'System',
+          'deleted_at' => $log->created_at->format('M d, Y g:i A'),
+          'fields'     => is_array($log->meta) ? $log->meta : [],
+        ];
+      @endphp
+      <div class="del-rec-item">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+          <input type="checkbox" class="del-select" data-type="log" data-id="{{ $log->id }}" {{ !$log->meta ? 'disabled title=Not restorable' : '' }}>
+          <div style="min-width:0;cursor:pointer;" onclick='openDelDetail(@json($logDetail))'>
+            <div style="font-size:13px;font-weight:600;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $log->description }}</div>
+            <div style="font-size:11px;color:#94a3b8;">by {{ $log->user->name ?? 'System' }} &bull; {{ $log->created_at->format('M d, Y g:i A') }}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          @if($log->meta)
+          <form method="POST" action="{{ route('settings.deleted.restore', $log->id) }}">@csrf
+            <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
+          </form>
+          @endif
+          <form method="POST" action="{{ route('settings.deleted.purge', $log->id) }}" onsubmit="return confirm('Permanently delete?')">@csrf @method('DELETE')
+            <button type="submit" class="st-btn st-btn-danger st-btn-sm">Delete</button>
+          </form>
+        </div>
+      </div>
+      @endforeach
+    </div>
+  </div>
+  @endforeach
+
+</div>
+
+{{-- Deleted-record detail popup --}}
+<div id="delDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this) closeDelDetail()">
+  <div style="background:white;border-radius:14px;padding:22px 26px;width:480px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">
+      <div>
+        <div id="delDetailTitle" style="font-size:15px;font-weight:700;color:#0f172a;"></div>
+        <div id="delDetailModule" style="font-size:12px;color:#94a3b8;margin-top:2px;"></div>
+      </div>
+      <button type="button" onclick="closeDelDetail()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;">&times;</button>
+    </div>
+    <div style="display:flex;gap:24px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;">Deleted By</div>
+        <div id="delDetailBy" style="font-size:13px;color:#374151;font-weight:600;"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;">Deleted On</div>
+        <div id="delDetailAt" style="font-size:13px;color:#374151;font-weight:600;"></div>
+      </div>
+    </div>
+    <div id="delDetailFields" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+      @endif
+
+      
+
+
+
+    
 
     @if($isAdmin || $canSeeS('settings.permissions'))
 
@@ -1911,356 +1878,11 @@
 </div>{{-- end st-page-wrap --}}
 
 <script>
-/* ===================== DELETED RECORDS PANEL ===================== */
-(function() {
-    const drSelected = new Set();
-    let drModalCurrent = null;
-
-    function drCsrf() {
-        return document.querySelector('meta[name=csrf-token]')?.content || '';
-    }
-
-    function drData() {
-        return window.__deletedRecordsData || [];
-    }
-
-    function drEsc(str) {
-        return String(str ?? '').replace(/[&<>"']/g, c => ({
-            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        }[c]));
-    }
-    
-    function drPopulateMonthFilter() {
-    const sel = document.getElementById('drFilterMonth');
-    if (!sel) return;
-    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const currentYear = new Date().getFullYear();
-
-    // Extend back further if any deleted record predates the current year
-    let minYear = currentYear;
-    drData().forEach(r => {
-        if (r.monthKey) {
-            const y = parseInt(r.monthKey.split('-')[0], 10);
-            if (!isNaN(y) && y < minYear) minYear = y;
-        }
-    });
-
-    const options = [];
-    for (let y = currentYear; y >= minYear; y--) {
-        for (let m = 12; m >= 1; m--) {
-            const key = y + '-' + String(m).padStart(2, '0');
-            const label = monthNames[m - 1] + ' ' + y;
-            options.push([key, label]);
-        }
-    }
-
-    sel.innerHTML = '<option value="">All Months</option>' +
-        options.map(([key, label]) => `<option value="${drEsc(key)}">${drEsc(label)}</option>`).join('');
-}
-
-    window.drRenderTable = function() {
-        const nameF = (document.getElementById('drFilterName')?.value || '').trim().toLowerCase();
-        const projF = (document.getElementById('drFilterProject')?.value || '').trim().toLowerCase();
-        const monthF = document.getElementById('drFilterMonth')?.value || '';
-
-        const rows = drData().filter(r => {
-            if (nameF && !String(r.name).toLowerCase().includes(nameF)) return false;
-            if (projF && !String(r.project).toLowerCase().includes(projF)) return false;
-            if (monthF && r.monthKey !== monthF) return false;
-            return true;
-        });
-
-        const tbody = document.getElementById('drTableBody');
-        const emptyMsg = document.getElementById('drEmptyMsg');
-        document.getElementById('drCount').textContent = rows.length;
-
-        if (!rows.length) {
-            tbody.innerHTML = '';
-            emptyMsg.style.display = 'block';
-        } else {
-            emptyMsg.style.display = 'none';
-            tbody.innerHTML = rows.map(r => `
-                <tr data-id="${drEsc(r.id)}" class="${drSelected.has(r.id) ? 'dr-row-selected' : ''}">
-                    <td onclick="event.stopPropagation()"><input type="checkbox" class="dr-row-check" data-id="${drEsc(r.id)}" ${drSelected.has(r.id) ? 'checked' : ''} onclick="drToggleRow('${drEsc(r.id)}', this.checked)"></td>
-                    <td class="dr-name-cell" onclick="drOpenModal('${drEsc(r.id)}')">${drEsc(r.name)}</td>
-                    <td onclick="drOpenModal('${drEsc(r.id)}')">${drEsc(r.project)}</td>
-                    <td onclick="drOpenModal('${drEsc(r.id)}')">
-                        <div>${drEsc(r.module)}</div>
-                        <div class="dr-sub-cell">${drEsc(r.deletedBy)}</div>
-                    </td>
-                    <td onclick="drOpenModal('${drEsc(r.id)}')" class="dr-sub-cell">${drEsc(r.deletedAtDisplay)}</td>
-                    <td onclick="event.stopPropagation()">
-                        <div style="display:flex;gap:6px;">
-                            ${r.canRestore ? `<button type="button" class="st-btn st-btn-primary st-btn-sm" onclick="drSingleAction('${drEsc(r.id)}','restore')">Restore</button>` : ''}
-                            <button type="button" class="st-btn st-btn-danger st-btn-sm" onclick="drSingleAction('${drEsc(r.id)}','delete')">Delete</button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        drUpdateSelectAllState(rows);
-        drUpdateBulkButtons();
-    };
-
-    function drUpdateSelectAllState(rows) {
-        const selectAll = document.getElementById('drSelectAll');
-        if (!selectAll) return;
-        const visibleIds = rows.map(r => r.id);
-        const allChecked = visibleIds.length > 0 && visibleIds.every(id => drSelected.has(id));
-        selectAll.checked = allChecked;
-    }
-
-    function drUpdateBulkButtons() {
-        const has = drSelected.size > 0;
-        const restoreBtn = document.getElementById('drBulkRestoreBtn');
-        const deleteBtn = document.getElementById('drBulkDeleteBtn');
-        if (restoreBtn) restoreBtn.disabled = !has;
-        if (deleteBtn) deleteBtn.disabled = !has;
-    }
-
-    window.drToggleRow = function(id, checked) {
-        if (checked) drSelected.add(id); else drSelected.delete(id);
-        const row = document.querySelector(`#drTableBody tr[data-id="${id}"]`);
-        if (row) row.classList.toggle('dr-row-selected', checked);
-        drUpdateBulkButtons();
-    };
-
-    window.drToggleSelectAll = function(cb) {
-        document.querySelectorAll('#drTableBody .dr-row-check').forEach(box => {
-            box.checked = cb.checked;
-            window.drToggleRow(box.getAttribute('data-id'), cb.checked);
-        });
-    };
-
-    window.drResetFilters = function() {
-        document.getElementById('drFilterName').value = '';
-        document.getElementById('drFilterProject').value = '';
-        document.getElementById('drFilterMonth').value = '';
-        drRenderTable();
-    };
-
-    function drFindRecord(id) {
-        return drData().find(r => r.id === id);
-    }
-
-    function drRemoveFromData(ids) {
-        window.__deletedRecordsData = drData().filter(r => !ids.includes(r.id));
-        ids.forEach(id => drSelected.delete(id));
-    }
-
-    function drItemsPayload(ids) {
-        return ids.map(id => {
-            const r = drFindRecord(id);
-            return { type: r.type, id: r.refId };
-        }).filter(Boolean);
-    }
-
-    async function drCallBulk(action, ids) {
-        const url = action === 'restore'
-            ? '{{ route('settings.deleted.bulkRestore') }}'
-            : '{{ route('settings.deleted.bulkDelete') }}';
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': drCsrf(), 'Accept': 'application/json' },
-            body: JSON.stringify({ items: drItemsPayload(ids) })
-        });
-        return res.json();
-    }
-
-    /* ---- Confirmation modal: simple yes/no for restore, type-DELETE for permanent delete ---- */
-    let drConfirmResolver = null;
-
-    window.drAskConfirm = function({ typed, title, message }) {
-        return new Promise(resolve => {
-            drConfirmResolver = resolve;
-            document.getElementById('drConfirmTitle').textContent = title || 'Confirm';
-            document.getElementById('drConfirmMessage').textContent = message || '';
-            document.getElementById('drConfirmTypedWrap').style.display = typed ? 'block' : 'none';
-            document.getElementById('drConfirmTypedError').style.display = 'none';
-            document.getElementById('drConfirmTypedInput').value = '';
-            const modal = document.getElementById('drConfirmModal');
-            modal.dataset.typed = typed ? '1' : '0';
-            document.getElementById('drConfirmProceedBtn').textContent = typed ? 'Delete Permanently' : 'Yes, Restore';
-            document.getElementById('drConfirmProceedBtn').className = typed ? 'st-btn st-btn-danger st-btn-sm' : 'st-btn st-btn-primary st-btn-sm';
-            modal.classList.add('active');
-            if (typed) {
-                setTimeout(() => document.getElementById('drConfirmTypedInput').focus(), 50);
-            }
-        });
-    };
-
-    window.drCloseConfirm = function() {
-        document.getElementById('drConfirmModal').classList.remove('active');
-        if (drConfirmResolver) {
-            const resolve = drConfirmResolver;
-            drConfirmResolver = null;
-            resolve(false);
-        }
-    };
-
-    window.drConfirmProceed = function() {
-        const modal = document.getElementById('drConfirmModal');
-        const typed = modal.dataset.typed === '1';
-        if (typed) {
-            const val = document.getElementById('drConfirmTypedInput').value.trim();
-            if (val !== 'DELETE') {
-                document.getElementById('drConfirmTypedError').style.display = 'block';
-                return;
-            }
-        }
-        modal.classList.remove('active');
-        if (drConfirmResolver) {
-            const resolve = drConfirmResolver;
-            drConfirmResolver = null;
-            resolve(true);
-        }
-    };
-
-    window.drSingleAction = async function(id, action) {
-        const record = drFindRecord(id);
-        if (!record) return;
-
-        const ok = action === 'restore'
-            ? await drAskConfirm({
-                typed: false,
-                title: 'Restore Record',
-                message: `Are you sure you want to restore this record ("${record.name}")?`
-            })
-            : await drAskConfirm({
-                typed: true,
-                title: 'Permanently Delete Record',
-                message: `You are about to permanently delete this record ("${record.name}"). This action cannot be undone.`
-            });
-        if (!ok) return;
-
-        try {
-            const result = await drCallBulk(action, [id]);
-            if (result.success) {
-                drRemoveFromData([id]);
-                drRenderTable();
-                alert(result.message || 'Done.');
-            } else {
-                alert(result.message || 'Action failed.');
-            }
-        } catch (e) {
-            alert('Something went wrong. Please try again.');
-        }
-    };
-
-    window.drBulkAction = async function(action) {
-        const ids = Array.from(drSelected);
-        if (!ids.length) return;
-
-        const ok = action === 'restore'
-            ? await drAskConfirm({
-                typed: false,
-                title: 'Restore Records',
-                message: `Are you sure you want to restore ${ids.length} selected record(s)?`
-            })
-            : await drAskConfirm({
-                typed: true,
-                title: 'Permanently Delete Records',
-                message: `You are about to permanently delete ${ids.length} selected record(s). This action cannot be undone.`
-            });
-        if (!ok) return;
-
-        try {
-            const result = await drCallBulk(action, ids);
-            drRemoveFromData(ids);
-            drRenderTable();
-            alert(result.message || 'Done.');
-        } catch (e) {
-            alert('Something went wrong. Please try again.');
-        }
-    };
-
-    window.drOpenModal = function(id) {
-        const record = drFindRecord(id);
-        if (!record) return;
-        drModalCurrent = record;
-
-        document.getElementById('drModalSummary').textContent = record.summary;
-        const grid = document.getElementById('drModalGrid');
-        const labelize = k => k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        grid.innerHTML = Object.entries(record.details || {}).map(([k, v]) => `
-            <div class="dr-modal-field">
-                <label>${drEsc(labelize(k))}</label>
-                <div class="dr-field-value">${drEsc(v ?? '—') || '—'}</div>
-            </div>
-        `).join('') + `
-            <div class="dr-modal-field">
-                <label>Deleted On</label>
-                <div class="dr-field-value">${drEsc(record.deletedAtDisplay)}</div>
-            </div>
-            <div class="dr-modal-field">
-                <label>Deleted By</label>
-                <div class="dr-field-value">${drEsc(record.deletedBy)}</div>
-            </div>
-        `;
-
-        document.getElementById('drModalRestoreBtn').style.display = record.canRestore ? 'inline-block' : 'none';
-        document.getElementById('drViewModal').classList.add('active');
-    };
-
-    window.drCloseModal = function() {
-        document.getElementById('drViewModal').classList.remove('active');
-        drModalCurrent = null;
-    };
-
-    window.drModalAction = async function(action) {
-        if (!drModalCurrent) return;
-        const id = drModalCurrent.id;
-        const name = drModalCurrent.name;
-
-        const ok = action === 'restore'
-            ? await drAskConfirm({
-                typed: false,
-                title: 'Restore Record',
-                message: `Are you sure you want to restore this record ("${name}")?`
-            })
-            : await drAskConfirm({
-                typed: true,
-                title: 'Permanently Delete Record',
-                message: `You are about to permanently delete this record ("${name}"). This action cannot be undone.`
-            });
-        if (!ok) return;
-
-        try {
-            const result = await drCallBulk(action, [id]);
-            if (result.success) {
-                drRemoveFromData([id]);
-                drCloseModal();
-                drRenderTable();
-                alert(result.message || 'Done.');
-            } else {
-                alert(result.message || 'Action failed.');
-            }
-        } catch (e) {
-            alert('Something went wrong. Please try again.');
-        }
-    };
-
-    document.addEventListener('DOMContentLoaded', function() {
-        if (document.getElementById('drTableBody')) {
-            drPopulateMonthFilter();
-            drRenderTable();
-        }
-    });
-})();
-/* =================== END DELETED RECORDS PANEL ===================== */
-
 function showPanel(name) {
     document.querySelectorAll('.st-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.st-nav-btn').forEach(b => b.classList.remove('active'));
-    let panel = document.getElementById('panel-' + name);
-    let btn   = document.getElementById('nav-' + name);
-    if (!panel) {
-        // Requested panel doesn't exist (bad/stale ?panel= value, or hidden by
-        // permissions) — fall back to Profile instead of leaving everything blank.
-        panel = document.getElementById('panel-profile');
-        btn   = document.getElementById('nav-profile');
-    }
+    const panel = document.getElementById('panel-' + name);
+    const btn   = document.getElementById('nav-' + name);
     if (panel) panel.classList.add('active');
     if (btn)   btn.classList.add('active');
 }
@@ -2268,24 +1890,7 @@ function showPanel(name) {
 function selectAllGroup(groupId, checked) {
     document.querySelectorAll('#' + groupId + ' input[type=checkbox]').forEach(cb => cb.checked = checked);
 }
-function filterVisUsers() {
-    const dept = document.getElementById('visDeptFilter').value.toLowerCase();
-    const search = document.getElementById('visNameSearch').value.toLowerCase().trim();
-    const buttons = document.querySelectorAll('#vis-user-tabs button');
-    let visibleCount = 0;
-    buttons.forEach(btn => {
-        const matchesDept = !dept || btn.getAttribute('data-dept') === dept;
-        const matchesName = !search || btn.getAttribute('data-name').includes(search);
-        if (matchesDept && matchesName) {
-            btn.style.display = '';
-            visibleCount++;
-        } else {
-            btn.style.display = 'none';
-        }
-    });
-    const noResults = document.getElementById('visNoUsersFound');
-    if (noResults) noResults.style.display = visibleCount === 0 ? 'block' : 'none';
-}
+
 function selectVisUser(userId, btn, userName) {
     document.getElementById('vis_user_id').value = userId;
     document.querySelectorAll('#vis-user-tabs button').forEach(b => {
@@ -2315,24 +1920,24 @@ function selectVisUser(userId, btn, userName) {
         });
 }
 
-function pickVisUser(userId, userName) {
-    document.getElementById('addUserVisModal').style.display = 'none';
-    // Update hidden input
-    document.getElementById('vis_user_id').value = userId;
-    // Highlight the selected user tab if exists, else reload page with vis_user param
-    const tabs = document.querySelectorAll('#vis-user-tabs button');
-    let found = false;
-    tabs.forEach(btn => {
-        if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('selectVisUser(' + userId + ',')) {
-            selectVisUser(userId, btn);
-            found = true;
-        }
+function filterVisUserTabs() {
+    var q = (document.getElementById('visUserSearch')?.value || '').toLowerCase().trim();
+    var dept = (document.getElementById('visDeptFilter')?.value || '').toLowerCase().trim();
+    var tabs = document.querySelectorAll('#vis-user-tabs button');
+    var visibleCount = 0;
+    tabs.forEach(function(b) {
+        var name = b.getAttribute('data-name') || '';
+        var department = b.getAttribute('data-department') || '';
+        var matchName = !q || name.includes(q);
+        var matchDept = !dept || department === dept;
+        var match = matchName && matchDept;
+        b.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
     });
-    if (!found) {
-        // User not in tabs yet, reload to show them
-        window.location.href = window.location.pathname + '?vis_user=' + userId + '#panel-visibility';
-    }
+    var noResults = document.getElementById('vis-user-no-results');
+    if (noResults) noResults.style.display = (visibleCount === 0) ? 'block' : 'none';
 }
+
 function addEmailRow() {
     const row = document.createElement('div');
     row.className = 'email-row';
@@ -2639,6 +2244,79 @@ function toggleSettingsPwdField(inputId, btn) {
     btn.innerHTML = showing
         ? '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>'
         : '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.68 19.68 0 0 1 4.22-5.94M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a19.6 19.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+}
+// ── Deleted Records ─────────────────────────────────────────────────────────
+function openDelDetail(data) {
+    document.getElementById('delDetailTitle').textContent = data.title || '—';
+    document.getElementById('delDetailModule').textContent = data.module || '';
+    document.getElementById('delDetailBy').textContent = data.deleted_by || 'Unknown';
+    document.getElementById('delDetailAt').textContent = data.deleted_at || '—';
+    var wrap = document.getElementById('delDetailFields');
+    wrap.innerHTML = '';
+    var fields = data.fields || {};
+    var keys = Object.keys(fields).filter(k => fields[k] !== null && fields[k] !== undefined && fields[k] !== '');
+    if (!keys.length) {
+        wrap.innerHTML = '<div style="font-size:12px;color:#94a3b8;">No additional details available.</div>';
+    } else {
+        keys.forEach(function(k) {
+            var row = document.createElement('div');
+            row.style.cssText = 'display:flex;justify-content:space-between;gap:12px;padding:6px 10px;background:#f8fafc;border-radius:6px;font-size:12px;';
+            var label = k.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+            row.innerHTML = '<span style="color:#64748b;font-weight:600;">' + label + '</span><span style="color:#374151;text-align:right;">' + String(fields[k]) + '</span>';
+            wrap.appendChild(row);
+        });
+    }
+    document.getElementById('delDetailModal').style.display = 'flex';
+}
+function closeDelDetail() { document.getElementById('delDetailModal').style.display = 'none'; }
+
+function filterDeletedGroups() {
+    var val = document.getElementById('delFilterModule').value;
+    document.querySelectorAll('.del-group').forEach(function(g) {
+        g.style.display = (!val || g.dataset.module === val) ? '' : 'none';
+    });
+}
+
+function toggleGroupSelect(cb, type) {
+    cb.closest('.del-group').querySelectorAll('.del-select[data-type="' + type + '"]:not(:disabled)')
+      .forEach(function(c){ c.checked = cb.checked; });
+    updateDelBulkBar();
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target.classList && e.target.classList.contains('del-select')) updateDelBulkBar();
+});
+
+function updateDelBulkBar() {
+    var checked = document.querySelectorAll('.del-select:checked');
+    document.getElementById('del-selected-count').textContent = checked.length + ' selected';
+    document.getElementById('del-bulk-bar').style.display = checked.length ? 'flex' : 'none';
+}
+
+function clearDelSelection() {
+    document.querySelectorAll('.del-select:checked').forEach(c => c.checked = false);
+    updateDelBulkBar();
+}
+
+function bulkAction(kind) {
+    var checked = document.querySelectorAll('.del-select:checked');
+    if (!checked.length) return;
+    if (!confirm(kind === 'delete'
+        ? 'Permanently delete ' + checked.length + ' record(s)? This cannot be undone.'
+        : 'Restore ' + checked.length + ' record(s)?')) return;
+
+    var items = Array.from(checked).map(c => ({ type: c.dataset.type, id: parseInt(c.dataset.id) }));
+    var url = kind === 'delete' ? '{{ route("settings.deleted.bulk-delete") }}' : '{{ route("settings.deleted.bulk-restore") }}';
+    var csrf = document.querySelector('meta[name=csrf-token]').content;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN': csrf},
+        body: JSON.stringify({ items: items })
+    }).then(r => r.json()).then(function(d) {
+        alert(d.message || 'Done.');
+        window.location.reload();
+    }).catch(function(){ window.location.reload(); });
 }
 </script>
 @endsection

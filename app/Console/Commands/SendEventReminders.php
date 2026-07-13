@@ -35,9 +35,9 @@ class SendEventReminders extends Command
     {
         $releases = collect();
         CommissionRequestSales::whereDate('date_released', $date)
-            ->where('status', 'Not Yet Released')->get()->each(fn($r) => $releases->push($r));
+            ->where('status', 'Not Released')->get()->each(fn($r) => $releases->push($r));
         CommissionRequest::whereDate('date_released', $date)
-            ->where('status', 'Not Yet Released')->get()->each(fn($r) => $releases->push($r));
+            ->where('status', 'Not Released')->get()->each(fn($r) => $releases->push($r));
 
         if ($releases->isEmpty()) return;
 

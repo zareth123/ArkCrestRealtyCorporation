@@ -27,6 +27,8 @@ class SettingsController extends Controller
     'settings.permissions',
     'settings.teams',
     'settings.period-lock',
+    'settings.backup',
+    'settings.export',
 ];
 
     public function index()
@@ -158,38 +160,64 @@ class SettingsController extends Controller
     }
 
     private function getSettingsData(): array
-    {
-        $settings = \DB::table('app_settings')->pluck('value', 'key');
-        $rawEmails          = $settings['notification_email'] ?? '';
-        $notificationEmails = array_values(array_filter(array_map('trim', explode(',', $rawEmails))));
-        return [
-            'notificationEmails' => $notificationEmails,
-            'notificationTime'   => $settings['notification_time'] ?? '08:00',
-            'smtpHost'           => $settings['smtp_host'] ?? '',
-            'smtpPort'           => $settings['smtp_port'] ?? '587',
-            'smtpUsername'       => $settings['smtp_username'] ?? '',
-            'smtpPassword'       => $settings['smtp_password'] ?? '',
-            'smtpFromName'       => $settings['smtp_from_name'] ?? config('app.name'),
-            'pendingUsers'       => User::where('status', 'pending')->where('email', 'not like', 'pending_%')->orderBy('created_at', 'desc')->get(),
-            'activeUsers'        => User::whereIn('status', ['active', 'pre_registered', 'pending'])->orderBy('employee_id')->get(),
-            'activityLogs'       => ActivityLog::with('user')->orderBy('created_at', 'desc')->limit(200)->get(),
-            'hiddenSections'     => array_values(json_decode(\DB::table('app_settings')->where('key', 'hidden_pages')->value('value') ?? '[]', true) ?: []),
-            'salesTeams'         => \App\Models\SalesTeam::with(['agents.user', 'quotas' => fn($q) => $q->orderBy('date_from', 'desc')])->orderBy('leader_name')->get(),
-            'properties'         => \Schema::hasTable('properties') ? \App\Models\Property::orderBy('name')->get() : collect(),
-            'privacyContent'     => \DB::table('app_settings')->where('key', 'privacy_policy')->value('value') ?? "Data Privacy Notice\n\nArckrest Realty Corporation is committed to protecting the privacy and confidentiality of all personal information collected through this system.\n\nInformation We Collect\n\nWe collect your full name, email address, employee ID, position, and date hired for account management and system access purposes.\n\nHow We Use Your Information\n\n- To manage and authenticate your system account\n- To track activity logs for security and audit purposes\n- To send email notifications related to your account\n- To generate internal reports and analytics\n\nSystem Usage Policy\n\n- Keep your login credentials confidential at all times.\n- Unauthorized access or sharing of credentials is strictly prohibited.\n- All data entered must be accurate and truthful.\n- Misuse may result in account suspension or termination.\n- This system is for authorized Arckrest Realty Corporation employees only.",
-            'periodLocks'        => \App\Models\PeriodLock::getLocked(),
-            'rejectedTrippings'  => \App\Models\TripSchedule::where('status', 'rejected')->orderBy('updated_at', 'desc')->get()->each(function($r) {
-                $user = \App\Models\User::where('employee_id', $r->agent_name)->first();
-                if ($user) $r->agent_name = $user->name;
-            }),
-            'personnelContacts'  => \Illuminate\Support\Facades\Schema::hasColumn('personnel_contacts', 'sort_order')
-                ? \App\Models\PersonnelContact::orderBy('sort_order')->orderBy('id')->get()
-                : \App\Models\PersonnelContact::orderBy('id')->get(),
-            'onlineUserIds'      => Schema::hasColumn('users', 'last_seen_at')
-                ? User::whereNotNull('last_seen_at')->where('last_seen_at', '>=', now()->subMinutes(2))->pluck('id')->toArray()
-                : [],
-        ];
-    }
+{
+    $settings = \DB::table('app_settings')->pluck('value', 'key');
+    $rawEmails          = $settings['notification_email'] ?? '';
+    $notificationEmails = array_values(array_filter(array_map('trim', explode(',', $rawEmails))));
+
+    $activityLogs = ActivityLog::with('user')->orderBy('created_at', 'desc')->limit(200)->get();
+
+    return [
+        'notificationEmails' => $notificationEmails,
+        'notificationTime'   => $settings['notification_time'] ?? '08:00',
+        'smtpHost'           => $settings['smtp_host'] ?? '',
+        'smtpPort'           => $settings['smtp_port'] ?? '587',
+        'smtpUsername'       => $settings['smtp_username'] ?? '',
+        'smtpPassword'       => $settings['smtp_password'] ?? '',
+        'smtpFromName'       => $settings['smtp_from_name'] ?? config('app.name'),
+        'pendingUsers'       => User::where('status', 'pending')->where('email', 'not like', 'pending_%')->orderBy('created_at', 'desc')->get(),
+        'activeUsers'        => User::whereIn('status', ['active', 'pre_registered', 'pending'])->orderBy('employee_id')->get(),
+        'activityLogs'       => $activityLogs,
+        'hiddenSections'     => array_values(json_decode(\DB::table('app_settings')->where('key', 'hidden_pages')->value('value') ?? '[]', true) ?: []),
+        'salesTeams'         => \App\Models\SalesTeam::with(['agents.user', 'quotas' => fn($q) => $q->orderBy('date_from', 'desc')])->orderBy('leader_name')->get(),
+        'properties'         => \Schema::hasTable('properties') ? \App\Models\Property::orderBy('name')->get() : collect(),
+        'privacyContent'     => \DB::table('app_settings')->where('key', 'privacy_policy')->value('value') ?? "Data Privacy Notice\n\nArckrest Realty Corporation is committed to protecting the privacy and confidentiality of all personal information collected through this system.\n\nInformation We Collect\n\nWe collect your full name, email address, employee ID, position, and date hired for account management and system access purposes.\n\nHow We Use Your Information\n\n- To manage and authenticate your system account\n- To track activity logs for security and audit purposes\n- To send email notifications related to your account\n- To generate internal reports and analytics\n\nSystem Usage Policy\n\n- Keep your login credentials confidential at all times.\n- Unauthorized access or sharing of credentials is strictly prohibited.\n- All data entered must be accurate and truthful.\n- Misuse may result in account suspension or termination.\n- This system is for authorized Arckrest Realty Corporation employees only.",
+        'periodLocks'        => \App\Models\PeriodLock::getLocked(),
+        'rejectedTrippings'  => \App\Models\TripSchedule::where('status', 'rejected')->orderBy('updated_at', 'desc')->get()->each(function($r) {
+            $user = \App\Models\User::where('employee_id', $r->agent_name)->first();
+            if ($user) $r->agent_name = $user->name;
+        }),
+        'personnelContacts'  => \Illuminate\Support\Facades\Schema::hasColumn('personnel_contacts', 'sort_order')
+            ? \App\Models\PersonnelContact::orderBy('sort_order')->orderBy('id')->get()
+            : \App\Models\PersonnelContact::orderBy('id')->get(),
+        'onlineUserIds'      => Schema::hasColumn('users', 'last_seen_at')
+            ? User::whereNotNull('last_seen_at')->where('last_seen_at', '>=', now()->subMinutes(2))->pluck('id')->toArray()
+            : [],
+        'deletedExpenses'    => $this->getDeletedExpenses(),
+        'deletedLogsGrouped' => $activityLogs->where('action', 'delete')->filter(fn($l) => $l->module !== 'Departmental Expenses')->groupBy('module'),
+    ];
+}
+
+// Soft-deleted expenses, with best-effort attribution of who deleted each one via the activity log
+private function getDeletedExpenses()
+{
+    if (!\Schema::hasTable('departmental_expenses')) return collect();
+
+    $deleted = \App\Models\DepartmentalExpense::onlyTrashed()->orderBy('deleted_at', 'desc')->get();
+    if ($deleted->isEmpty()) return $deleted;
+
+    $deleteLogs = ActivityLog::with('user')
+        ->where('action', 'delete')
+        ->where('module', 'Departmental Expenses')
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return $deleted->map(function ($exp) use ($deleteLogs) {
+        $match = $deleteLogs->first(fn($l) => $l->description && str_contains($l->description, $exp->control_number));
+        $exp->deleted_by_name = $match->user->name ?? 'Unknown';
+        return $exp;
+    });
+}
 
     public function getProperties()
     {
@@ -573,9 +601,20 @@ class SettingsController extends Controller
         if (!auth()->user()->isAdmin()) abort(403);
 
         $log = ActivityLog::findOrFail($logId);
-        $result = $this->restoreLogRecord($log);
+        $result = $this->undoLogEntry($log);
 
         return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
+    // Dispatches an Edit History "Undo" click to the right handler based on what
+    // kind of log entry it is. Returns ['success'=>bool,'message'=>string]
+    private function undoLogEntry(ActivityLog $log): array
+    {
+        return match ($log->action) {
+            'delete' => $this->restoreLogRecord($log),
+            'update' => $this->revertLogUpdate($log),
+            default  => ['success' => false, 'message' => "Undo isn't supported for '{$log->action}' entries."],
+        };
     }
 
     // Shared logic: restore a single activity-log-based deleted record. Returns ['success'=>bool,'message'=>string]
@@ -587,66 +626,133 @@ class SettingsController extends Controller
             return ['success' => false, 'message' => 'No record data available to restore.'];
         }
 
+        $modelClass = $this->resolveModelClass($meta);
+        if (!$modelClass) {
+            return ['success' => false, 'message' => 'Cannot determine what type of record this was, so it cannot be restored.'];
+        }
+
+        $recordId = $meta['record_id'] ?? null;
+
         try {
-            $module = $log->module;
-            $restoreMeta = $meta;
-            unset($restoreMeta['id']);
-
-            // Departmental Expenses
-            if (in_array($module, ['Departmental Expenses', 'Commission Monitoring'])) {
-                // Try soft-delete restore first
-                if (!empty($meta['id'])) {
-                    $existing = \App\Models\CommissionRequest::withTrashed()->find($meta['id']);
-                    if ($existing && $existing->trashed()) {
-                        $existing->restore();
-                        $log->delete();
-                        return ['success' => true, 'message' => 'Record restored successfully.'];
-                    }
+            // If the model soft-deletes, the actual row may still be sitting in the
+            // database (trashed) — restoring it is always more accurate than
+            // recreating one from the audit snapshot, so prefer that when possible.
+            if ($recordId && in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive($modelClass), true)) {
+                $existing = $modelClass::withTrashed()->find($recordId);
+                if ($existing && $existing->trashed()) {
+                    $existing->restore();
+                    $log->delete();
+                    return ['success' => true, 'message' => 'Record restored successfully.'];
                 }
-                $fillable = ['control_number','requestor_name','department','category','date_requested',
-                    'requested_amount','status','date_released','total_expenses','amount_returned','date_of_amount_returned'];
-                $data = array_filter(array_intersect_key($restoreMeta, array_flip($fillable)), fn($v) => $v !== null);
-                \App\Models\CommissionRequest::create($data);
-                $log->delete();
-                return ['success' => true, 'message' => 'Record restored to Departmental Expenses.'];
             }
 
-            // Sales & Marketing / Client Database
-            if ($module === 'Sales & Marketing') {
-                $fillable = ['developer_name','date_requested','reservation_date','date_of_downpayment',
-                    'project_name','property_details','block_lot_number','price_sqm','lot_area','tcp',
-                    'discount','client_name','terms_of_payment','agent_name','number_of_units','net_tcp',
-                    'commission_percent','commission','mode_of_payment','remarks','date_released','status','client_status'];
-                $data = array_filter(array_intersect_key($restoreMeta, array_flip($fillable)), fn($v) => $v !== null);
-                \App\Models\CommissionRequestSales::create($data);
-                $log->delete();
-                return ['success' => true, 'message' => 'Record restored to Client Database.'];
+            // Hard-deleted (or the trashed row is gone) — recreate it from the
+            // pre-delete snapshot captured in meta['changes'][field]['old'].
+            $flat = $this->flattenOldValues($meta);
+            $fillable = (new $modelClass)->getFillable();
+            $data = array_filter(array_intersect_key($flat, array_flip($fillable)), fn($v) => $v !== null);
+
+            if (empty($data)) {
+                return ['success' => false, 'message' => 'Not enough data was captured for this entry to recreate the record.'];
             }
 
-            // Human Resource (saved HR forms: day-off, absences, voucher)
-            if ($module === 'Human Resource') {
-                $fillable = ['type', 'title', 'data', 'created_by'];
-                $data = array_filter(array_intersect_key($restoreMeta, array_flip($fillable)), fn($v) => $v !== null);
-                \App\Models\HrForm::create($data);
-                $log->delete();
-                return ['success' => true, 'message' => 'Record restored to Human Resource.'];
-            }
-
-            // Site Visit Form (tripping schedules)
-            if ($module === 'Site Visit Form') {
-                $fillable = ['agent_name','team_name','client_name','client_email','client_phone','client_phone_code',
-                    'client_address','property_name','company_name','tripping_date','tripping_time','tripping_type','status'];
-                $data = array_filter(array_intersect_key($restoreMeta, array_flip($fillable)), fn($v) => $v !== null);
-                \App\Models\TripSchedule::create($data);
-                $log->delete();
-                return ['success' => true, 'message' => 'Record restored to Site Visit Form.'];
-            }
-
-            return ['success' => false, 'message' => "Restore not supported for module: {$module}"];
+            $modelClass::create($data);
+            $log->delete();
+            return ['success' => true, 'message' => 'Record restored successfully.'];
 
         } catch (\Exception $e) {
             return ['success' => false, 'message' => 'Failed to restore: ' . $e->getMessage()];
         }
+    }
+
+    // Reverts an 'update' log entry: writes the pre-edit ("old") values for just the
+    // fields that changed back onto the live record. Saving triggers the audit
+    // observer again, so the revert itself is automatically logged as a new entry.
+    private function revertLogUpdate(ActivityLog $log): array
+    {
+        $meta = $log->meta;
+
+        if (!$meta || empty($meta['changes'])) {
+            return ['success' => false, 'message' => 'No change data available to revert.'];
+        }
+
+        $modelClass = $this->resolveModelClass($meta);
+        if (!$modelClass) {
+            return ['success' => false, 'message' => 'Cannot determine what type of record this was, so this edit cannot be reverted.'];
+        }
+
+        $recordId = $meta['record_id'] ?? null;
+        if (!$recordId) {
+            return ['success' => false, 'message' => 'No record reference was captured for this entry.'];
+        }
+
+        try {
+            $record = $modelClass::find($recordId);
+            if (!$record) {
+                return ['success' => false, 'message' => 'The original record no longer exists, so this edit cannot be reverted.'];
+            }
+
+            $flat = $this->flattenOldValues($meta);
+            $fillable = $record->getFillable();
+            $data = array_intersect_key($flat, array_flip($fillable));
+
+            if (empty($data)) {
+                return ['success' => false, 'message' => 'Not enough data was captured for this entry to revert it.'];
+            }
+
+            $record->fill($data)->save();
+            $log->delete();
+
+            return ['success' => true, 'message' => 'Edit reverted successfully.'];
+
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => 'Failed to revert: ' . $e->getMessage()];
+        }
+    }
+
+    // Resolves the FQCN a log entry belongs to. New entries carry meta['model_class']
+    // directly; this falls back to a record_type lookup for logs created before that
+    // was captured.
+    private function resolveModelClass(array $meta): ?string
+    {
+        if (!empty($meta['model_class']) && class_exists($meta['model_class'])) {
+            return $meta['model_class'];
+        }
+
+        $legacy = [
+            'Commission Request'       => \App\Models\CommissionRequest::class,
+            'Commission Request Sales' => \App\Models\CommissionRequestSales::class,
+            'Downpayment Installment'  => \App\Models\DownpaymentInstallment::class,
+            'Arkcrest Commission Rate' => \App\Models\ArkcrestCommissionRate::class,
+            'Departmental Expense'     => \App\Models\DepartmentalExpense::class,
+            'Expense'                  => \App\Models\Expense::class,
+            'Expense Category'         => \App\Models\ExpenseCategory::class,
+            'Sales Team'               => \App\Models\SalesTeam::class,
+            'Sales Agent'              => \App\Models\SalesAgent::class,
+            'Team Monthly Quota'       => \App\Models\TeamMonthlyQuota::class,
+            'Hr Form'                  => \App\Models\HrForm::class,
+            'Trip Schedule'            => \App\Models\TripSchedule::class,
+            'Client'                   => \App\Models\Client::class,
+            'Reserved Client'          => \App\Models\ReservedClient::class,
+            'Personnel Contact'        => \App\Models\PersonnelContact::class,
+            'Note'                     => \App\Models\Note::class,
+            'Permission Request'       => \App\Models\PermissionRequest::class,
+            'Summary Report'           => \App\Models\SummaryReport::class,
+        ];
+
+        $class = $legacy[$meta['record_type'] ?? ''] ?? null;
+        return ($class && class_exists($class)) ? $class : null;
+    }
+
+    // Flattens meta['changes'][field] = ['old'=>.., 'new'=>..] down to field => old value,
+    // which is what both a delete-restore snapshot and an update-revert need.
+    private function flattenOldValues(array $meta): array
+    {
+        $flat = [];
+        foreach (($meta['changes'] ?? []) as $field => $vals) {
+            $flat[$field] = is_array($vals) ? ($vals['old'] ?? $vals['new'] ?? null) : null;
+        }
+        return $flat;
     }
 
     // Restore a soft-deleted Departmental Expense record (used by bulk restore)
@@ -710,7 +816,7 @@ class SettingsController extends Controller
                 $result = $this->restoreExpenseRecordById($item['id']);
             } else {
                 $log = ActivityLog::find($item['id']);
-                $result = $log ? $this->restoreLogRecord($log) : ['success' => false, 'message' => 'Record not found.'];
+                $result = $log ? $this->undoLogEntry($log) : ['success' => false, 'message' => 'Record not found.'];
             }
             if ($result['success']) {
                 $restored++;
@@ -819,6 +925,7 @@ class SettingsController extends Controller
             'human-resource','human-resource.employee-data','human-resource.contact-list',
             'settings.users','settings.teams',
             'settings.period-lock','settings.visibility','settings.activity','settings.deleted','settings.permissions',
+            'settings.backup','settings.export',
         ];
 
         $visiblePages = $request->input('visible_pages', []);

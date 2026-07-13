@@ -6,7 +6,8 @@
 .arc-header{background:linear-gradient(135deg,#1e4575 0%,#2563eb 100%);border-radius:16px;padding:36px 40px;margin-bottom:24px;color:white}
 .arc-header h1{font-size:24px;font-weight:700;margin:0 0 4px}
 .arc-header p{font-size:13px;color:rgba(255,255,255,.7);margin:0}
-.arc-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.arc-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+@media (max-width:900px){.arc-cards{grid-template-columns:repeat(2,1fr)}}
 .arc-card{background:white;border-radius:12px;padding:20px;border:1px solid #e8ecf0;box-shadow:0 1px 4px rgba(0,0,0,.05)}
 .arc-card-label{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
 .arc-card-value{font-size:22px;font-weight:800;color:#0f172a}
@@ -90,6 +91,11 @@
             <div class="arc-card-value" style="color:#16a34a;" id="arcTotalDisplay">₱{{ number_format($totalArkcrestCommission, 2) }}</div>
             <div style="font-size:12px;color:#64748b;margin-top:4px;">ArkCrest commission income</div>
         </div>
+        <div class="arc-card">
+            <div class="arc-card-label">Total Units Sold</div>
+            <div class="arc-card-value" style="color:#A37929;" id="arcUnitsDisplay">{{ number_format($totalUnits) }}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:4px;">units from released commissions</div>
+        </div>
     </div>
 
 
@@ -130,6 +136,7 @@
                     <th>Client</th>
                     <th>Project</th>
                     <th>Agent</th>
+                    <th>Units</th>
                     <th>Net TCP</th>
                     <th>Commission Terms</th>
                     <th>ARC % </th>
@@ -144,6 +151,7 @@
                 data-client="{{ $r->client_name ?? '' }}"
                 data-project="{{ $r->project_name ?? '' }}"
                 data-agent="{{ $r->agent_name ?? '' }}"
+                data-units="{{ $r->number_of_units ?? 0 }}"
                 data-net-tcp="{{ $r->net_tcp ?? 0 }}"
                 data-commission-terms="{{ $r->payment_type ?? '' }}"
                 data-arc-percent="{{ $rate ? $rate->arkcrest_percent : '' }}"
@@ -153,6 +161,7 @@
                 <td style="font-weight:600;color:#0f172a;">{{ $r->client_name ?? '—' }}</td>
                 <td style="color:#64748b;">{{ $r->project_name ?? '—' }}</td>
                 <td>{{ $r->agent_name ?? '—' }}</td>
+                <td style="text-align:center;font-weight:600;color:#A37929;">{{ $r->number_of_units ?? '—' }}</td>
                 <td style="font-weight:600;color:#1e4575;">₱{{ number_format($r->net_tcp ?? 0, 2) }}</td>
                 <td>
                     <select id="terms-{{ $r->id }}" onchange="onTermsChange({{ $r->id }}, {{ $r->net_tcp ?? 0 }})"
@@ -180,7 +189,10 @@
             </tbody>
             <tfoot>
                 <tr style="background:#f8fafc;border-top:2px solid #e2e8f0;">
-                    <td colspan="8" style="padding:12px 14px;font-size:13px;font-weight:700;color:#0f172a;text-align:right;">ARC Gross Sales Total:</td>
+                    <td colspan="9" style="padding:12px 14px;font-size:13px;font-weight:700;color:#0f172a;text-align:right;">
+                        Total Units Sold: <span id="arcUnitsFooterTotal" style="color:#A37929;">{{ number_format($totalUnits) }}</span>
+                        &nbsp;&nbsp;·&nbsp;&nbsp; ARC Gross Sales Total:
+                    </td>
                     <td style="padding:12px 14px;font-size:14px;font-weight:800;color:#16a34a;" id="arcFooterTotal">₱{{ number_format($totalArkcrestCommission, 2) }}</td>
                 </tr>
             </tfoot>
@@ -260,8 +272,9 @@ var FILTERABLE_COLUMNS = [
     { key: 'date-released',     label: 'Date Released',     type: 'daterange',   data: 'dateReleased' },
     { key: 'client',            label: 'Client',             type: 'text',   data: 'client' },
     { key: 'project',           label: 'Project',            type: 'text',   data: 'project' },
-    { key: 'agent',             label: 'Agent',               type: 'text',   data: 'agent' },
-    { key: 'net-tcp',           label: 'Net TCP',            type: 'number', data: 'netTcp' },
+    { key: 'agent',              label: 'Agent',               type: 'text',   data: 'agent' },
+    { key: 'units',              label: 'Units',               type: 'number', data: 'units' },
+    { key: 'net-tcp',            label: 'Net TCP',            type: 'number', data: 'netTcp' },
     { key: 'commission-terms',  label: 'Commission Terms',   type: 'select', data: 'commissionTerms',
         options: ['Full Payment', '2 Months Commission', '3 Months Commission'] },
     { key: 'arc-percent',       label: 'ARC %',               type: 'number', data: 'arcPercent' },
@@ -444,9 +457,9 @@ function applyArcFilters() {
             if (col.type === 'date') {
                 if (cellVal !== val) { visible = false; break; }
             } else if (col.type === 'number') {
-                var cleanCell = cellVal.replace(/[^0-9.]/g, '');
-                var cleanVal = val.replace(/[^0-9.]/g, '');
-                if (!cleanCell.includes(cleanVal)) { visible = false; break; }
+                var cleanCell = parseFloat(cellVal.replace(/[^0-9.\-]/g, ''));
+                var cleanVal = parseFloat(val.replace(/[^0-9.\-]/g, ''));
+                if (isNaN(cleanVal) || cleanCell !== cleanVal) { visible = false; break; }
             } else if (col.type === 'select') {
                 if (cellVal !== val) { visible = false; break; }
             } else {
@@ -461,6 +474,15 @@ function applyArcFilters() {
 
         row.style.display = visible ? '' : 'none';
     });
+
+    var visibleUnits = 0;
+    document.querySelectorAll('.arc-table tbody tr').forEach(function (row) {
+        if (row.style.display !== 'none') {
+            visibleUnits += parseInt(row.dataset.units || 0, 10);
+        }
+    });
+    var unitsEl = document.getElementById('arcUnitsFooterTotal');
+    if (unitsEl) unitsEl.textContent = visibleUnits.toLocaleString();
 }
 
 document.addEventListener('click', function (e) {

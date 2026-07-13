@@ -6,9 +6,154 @@ use Illuminate\Http\Request;
 use App\Models\CommissionRequestSales;
 use App\Models\ActivityLog;
 use App\Models\SalesTeam;
+use App\Models\CommissionThreshold;
+use App\Models\DownpaymentInstallment;
+use App\Models\Property;
+use App\Models\SystemNotification;
+use App\Models\User;
+use App\Services\CommissionStageService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
 
 class SalesMarketingController extends Controller
 {
+    public function __construct(
+        private readonly CommissionStageService $stageService
+    ) {
+    }
+
+    /**
+     * Extract the downpayment percentage from the Terms of Payment label.
+     * Examples:
+     *   "30% DP (6 MOS) - 70% BAL 54 MOS" => 30
+     *   "STRAIGHT PAYMENT"                => 100
+     */
+    private function parseDownpaymentPercentage(?string $termsLabel): float
+    {
+        $label = strtoupper(trim((string) $termsLabel));
+
+        if ($label === '') {
+            return 0;
+        }
+
+        if (str_contains($label, 'STRAIGHT PAYMENT')) {
+            return 100;
+        }
+
+        if (preg_match('/(\d+(?:\.\d+)?)\s*%\s*DP/i', $label, $matches)) {
+            return (float) $matches[1];
+        }
+
+        return 0;
+    }
+
+    /**
+     * Calculate the required total downpayment from TCP and payment terms.
+     */
+    private function calculateTotalDownpayment(CommissionRequestSales $record): float
+    {
+        return $this->stageService->getTotalDownpayment($record);
+    }
+
+    /**
+     * Calculate payment totals, balance and commission-request threshold.
+     *
+     * Payment progress determines eligibility, while commission_requests rows
+     * determine which sequential DP stage has already been requested.
+     */
+    private function getDownpaymentSummary(CommissionRequestSales $record): array
+    {
+        return $this->stageService->summarize($record);
+    }
+
+    /**
+     * Keep the parent record synchronized with the actual payment totals.
+     */
+    private function syncDownpaymentAndClientStatus(
+        CommissionRequestSales $record,
+        ?string $zeroPaymentStatus = null
+    ): array {
+        $summary = $this->getDownpaymentSummary($record);
+
+        if ($summary['total_downpayment'] > 0 && $summary['remaining_balance'] <= 0.01) {
+            $downpaymentStatus = $record->downpayment_status === 'Spot Paid'
+                ? 'Spot Paid'
+                : 'Paid';
+            $clientStatus = 'Done';
+        } elseif ($summary['paid_total'] > 0) {
+            $downpaymentStatus = 'Partial';
+            $clientStatus = 'Pending';
+        } else {
+            $downpaymentStatus = $zeroPaymentStatus;
+            $clientStatus = 'Pending';
+        }
+
+        if ($record->client_status === 'Cancelled') {
+            $clientStatus = 'Cancelled';
+        }
+
+        $updates = [
+            'downpayment_amount' => $summary['total_downpayment'],
+            'downpayment_status' => $downpaymentStatus,
+            'client_status' => $clientStatus,
+            'downpayment_stage' => $summary['downpayment_stage'],
+            'downpayment_stage_total' => $summary['downpayment_stage_total'],
+            'status' => $this->stageService->getSourceCommissionStatus($record, $record->status),
+        ];
+
+        $record->update($updates);
+        $record->refresh();
+
+        return array_merge($summary, [
+            'status' => $record->downpayment_status,
+            'client_status' => $record->client_status,
+            'commission_status' => $record->status,
+        ]);
+    }
+
+    /**
+     * Create an in-app notification for active finance users and admins.
+     */
+    private function notifyFinanceUsers(
+        CommissionRequestSales $record,
+        string $type,
+        string $title,
+        string $message
+    ): void {
+        $financePositions = [
+            'chief in finance',
+            'finance secretary',
+            'finance officer',
+            'finance',
+        ];
+
+        $recipients = User::where('status', 'active')
+            ->where(function ($query) use ($financePositions) {
+                $query->where('role', 'admin');
+
+                foreach ($financePositions as $position) {
+                    $query->orWhereRaw(
+                        'LOWER(TRIM(position)) LIKE ?',
+                        ['%' . $position . '%']
+                    );
+                }
+            })
+            ->get();
+
+        foreach ($recipients as $recipient) {
+            SystemNotification::create([
+                'user_id' => $recipient->id,
+                'type' => $type,
+                'title' => $title,
+                'message' => $message,
+                'is_read' => false,
+                'notified_at' => now(),
+                'note_id' => $record->id,
+            ]);
+        }
+    }
+
     public function index(Request $request)
     {
         // Date range filter (default: current month)
@@ -146,7 +291,7 @@ class SalesMarketingController extends Controller
         // Today's summary for banner
         $today = \Carbon\Carbon::today()->toDateString();
         $todayTrips    = \App\Models\TripSchedule::whereDate('tripping_date', $today)->whereIn('status', ['confirmed', 'pending'])->count();
-        $todayReleases = \App\Models\CommissionRequestSales::whereDate('date_released', $today)->where('status', 'Not Yet Released')->count();
+        $todayReleases = \App\Models\CommissionRequestSales::whereDate('date_released', $today)->where('status', 'Not Released')->count();
         $todayEvents   = \App\Models\CommissionRequestSales::where(function($q) use ($today) {
             $q->whereDate('reservation_date', $today)->orWhereDate('date_of_downpayment', $today);
         })->count();
@@ -280,30 +425,88 @@ class SalesMarketingController extends Controller
 
     public function prefillCommission($id)
     {
-        $r = CommissionRequestSales::findOrFail($id);
+        $record = CommissionRequestSales::findOrFail($id);
+        $summary = $this->stageService->summarize($record);
+
+        if (!$summary['commission_ready']) {
+            return response()->json([
+                'success' => false,
+                'message' => 'There is no commission stage currently available to request.',
+                'downpayment_stage' => $summary['downpayment_stage'],
+                'downpayment_stage_total' => $summary['downpayment_stage_total'],
+                'filed_stages' => $summary['filed_stages'],
+                'commission_stages' => $summary['commission_stages'],
+                'all_commission_stages_requested' => $summary['all_commission_stages_requested'],
+            ], 422);
+        }
+
         return response()->json([
-            'client_name'       => $r->client_name ?? '',
-            'project_name'      => $r->project_name ?? '',
-            'agent_name'        => $r->agent_name ?? '',
-            'net_tcp'           => $r->net_tcp ?? '',
-            'reservation_date'  => $r->reservation_date ? $r->reservation_date->format('Y-m-d') : '',
-            'terms_of_payment'  => $r->terms_of_payment ?? '',
-            'number_of_units'   => $r->number_of_units ?? 1,
-            'commission_percent'=> $r->commission_percent ?? '',
-            'date_requested'    => $r->date_requested ? $r->date_requested->format('Y-m-d') : '',
-            'developer_name'    => $r->developer_name ?? '',
-            'block_lot_number'  => $r->block_lot_number ?? '',
-            'price_sqm'         => $r->price_sqm ?? '',
-            'lot_area'          => $r->lot_area ?? '',
-            'discount'          => $r->discount ?? '',
-            'mode_of_payment'   => $r->mode_of_payment ?? '',
+            'success' => true,
+            'id' => $record->id,
+            'source_client_record_id' => $record->id,
+            'commission_stage' => $summary['next_requestable_stage'],
+            'commission_stage_total' => $summary['downpayment_stage_total'],
+            'stage_threshold_amount' => $summary['next_threshold_amount'],
+            'next_commission_stage' => $summary['next_commission_stage'],
+            'next_requestable_stage' => $summary['next_requestable_stage'],
+            'client_name' => $record->client_name ?? '',
+            'project_name' => $record->project_name ?? '',
+            'agent_name' => $record->agent_name ?? '',
+            'net_tcp' => $record->net_tcp ?? '',
+            'reservation_date' => $record->reservation_date?->format('Y-m-d') ?? '',
+            'terms_of_payment' => $record->terms_of_payment ?? '',
+            'number_of_units' => $record->number_of_units ?? 1,
+            'commission_percent' => $record->commission_percent ?? '',
+            'date_requested' => now()->format('Y-m-d'),
+            'developer_name' => $record->developer_name ?? '',
+            'block_lot_number' => $record->block_lot_number ?? '',
+            'property_details' => $record->property_details ?? '',
+            'price_sqm' => $record->price_sqm ?? '',
+            'lot_area' => $record->lot_area ?? '',
+            'discount' => $record->discount ?? '',
+            'mode_of_payment' => $record->mode_of_payment ?? '',
         ]);
+    }
+
+    public function downpaymentSummary($id)
+    {
+        $record = CommissionRequestSales::findOrFail($id);
+        $summary = $this->stageService->summarize($record);
+
+        return response()->json(array_merge(['success' => true], $summary, [
+            'commission_status' => $this->stageService->getSourceCommissionStatus($record),
+        ]));
     }
 
     public function clientDatabase()
     {
         $commissionRequests = CommissionRequestSales::orderBy('date_requested', 'asc')->get();
-        return view('client-database', compact('commissionRequests'));
+
+        // Developer names can come from two places:
+        //  1. Existing client records (the free-text developer_name column), and
+        //  2. The Property Management list in Settings (properties.developer) —
+        //     adding a property with a developer there should make that name
+        //     available here right away, even before any client record uses it.
+        // Merge both, dedupe case-insensitively, and sort so the dropdown always
+        // reflects real, current data instead of the old 2-name hardcoded fallback.
+        $developersFromClients = CommissionRequestSales::whereNotNull('developer_name')
+            ->where('developer_name', '!=', '')
+            ->distinct()
+            ->pluck('developer_name');
+
+        $developersFromProperties = Schema::hasTable('properties')
+            ? Property::whereNotNull('developer')->where('developer', '!=', '')->distinct()->pluck('developer')
+            : collect();
+
+        $developers = $developersFromClients
+            ->merge($developersFromProperties)
+            ->map(fn ($name) => trim($name))
+            ->filter()
+            ->unique(fn ($name) => strtolower($name))
+            ->sort()
+            ->values();
+
+        return view('client-database', compact('commissionRequests', 'developers'));
     }
 
     public function propertyList()
@@ -319,20 +522,21 @@ class SalesMarketingController extends Controller
         return [
             'developer_name'      => 'nullable|string|max:255',
             'date_requested'      => 'nullable|date',
-            'reservation_date'    => 'nullable|date',
-            'date_of_downpayment' => 'nullable|date',
+            'reservation_date'    => 'required|date',
+            'date_of_downpayment' => 'required|date|after_or_equal:reservation_date',
             'project_name'        => 'required|string|max:255',
             'property_details'    => 'nullable|string|max:255',
-            'block_lot_number'    => 'nullable|string|max:255',
+            'block_lot_number'    => 'required|string|max:255',
             'client_name'         => 'required|string|max:255',
-            'lot_area'            => 'nullable|numeric',
-            'price_sqm'           => 'nullable|numeric',
+            'lot_area'            => 'required|numeric|min:0',
+            'price_sqm'           => 'nullable|numeric|min:0',
             'tcp'                 => 'nullable|numeric',
-            'discount'            => 'nullable|numeric',
+            'discount'            => 'nullable|numeric|min:0|max:100',
+            'discount_value'      => 'nullable|numeric',
             'net_tcp'             => 'nullable|numeric',
             'terms_of_payment'    => 'required|string|max:255',
             'agent_name'          => 'required|string|max:255',
-            'number_of_units'     => 'nullable|integer|min:1',
+            'number_of_units'     => 'required|integer|min:1',
             'commission_percent'  => 'nullable|numeric|min:0|max:100',
             'commission'          => 'nullable|numeric',
             'mode_of_payment'     => 'nullable|string|max:255',
@@ -379,9 +583,15 @@ class SalesMarketingController extends Controller
     {
         $validated = $request->validate($this->validationRules());
         if (empty($validated['status'])) {
-            $validated['status'] = 'Not Yet Released';
+            $validated['status'] = 'Not Released';
         }
         $record = CommissionRequestSales::create($validated);
+        $initialSummary = $this->stageService->summarize($record);
+        $record->update([
+            'downpayment_stage' => $initialSummary['downpayment_stage'],
+            'downpayment_stage_total' => $initialSummary['downpayment_stage_total'],
+            'downpayment_amount' => $initialSummary['total_downpayment'],
+        ]);
         ActivityLog::log('create', 'Sales & Marketing', "Added sale entry for client '{$validated['client_name']}' (Agent: {$validated['agent_name']})");
 
         // Email admins about new commission entry
@@ -423,8 +633,16 @@ class SalesMarketingController extends Controller
         try {
             $validated = $request->validate($this->validationRules());
         } catch (\Illuminate\Validation\ValidationException $e) {
-            $msg = collect($e->errors())->flatten()->first();
-            return response()->json(['error' => $msg], 422);
+            // Mirror what the Add form's default Laravel validation redirect
+            // gives the page: every message in the errors bag, not just one.
+            // The Edit modal is AJAX-driven (it can't rely on a full-page
+            // redirect + $errors->any() the way the Add form does), so we
+            // hand the same full message list back as JSON instead.
+            $allMessages = collect($e->errors())->flatten()->all();
+            return response()->json([
+                'error'  => $allMessages[0] ?? 'Validation failed. Please check the form and try again.',
+                'errors' => $allMessages,
+            ], 422);
         }
 
         // Preserve downpayment fields — never overwrite from the edit form
@@ -439,16 +657,35 @@ class SalesMarketingController extends Controller
         $commissionRequest->update($validated);
         ActivityLog::log('update', 'Sales & Marketing', "Updated sale entry for client '{$validated['client_name']}' (ID: {$id})");
 
-        // Email admins when commission is marked as Released
-        if (!empty($validated['status']) && $validated['status'] === 'Released' && $oldStatus !== 'Released') {
-            $body = "<b>Client:</b> {$validated['client_name']}<br>
-                     <b>Project:</b> {$validated['project_name']}<br>
-                     <b>Agent:</b> {$validated['agent_name']}<br>
-                     <b>Commission:</b> ₱" . number_format($validated['commission'] ?? 0, 2) . "<br>
-                     <b>Release Date:</b> " . (!empty($validated['date_released']) ? \Carbon\Carbon::parse($validated['date_released'])->format('F j, Y') : 'N/A');
+        // Notify finance when the release decision changes to Released or Not Released.
+        $newStatus = $commissionRequest->fresh()->status;
+        if (in_array($newStatus, ['Released', 'Not Released'], true)
+            && $oldStatus !== $newStatus) {
+            $releaseDate = $commissionRequest->date_released
+                ? Carbon::parse($commissionRequest->date_released)->format('F j, Y')
+                : 'No release date';
+
+            $this->notifyFinanceUsers(
+                $commissionRequest,
+                $newStatus === 'Released'
+                    ? 'commission_released'
+                    : 'commission_not_released',
+                $newStatus === 'Released'
+                    ? 'Commission Released'
+                    : 'Commission Marked Not Released',
+                "{$commissionRequest->client_name} — {$commissionRequest->project_name}: {$newStatus} ({$releaseDate})."
+            );
+
+            $body = "<b>Client:</b> {$commissionRequest->client_name}<br>
+                     <b>Project:</b> {$commissionRequest->project_name}<br>
+                     <b>Agent:</b> {$commissionRequest->agent_name}<br>
+                     <b>Status:</b> {$newStatus}<br>
+                     <b>Commission:</b> ₱" . number_format($commissionRequest->commission ?? 0, 2) . "<br>
+                     <b>Release Date:</b> {$releaseDate}";
+
             \App\Services\AdminEmailNotifier::send(
-                'Commission Released — ' . $validated['client_name'],
-                '✅ Commission Marked as Released',
+                "Commission {$newStatus} — {$commissionRequest->client_name}",
+                "Commission Status Updated",
                 $body
             );
         }
@@ -468,223 +705,512 @@ class SalesMarketingController extends Controller
     public function updateClientStatus(Request $request, $id)
     {
         $record = CommissionRequestSales::findOrFail($id);
-        $oldStatus = $record->client_status;
 
-        // Block Done only if there is absolutely no downpayment activity yet
-        if ($request->client_status === 'Done') {
-            $dpStatus = $record->downpayment_status;
+        $validated = $request->validate([
+            'client_status' => 'nullable|in:Pending,Cancelled',
+        ]);
 
-            // Check installments — at least 1 paid is enough
-            $installments = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $id)->get();
-            $hasAnyInstallmentPaid = $installments->contains(fn($i) => $i->is_paid);
+        $requestedStatus = $validated['client_status'] ?? null;
 
-            // Check if downpayment_status is set to something meaningful (Spot, Paid, Partial, etc.)
-            $hasDownpaymentStatus = !empty($dpStatus) && !in_array($dpStatus, ['— Set —', null]);
-
-            if (!$hasAnyInstallmentPaid && !$hasDownpaymentStatus) {
-                return back()->with('error', 'Cannot set to Done — client must have at least one downpayment recorded first.');
-            }
-        }
-
-        $record->update(['client_status' => $request->client_status ?: null]);
-
-        // Fire notification when status is set to Done (downpayment received)
-        if ($request->client_status === 'Done' && $oldStatus !== 'Done') {
-            $clientName  = $record->client_name ?? 'Unknown Client';
-            $projectName = $record->project_name ?? 'Unknown Project';
-
-            // Finance positions to notify
-            $financePositions = ['chief in finance', 'finance secretary', 'finance officer', 'finance'];
-
-            $recipients = \App\Models\User::where('status', 'active')
-                ->where(function($q) use ($financePositions) {
-                    $q->where('role', 'admin');
-                    foreach ($financePositions as $pos) {
-                        $q->orWhereRaw('LOWER(TRIM(position)) LIKE ?', ["%{$pos}%"]);
-                    }
-                })
-                ->get();
-
-            foreach ($recipients as $user) {
-                \App\Models\SystemNotification::create([
-                    'user_id'     => $user->id,
-                    'type'        => 'client_done',
-                    'title'       => 'Client Marked as Done',
-                    'message'     => "{$clientName} — {$projectName} is marked Done. Please encode in Commission Monitoring.",
-                    'is_read'     => false,
-                    'notified_at' => now(),
-                    'note_id'     => $record->id,
-                ]);
-            }
-        }
+        // Done is always system-driven and can never be selected manually.
+        $record->update([
+            'client_status' => $requestedStatus,
+        ]);
 
         return back()->with('success', 'Status updated.');
     }
 
     public function getInstallments($id)
     {
-        $installments = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $id)
-            ->orderBy('term_number')->get();
-        return response()->json($installments->map(function($inst) {
+        CommissionRequestSales::findOrFail($id);
+
+        $installments = DownpaymentInstallment::where(
+            'commission_request_sales_id',
+            $id
+        )->orderBy('term_number')->get();
+
+        return response()->json($installments->map(function ($installment) {
             return [
-                'id'          => $inst->id,
-                'term_number' => $inst->term_number,
-                'amount'      => $inst->amount,
-                'is_paid'     => $inst->is_paid,
-                'paid_at'     => $inst->paid_at,
-                'paid_date'   => $inst->paid_date ?? ($inst->paid_at ? \Carbon\Carbon::parse($inst->paid_at)->format('Y-m-d') : null),
+                'id' => $installment->id,
+                'term_number' => $installment->term_number,
+                'amount' => $installment->amount,
+                'is_paid' => (bool) $installment->is_paid,
+                'paid_at' => $installment->paid_at,
+                'paid_date' => $installment->paid_date
+                    ?? ($installment->paid_at
+                        ? Carbon::parse($installment->paid_at)->format('Y-m-d')
+                        : null),
             ];
-        }));
+        })->values());
     }
 
     public function setupInstallments(Request $request, $id)
     {
-        $terms = (int) $request->terms;
-        if ($terms < 1 || $terms > 120) return response()->json(['error' => 'Invalid terms'], 422);
+        $validated = $request->validate([
+            'terms' => 'required|integer|min:1|max:120',
+            'total_amount' => 'nullable|numeric|min:0',
+        ]);
 
-        // Delete existing unpaid installments only
-        \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $id)
-            ->where('is_paid', false)->delete();
+        $record = CommissionRequestSales::findOrFail($id);
+        $terms = (int) $validated['terms'];
 
-        // Create new installments
-        $existing = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $id)
-            ->pluck('term_number')->toArray();
+        $hasPaidInstallment = DownpaymentInstallment::where(
+            'commission_request_sales_id',
+            $id
+        )->where('is_paid', true)->exists();
 
-        for ($i = 1; $i <= $terms; $i++) {
-            if (!in_array($i, $existing)) {
-                \App\Models\DownpaymentInstallment::create([
+        if ($hasPaidInstallment) {
+            return response()->json([
+                'error' => 'The installment plan cannot be regenerated after a payment has been recorded.',
+            ], 422);
+        }
+
+        $calculatedTotal = $this->calculateTotalDownpayment($record);
+        $requestedTotal = round((float) ($validated['total_amount'] ?? 0), 2);
+
+        // Known payment terms are always calculated from TCP.
+        // "Others" may use the amount supplied by the user.
+        $totalAmount = $calculatedTotal > 0
+            ? $calculatedTotal
+            : $requestedTotal;
+
+        if ($totalAmount <= 0) {
+            return response()->json([
+                'error' => 'The total downpayment could not be calculated.',
+            ], 422);
+        }
+
+        return DB::transaction(function () use ($record, $id, $terms, $totalAmount) {
+            DownpaymentInstallment::where(
+                'commission_request_sales_id',
+                $id
+            )->delete();
+
+            // Create blank installment rows. Each amount is entered manually.
+            for ($termNumber = 1; $termNumber <= $terms; $termNumber++) {
+                DownpaymentInstallment::create([
                     'commission_request_sales_id' => $id,
-                    'term_number' => $i,
+                    'term_number' => $termNumber,
                     'amount' => null,
                     'is_paid' => false,
                 ]);
             }
-        }
 
-        // Update terms count and total amount on parent record
-        $updates = ['downpayment_terms' => $terms, 'downpayment_status' => $terms . ' month' . ($terms > 1 ? 's' : '')];
-        if ($request->total_amount) {
-            $updates['downpayment_amount'] = $request->total_amount;
-            $updates['downpayment_per_term'] = round($request->total_amount / $terms, 2);
-        }
+            $planStatus = $terms . ' month' . ($terms > 1 ? 's' : '');
 
-        // NEW: setting up an installment plan means the client is now
-        // actively paying — auto-set client_status to Pending, unless the
-        // client has already been marked Cancelled.
-        $dpRecord = CommissionRequestSales::findOrFail($id);
-        if ($dpRecord->client_status !== 'Cancelled') {
-            $updates['client_status'] = 'Pending';
-        }
-        $dpRecord->update($updates);
+            $record->update([
+                'downpayment_amount' => $totalAmount,
+                'downpayment_terms' => $terms,
+                'downpayment_per_term' => null,
+                'downpayment_stage' => 0,
+                'downpayment_stage_total' => $terms === 2 ? 2 : ($terms >= 3 ? 3 : 1),
+                'downpayment_status' => $planStatus,
+                'client_status' => $record->client_status === 'Cancelled'
+                    ? 'Cancelled'
+                    : 'Pending',
+            ]);
 
-        return response()->json(\App\Models\DownpaymentInstallment::where('commission_request_sales_id', $id)
-            ->orderBy('term_number')->get());
+            return response()->json(
+                DownpaymentInstallment::where(
+                    'commission_request_sales_id',
+                    $id
+                )->orderBy('term_number')->get()
+            );
+        });
     }
 
     public function updateInstallmentAmount(Request $request, $id)
     {
-        $inst = \App\Models\DownpaymentInstallment::findOrFail($id);
-        if ($inst->is_paid) return response()->json(['error' => 'Already paid'], 422);
-        $inst->update(['amount' => $request->amount]);
-        return response()->json(['success' => true]);
+        $rawAmount = $request->input('amount');
+
+        if (!is_scalar($rawAmount) || !is_numeric($rawAmount)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Enter a valid numeric payment amount.',
+            ], 422);
+        }
+
+        $newAmount = (float) $rawAmount;
+
+        if (!is_finite($newAmount) || $newAmount <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Enter a finite payment amount greater than zero.',
+            ], 422);
+        }
+
+        $newAmount = round($newAmount, 2);
+
+        return DB::transaction(function () use ($id, $newAmount) {
+            $installment = DownpaymentInstallment::lockForUpdate()->findOrFail($id);
+
+            if ($installment->is_paid) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A paid installment can no longer be edited.',
+                ], 422);
+            }
+
+            $record = CommissionRequestSales::lockForUpdate()->findOrFail(
+                $installment->commission_request_sales_id
+            );
+
+            $totalDownpayment = $this->calculateTotalDownpayment($record);
+
+            if ($totalDownpayment <= 0) {
+                $totalDownpayment = round((float) $record->downpayment_amount, 2);
+            }
+
+            if (!is_finite($totalDownpayment) || $totalDownpayment <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The total downpayment could not be calculated.',
+                ], 422);
+            }
+
+            $alreadyPaid = round((float) DownpaymentInstallment::where(
+                'commission_request_sales_id',
+                $record->id
+            )->where('is_paid', true)->sum('amount'), 2);
+
+            $remainingBalance = max(
+                0,
+                round($totalDownpayment - $alreadyPaid, 2)
+            );
+
+            if ($remainingBalance <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The downpayment is already fully paid.',
+                ], 422);
+            }
+
+            if ($newAmount > $remainingBalance + 0.01) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The amount cannot exceed the remaining DP balance of ₱'
+                        . number_format($remainingBalance, 2) . '.',
+                    'remaining_balance' => $remainingBalance,
+                ], 422);
+            }
+
+            $installment->update([
+                'amount' => $newAmount,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'amount' => $newAmount,
+                'remaining_balance' => $remainingBalance,
+            ]);
+        });
     }
 
     public function markInstallmentPaid(Request $request, $id)
     {
-        $inst = \App\Models\DownpaymentInstallment::findOrFail($id);
-        $updates = ['is_paid' => true, 'paid_at' => now()];
-        if ($request->filled('paid_date')) {
-            $updates['paid_date'] = $request->paid_date;
-        }
-        // Auto-create paid_date column if missing
-        if (!empty($updates['paid_date']) && !\Schema::hasColumn('downpayment_installments', 'paid_date')) {
-            try { \Schema::table('downpayment_installments', fn($t) => $t->date('paid_date')->nullable()->after('paid_at')); } catch (\Exception $e) {}
-        }
-        $inst->update($updates);
+        $validated = $request->validate([
+            'paid_date' => 'required|date',
+        ]);
 
-        // Update parent downpayment_status
-        $parentId = $inst->commission_request_sales_id;
-        $all   = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $parentId)->count();
-        $paid  = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $parentId)->where('is_paid', true)->count();
-        $status = $paid === $all ? 'Paid' : 'Partial';
+        $rawAmount = $request->input('amount');
 
-        // NEW: once every term is paid, the client is fully Done too.
-        $parentUpdates = ['downpayment_status' => $status];
-        if ($status === 'Paid') {
-            $parentUpdates['client_status'] = 'Done';
+        if (!is_scalar($rawAmount) || !is_numeric($rawAmount)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Enter a valid numeric payment amount.',
+            ], 422);
         }
-        CommissionRequestSales::findOrFail($parentId)->update($parentUpdates);
 
-        return response()->json(['success' => true, 'status' => $status]);
+        $paymentAmount = (float) $rawAmount;
+
+        if (!is_finite($paymentAmount) || $paymentAmount <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Enter a finite payment amount greater than zero.',
+            ], 422);
+        }
+
+        $paymentAmount = round($paymentAmount, 2);
+
+        return DB::transaction(function () use ($validated, $id, $paymentAmount) {
+            $installment = DownpaymentInstallment::lockForUpdate()->findOrFail($id);
+
+            if ($installment->is_paid) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This installment is already paid.',
+                ], 422);
+            }
+
+            $record = CommissionRequestSales::lockForUpdate()->findOrFail(
+                $installment->commission_request_sales_id
+            );
+
+            $totalDownpayment = $this->calculateTotalDownpayment($record);
+
+            if ($totalDownpayment <= 0) {
+                $totalDownpayment = round((float) $record->downpayment_amount, 2);
+            }
+
+            if (!is_finite($totalDownpayment) || $totalDownpayment <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The total downpayment could not be calculated.',
+                ], 422);
+            }
+
+            $alreadyPaid = round((float) DownpaymentInstallment::where(
+                'commission_request_sales_id',
+                $record->id
+            )->where('is_paid', true)->sum('amount'), 2);
+
+            $remainingBeforePayment = max(
+                0,
+                round($totalDownpayment - $alreadyPaid, 2)
+            );
+
+            if ($remainingBeforePayment <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The downpayment is already fully paid.',
+                ], 422);
+            }
+
+            if ($paymentAmount > $remainingBeforePayment + 0.01) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The payment cannot exceed the remaining DP balance of ₱'
+                        . number_format($remainingBeforePayment, 2) . '.',
+                    'remaining_balance' => $remainingBeforePayment,
+                ], 422);
+            }
+
+            $updates = [
+                'amount' => $paymentAmount,
+                'is_paid' => true,
+                'paid_at' => now(),
+            ];
+
+            if (Schema::hasColumn('downpayment_installments', 'paid_date')) {
+                $updates['paid_date'] = $validated['paid_date'];
+            }
+
+            $installment->update($updates);
+
+            $summary = $this->syncDownpaymentAndClientStatus(
+                $record,
+                $record->downpayment_terms
+                    ? $record->downpayment_terms . ' month' . ($record->downpayment_terms > 1 ? 's' : '')
+                    : null
+            );
+
+            $triggerCommissionPopup = $summary['commission_ready'];
+
+            return response()->json([
+                'success' => true,
+                'status' => $summary['status'],
+                'client_status' => $summary['client_status'],
+                'commission_status' => $summary['commission_status'],
+                'commission_ready' => $triggerCommissionPopup,
+                'paid_total' => $summary['paid_total'],
+                'total_downpayment' => $summary['total_downpayment'],
+                'remaining_balance' => $summary['remaining_balance'],
+                'threshold_amount' => $summary['threshold_amount'],
+                'threshold_basis' => $summary['threshold_basis'],
+                'downpayment_stage' => $summary['downpayment_stage'],
+                'downpayment_stage_total' => $summary['downpayment_stage_total'],
+                'next_commission_stage' => $summary['next_commission_stage'],
+                'next_requestable_stage' => $summary['next_requestable_stage'],
+                'filed_stages' => $summary['filed_stages'],
+                'commission_stages' => $summary['commission_stages'],
+                'all_commission_stages_requested' => $summary['all_commission_stages_requested'],
+                'message' => $triggerCommissionPopup
+                    ? 'Commission stage ' . $summary['next_commission_stage'] . '/' . $summary['downpayment_stage_total'] . ' is ready to request.'
+                    : 'Installment marked as paid.',
+            ]);
+        });
     }
 
     public function unmarkInstallmentPaid(Request $request, $id)
     {
-        if (!auth()->user()->isAdmin()) abort(403);
-        $inst = \App\Models\DownpaymentInstallment::findOrFail($id);
-        $inst->update(['is_paid' => false, 'paid_at' => null]);
+        abort_unless(auth()->check() && auth()->user()->isAdmin(), 403);
 
-        // Recalculate parent downpayment_status
-        $parentId = $inst->commission_request_sales_id;
-        $all  = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $parentId)->count();
-        $paid = \App\Models\DownpaymentInstallment::where('commission_request_sales_id', $parentId)->where('is_paid', true)->count();
-        $status = $paid === 0 ? null : ($paid === $all ? 'Paid' : 'Partial');
-        CommissionRequestSales::findOrFail($parentId)->update(['downpayment_status' => $status]);
+        return DB::transaction(function () use ($id) {
+            $installment = DownpaymentInstallment::lockForUpdate()->findOrFail($id);
 
-        return response()->json(['success' => true, 'status' => $status]);
+            $installment->update([
+                'is_paid' => false,
+                'paid_at' => null,
+                'paid_date' => Schema::hasColumn('downpayment_installments', 'paid_date')
+                    ? null
+                    : $installment->paid_date,
+            ]);
+
+            $record = CommissionRequestSales::lockForUpdate()->findOrFail(
+                $installment->commission_request_sales_id
+            );
+
+            $planStatus = $record->downpayment_terms
+                ? $record->downpayment_terms . ' month' . ($record->downpayment_terms > 1 ? 's' : '')
+                : null;
+
+            $summary = $this->syncDownpaymentAndClientStatus($record, $planStatus);
+
+            return response()->json([
+                'success' => true,
+                'status' => $summary['status'],
+                'client_status' => $summary['client_status'],
+                'commission_status' => $summary['commission_status'],
+                'commission_ready' => $summary['commission_ready'],
+                'paid_total' => $summary['paid_total'],
+                'total_downpayment' => $summary['total_downpayment'],
+                'remaining_balance' => $summary['remaining_balance'],
+                'threshold_amount' => $summary['threshold_amount'],
+                'threshold_basis' => $summary['threshold_basis'],
+                'downpayment_stage' => $summary['downpayment_stage'],
+                'downpayment_stage_total' => $summary['downpayment_stage_total'],
+                'next_commission_stage' => $summary['next_commission_stage'],
+                'next_requestable_stage' => $summary['next_requestable_stage'],
+                'filed_stages' => $summary['filed_stages'],
+                'commission_stages' => $summary['commission_stages'],
+                'all_commission_stages_requested' => $summary['all_commission_stages_requested'],
+            ]);
+        });
     }
 
     public function updateDownpaymentInstallment(Request $request, $id)
     {
-        $record = CommissionRequestSales::findOrFail($id);
-        $amount = (float) $request->downpayment_amount;
-        $terms  = (int) $request->downpayment_terms;
-        $perTerm = $terms > 0 ? round($amount / $terms, 2) : 0;
-        $record->update([
-            'downpayment_amount'   => $amount,
-            'downpayment_terms'    => $terms,
-            'downpayment_per_term' => $perTerm,
+        $validated = $request->validate([
+            'downpayment_terms' => 'required|integer|min:1|max:120',
+            'downpayment_amount' => 'nullable|numeric|min:0',
         ]);
-        return response()->json(['success' => true, 'per_term' => $perTerm]);
+
+        $record = CommissionRequestSales::findOrFail($id);
+        $totalDownpayment = $this->calculateTotalDownpayment($record);
+
+        if ($totalDownpayment <= 0) {
+            $totalDownpayment = round(
+                (float) ($validated['downpayment_amount'] ?? $record->downpayment_amount ?? 0),
+                2
+            );
+        }
+
+        if (!is_finite($totalDownpayment) || $totalDownpayment <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The total downpayment could not be calculated.',
+            ], 422);
+        }
+
+        $record->update([
+            'downpayment_amount' => $totalDownpayment,
+            'downpayment_terms' => (int) $validated['downpayment_terms'],
+            'downpayment_per_term' => null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'total_downpayment' => $totalDownpayment,
+        ]);
     }
 
     public function updateDownpaymentStatus(Request $request, $id)
     {
+        $validated = $request->validate([
+            'downpayment_status' => 'nullable|string|max:50',
+            'downpayment_amount' => 'nullable|numeric|min:0',
+            'downpayment_date' => 'nullable|date',
+        ]);
+
         $record = CommissionRequestSales::findOrFail($id);
 
-        // Non-admin cannot change a finalized downpayment status
         $finalStatuses = ['Spot Paid', 'Paid'];
-        if (!auth()->user()->isAdmin() && in_array($record->downpayment_status, $finalStatuses)) {
-            if ($request->expectsJson() || $request->isJson() || $request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'Only admin can modify a finalized downpayment.'], 403);
-            }
-            return back()->with('error', 'Only admin can modify a finalized downpayment.');
+        if (!auth()->user()->isAdmin()
+            && in_array($record->downpayment_status, $finalStatuses, true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only admin can modify a finalized downpayment.',
+            ], 403);
         }
 
-        $updates = ['downpayment_status' => $request->input('downpayment_status') ?: null];
-        if ($request->filled('downpayment_amount')) {
-            $updates['downpayment_amount'] = $request->input('downpayment_amount');
+        $requestedStatus = $validated['downpayment_status'] ?? null;
+        $totalDownpayment = $this->calculateTotalDownpayment($record);
+
+        if ($totalDownpayment <= 0) {
+            $totalDownpayment = round(
+                (float) ($validated['downpayment_amount'] ?? $record->downpayment_amount ?? 0),
+                2
+            );
         }
-        // Save downpayment_date if column exists
-        try {
-            if (\Schema::hasColumn('commission_requests_sales', 'downpayment_date') && $request->filled('downpayment_date')) {
-                $updates['downpayment_date'] = $request->input('downpayment_date');
-            }
-        } catch (\Exception $e) {}
+
+        $updates = [
+            'downpayment_status' => $requestedStatus,
+            'downpayment_amount' => $totalDownpayment,
+        ];
+
+        if (Schema::hasColumn('commission_requests_sales', 'downpayment_date')
+            && !empty($validated['downpayment_date'])) {
+            $updates['downpayment_date'] = $validated['downpayment_date'];
+        }
 
         $record->update($updates);
+        $record->refresh();
 
-        // NEW: Spot Paid (or fully Paid) downpayment automatically marks
-        // the client as Done.
-        if (in_array($updates['downpayment_status'], ['Spot Paid', 'Paid'])) {
-            $record->update(['client_status' => 'Done']);
+        if (in_array($requestedStatus, ['Spot Paid', 'Paid'], true)) {
+            $record->update([
+                'downpayment_status' => $requestedStatus,
+                'downpayment_amount' => $totalDownpayment,
+            ]);
+            $record->refresh();
+
+            $summary = $this->syncDownpaymentAndClientStatus($record);
+
+            return response()->json([
+                'success' => true,
+                'status' => $record->downpayment_status,
+                'client_status' => $record->client_status,
+                'commission_status' => $record->status,
+                'commission_ready' => $summary['commission_ready'],
+                'paid_total' => $summary['paid_total'],
+                'total_downpayment' => $summary['total_downpayment'],
+                'remaining_balance' => $summary['remaining_balance'],
+                'threshold_amount' => $summary['threshold_amount'],
+                'threshold_basis' => $summary['threshold_basis'],
+                'downpayment_stage' => $summary['downpayment_stage'],
+                'downpayment_stage_total' => $summary['downpayment_stage_total'],
+                'next_commission_stage' => $summary['next_commission_stage'],
+                'next_requestable_stage' => $summary['next_requestable_stage'],
+                'filed_stages' => $summary['filed_stages'],
+                'commission_stages' => $summary['commission_stages'],
+                'all_commission_stages_requested' => $summary['all_commission_stages_requested'],
+                'message' => $summary['commission_ready']
+                    ? 'Commission stage ' . $summary['next_commission_stage'] . '/' . $summary['downpayment_stage_total'] . ' is ready to request.'
+                    : 'Downpayment status updated.',
+            ]);
         }
 
-        // Always return JSON for PATCH/AJAX requests
-        if ($request->expectsJson() || $request->isJson() || $request->ajax()) {
-            return response()->json(['success' => true]);
-        }
-        return back()->with('success', 'Downpayment status updated.');
+        $summary = $this->syncDownpaymentAndClientStatus($record);
+
+        return response()->json([
+            'success' => true,
+            'status' => $summary['status'],
+            'client_status' => $summary['client_status'],
+            'commission_status' => $summary['commission_status'],
+            'commission_ready' => false,
+            'paid_total' => $summary['paid_total'],
+            'total_downpayment' => $summary['total_downpayment'],
+            'remaining_balance' => $summary['remaining_balance'],
+            'threshold_amount' => $summary['threshold_amount'],
+            'threshold_basis' => $summary['threshold_basis'],
+            'downpayment_stage' => $summary['downpayment_stage'],
+            'downpayment_stage_total' => $summary['downpayment_stage_total'],
+            'next_commission_stage' => $summary['next_commission_stage'],
+            'next_requestable_stage' => $summary['next_requestable_stage'],
+            'filed_stages' => $summary['filed_stages'],
+            'commission_stages' => $summary['commission_stages'],
+            'all_commission_stages_requested' => $summary['all_commission_stages_requested'],
+            'message' => 'Downpayment status updated.',
+        ]);
     }
 
     public function destroy($id)

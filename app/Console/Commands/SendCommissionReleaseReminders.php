@@ -20,7 +20,7 @@ class SendCommissionReleaseReminders extends Command
         $displayDate = Carbon::tomorrow()->format('F j, Y');
 
         $releases = CommissionRequestSales::whereDate('date_released', $tomorrow)
-            ->where('status', 'Not Yet Released')
+            ->where('status', 'Not Released')
             ->orderBy('agent_name')
             ->get();
 
