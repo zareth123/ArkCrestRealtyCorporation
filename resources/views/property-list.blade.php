@@ -82,7 +82,7 @@
     </div>
     <div id="plActiveColumnFiltersRow" class="active-column-filters-row" style="display:none;"></div>
     <div class="pl-table-scroll" style="overflow-x:auto;">
-    <table class="pl-table js-sort-table" id="plTable">
+    <table class="pl-table" id="plTable">
         <thead>
             <tr>
                 <th>#</th>

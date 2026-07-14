@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CommissionRequest;
 use App\Models\CommissionRequestSales;
+use App\Models\CommissionStageRequest;
 use App\Models\DownpaymentInstallment;
 use Illuminate\Support\Collection;
 
@@ -38,14 +39,14 @@ class CommissionStageService
     public function getTotalDownpayment(CommissionRequestSales $record): float
     {
         $label = strtoupper(trim((string) $record->terms_of_payment));
-        $tcp = max(0, (float) ($record->tcp ?? 0));
+        $netTcp = max(0, (float) ($record->net_tcp ?? 0));
 
         if ($label !== '' && str_contains($label, 'STRAIGHT PAYMENT')) {
-            return round($tcp, 2);
+            return round($netTcp, 2);
         }
 
         if ($label !== '' && preg_match('/(\d+(?:\.\d+)?)\s*%\s*DP/i', $label, $matches)) {
-            return round($tcp * ((float) $matches[1] / 100), 2);
+            return round($netTcp * ((float) $matches[1] / 100), 2);
         }
 
         return round(max(0, (float) ($record->downpayment_amount ?? 0)), 2);
@@ -64,7 +65,6 @@ class CommissionStageService
             ->where('is_paid', true)
             ->sum(fn ($installment) => (float) ($installment->amount ?? 0)), 2);
 
-        // Supports spot/full payments and legacy records without installment rows.
         if ($paidTotal <= 0
             && in_array($record->downpayment_status, ['Spot Paid', 'Paid'], true)) {
             return round($totalDownpayment, 2);
@@ -93,13 +93,10 @@ class CommissionStageService
     }
 
     /**
-     * Commission request rows are the source of truth for requested stages.
-     *
-     * Soft-deleted requests are intentionally included because a stage that was
-     * already filed must not be filed a second time while the deleted request is
-     * still recoverable by an administrator.
+     * Official records entered by Finance. Soft-deleted rows remain filed so a
+     * stage cannot be submitted twice while that record is recoverable.
      */
-    public function getStageRequests(CommissionRequestSales $record): Collection
+    public function getOfficialStageRequests(CommissionRequestSales $record): Collection
     {
         return CommissionRequest::withTrashed()
             ->where('source_client_record_id', $record->id)
@@ -118,11 +115,26 @@ class CommissionStageService
             ->keyBy(fn (CommissionRequest $request) => (int) $request->commission_stage);
     }
 
+    /**
+     * Pending requests sent by Sales. These exist before Finance creates the
+     * official commission_requests record.
+     */
+    public function getPendingStageRequests(CommissionRequestSales $record): Collection
+    {
+        return CommissionStageRequest::where('source_client_record_id', $record->id)
+            ->orderByDesc('id')
+            ->get()
+            ->unique(fn (CommissionStageRequest $request) => (int) $request->commission_stage)
+            ->keyBy(fn (CommissionStageRequest $request) => (int) $request->commission_stage);
+    }
+
     public function getFiledStages(CommissionRequestSales $record): array
     {
-        return $this->getStageRequests($record)
+        return $this->getOfficialStageRequests($record)
             ->keys()
+            ->merge($this->getPendingStageRequests($record)->keys())
             ->map(fn ($stage) => (int) $stage)
+            ->unique()
             ->sort()
             ->values()
             ->all();
@@ -139,6 +151,17 @@ class CommissionStageService
         return null;
     }
 
+    private function normalizeStatus(?string $status, string $fallback = 'Requested'): string
+    {
+        if ($status === 'Not Released') {
+            return 'Not Yet Released';
+        }
+
+        return in_array($status, ['Requested', 'Not Yet Released', 'Released'], true)
+            ? $status
+            : $fallback;
+    }
+
     public function summarize(CommissionRequestSales $record): array
     {
         $stageTotal = $this->getStageTotal($record);
@@ -152,16 +175,18 @@ class CommissionStageService
             $stageTotal
         );
 
-        $stageRequests = $this->getStageRequests($record);
-        $filedStages = $stageRequests
+        $officialRequests = $this->getOfficialStageRequests($record);
+        $pendingRequests = $this->getPendingStageRequests($record);
+
+        $filedStages = $officialRequests
             ->keys()
+            ->merge($pendingRequests->keys())
             ->map(fn ($stage) => (int) $stage)
+            ->unique()
             ->sort()
             ->values()
             ->all();
 
-        // The first stage without a commission_requests row is always the next
-        // stage in sequence, even when its payment threshold is not reached yet.
         $nextPendingStage = $this->getNextPendingStage($stageTotal, $filedStages);
         $commissionReady = $nextPendingStage !== null
             && $paymentStage >= $nextPendingStage;
@@ -173,13 +198,32 @@ class CommissionStageService
         $commissionStages = [];
 
         for ($stage = 1; $stage <= $stageTotal; $stage++) {
-            /** @var CommissionRequest|null $request */
-            $request = $stageRequests->get($stage);
+            /** @var CommissionRequest|null $officialRequest */
+            $officialRequest = $officialRequests->get($stage);
+            /** @var CommissionStageRequest|null $pendingRequest */
+            $pendingRequest = $pendingRequests->get($stage);
+
             $threshold = round($totalDownpayment * ($stage / $stageTotal), 2);
             $isEligible = $paymentStage >= $stage;
-            $isRequested = $request !== null;
+            $isRequested = $officialRequest !== null || $pendingRequest !== null;
 
-            if ($isRequested) {
+            if ($officialRequest) {
+                $requestStatus = $this->normalizeStatus($officialRequest->status, 'Not Yet Released');
+            } elseif ($pendingRequest) {
+                // Until Finance submits the Add form, Sales must continue seeing
+                // this exact stage as Requested.
+                $requestStatus = 'Requested';
+            } else {
+                $requestStatus = null;
+            }
+
+            if ($requestStatus === 'Released') {
+                $status = 'released';
+                $statusLabel = 'Released';
+            } elseif ($requestStatus === 'Not Yet Released') {
+                $status = 'not_yet_released';
+                $statusLabel = 'Not Yet Released';
+            } elseif ($requestStatus === 'Requested') {
                 $status = 'requested';
                 $statusLabel = 'Requested';
             } elseif ($stage === $nextPendingStage && $isEligible) {
@@ -193,6 +237,9 @@ class CommissionStageService
                 $statusLabel = 'Waiting for payment';
             }
 
+            $requestedDate = $pendingRequest?->requested_at?->format('Y-m-d')
+                ?? $officialRequest?->date_requested?->format('Y-m-d');
+
             $commissionStages[] = [
                 'stage' => $stage,
                 'total' => $stageTotal,
@@ -202,10 +249,11 @@ class CommissionStageService
                 'is_requested' => $isRequested,
                 'status' => $status,
                 'status_label' => $statusLabel,
-                'request_id' => $request?->id,
-                'request_status' => $request?->status,
-                'date_requested' => $request?->date_requested?->format('Y-m-d'),
-                'is_deleted' => $request?->trashed() ?? false,
+                'request_id' => $officialRequest?->id,
+                'stage_request_id' => $pendingRequest?->id,
+                'request_status' => $requestStatus,
+                'date_requested' => $requestedDate,
+                'is_deleted' => $officialRequest?->trashed() ?? false,
             ];
         }
 
@@ -236,25 +284,31 @@ class CommissionStageService
         ?string $preferredRequestStatus = null
     ): string {
         $summary = $this->summarize($record);
+        $preferredRequestStatus = $this->normalizeStatus($preferredRequestStatus, '');
+
+        if (!empty($summary['filed_stages'])) {
+            for ($index = count($summary['commission_stages']) - 1; $index >= 0; $index--) {
+                $stage = $summary['commission_stages'][$index];
+                if ($stage['is_requested']) {
+                    return $stage['status_label'];
+                }
+            }
+        }
 
         if ($summary['commission_ready']) {
             return 'For Request';
         }
 
-        if (in_array($preferredRequestStatus, ['Released', 'Not Released'], true)) {
+        if (in_array($preferredRequestStatus, ['Requested', 'Not Yet Released', 'Released'], true)) {
             return $preferredRequestStatus;
         }
 
-        $latestRequestStatus = CommissionRequest::where(
-            'source_client_record_id',
-            $record->id
-        )
-            ->orderByDesc('commission_stage')
-            ->orderByDesc('id')
-            ->value('status');
+        $currentStatus = $record->status === 'Not Released'
+            ? 'Not Yet Released'
+            : $record->status;
 
-        return in_array($latestRequestStatus, ['Released', 'Not Released'], true)
-            ? $latestRequestStatus
-            : 'Not Released';
+        return in_array($currentStatus, ['Requested', 'Not Yet Released', 'Released'], true)
+            ? $currentStatus
+            : 'Not Yet Released';
     }
 }

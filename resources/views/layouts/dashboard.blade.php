@@ -22,14 +22,14 @@
         cursor: default;
     }
     table tbody tr:hover {
-        background: #fdf6e8 !important;
+        background: #eff6ff !important;
         transform: scaleY(1.03);
-        box-shadow: 0 2px 8px rgba(163,121,41,.20);
+        box-shadow: 0 2px 8px rgba(30,69,117,.10);
         position: relative;
         z-index: 1;
     }
     table tbody tr:hover td {
-        color: #bf932a !important;
+        color: #1e3a5f !important;
         font-weight: 600;
     }    .tbl-wrap::-webkit-scrollbar,
     .table-wrapper::-webkit-scrollbar,
@@ -180,11 +180,13 @@
                                 @if(isset($sysNotifs) && $sysNotifs->count() > 0)
                                     @foreach($sysNotifs as $notif)
                                     <div class="notification-item {{ $notif->is_read ? '' : 'unread' }}"
-                                        style="cursor:{{ in_array($notif->type, ['note_reminder','user_pending','permission_request','commission_reminder','downpayment_reminder','tripping_reminder']) ? 'pointer' : 'default' }};{{ $notif->is_read && !in_array($notif->type, ['user_pending','permission_request','note_reminder','commission_reminder','downpayment_reminder','tripping_reminder']) ? 'opacity:0.5;pointer-events:none;' : '' }}"
+                                        style="cursor:{{ in_array($notif->type, ['note_reminder','user_pending','permission_request','commission_reminder','commission_request_submitted','downpayment_reminder','tripping_reminder']) ? 'pointer' : 'default' }};{{ $notif->is_read && !in_array($notif->type, ['user_pending','permission_request','note_reminder','commission_reminder','commission_request_submitted','downpayment_reminder','tripping_reminder']) ? 'opacity:0.5;pointer-events:none;' : '' }}"
                                         @if($notif->type === 'note_reminder')
                                         onclick="event.stopPropagation();openNoteModal({{ $notif->note_id ?? 0 }}, '{{ addslashes($notif->title) }}', '{{ addslashes($notif->message) }}', this, {{ $notif->id }})"
                                         @elseif($notif->type === 'commission_reminder')
                                         onclick="event.stopPropagation();window.location='{{ route('commission-monitoring') }}'"
+                                        @elseif($notif->type === 'commission_request_submitted')
+                                        onclick="event.stopPropagation();handleCommissionRequestNotifClick({{ $notif->id }}, {{ $notif->note_id ?? 0 }})"
                                         @elseif($notif->type === 'downpayment_reminder')
                                         onclick="event.stopPropagation();window.location='{{ route('commission-monitoring') }}'"
                                         @elseif($notif->type === 'tripping_reminder')
@@ -276,7 +278,7 @@
                 <ul class="nav-list">
                     <!-- Finance with Dropdown -->
                     @php
-                    $financeChildren = array_filter(['departments','summary-report','commission-monitoring','cash-advance'], fn($k) => $canSee($k));
+                    $financeChildren = array_filter(['departments','summary-report','commission-monitoring'], fn($k) => $canSee($k));
                     @endphp
                     @if(count($financeChildren) > 0)
                     <li class="nav-item-wrapper">
@@ -347,16 +349,6 @@
                                         </a>
                                     </li>
                                 </ul>
-                            </li>
-                            @endif
-                            @if($canSee('cash-advance'))
-                            <li>
-                                <a href="{{ route('cash-advance') }}" class="nav-subitem" data-page="cash-advance">
-                                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                    </svg>
-                                    <span class="sidebar-text">Cash Advance</span>
-                                </a>
                             </li>
                             @endif
                             @if($canSee('calendar'))
@@ -729,6 +721,18 @@
             .catch(() => { window.location.href = '/dashboard'; });
     }
 
+    function handleCommissionRequestNotifClick(notifId, stageRequestId) {
+        const panel = document.getElementById('notificationPanel');
+        if (panel) panel.classList.remove('show');
+
+        fetch('/notifications/' + notifId + '/read', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
+        }).catch(() => {});
+
+        window.location.href = '/commission-monitoring?stage_request=' + encodeURIComponent(stageRequestId);
+    }
+
     function handleClientDoneNotifClick(notifId, recordId) {
         const panel = document.getElementById('notificationPanel');
         if (panel) panel.classList.remove('show');
@@ -1070,7 +1074,6 @@
     <script src="{{ asset('js/sidebar-toggle.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/sidebar-active.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/global-search.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('js/table-sort.js') }}?v={{ time() }}"></script>
 
     <script>
     // ===== REAL-TIME NOTIFICATION POLLING (every 30s) =====
@@ -1107,6 +1110,7 @@
             permission_approved: '<svg fill="none" stroke="#16a34a" viewBox="0 0 24 24" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
             permission_rejected: '<svg fill="none" stroke="#dc2626" viewBox="0 0 24 24" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
             trip_done:           '<svg fill="none" stroke="#16a34a" viewBox="0 0 24 24" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>',
+            commission_request_submitted: '<svg fill="none" stroke="#A37929" viewBox="0 0 24 24" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>',
             client_done:         '<svg fill="none" stroke="#16a34a" viewBox="0 0 24 24" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
         };
         const iconBg = {
@@ -1115,11 +1119,12 @@
             note_reminder:       'background:#dbeafe;',
             trip_done:           'background:#dcfce7;',
             client_done:         'background:#dcfce7;',
+            commission_request_submitted: 'background:#fef3c7;',
         };
         const icon = typeIcons[n.type] || typeIcons.permission_sent;
         const bg = iconBg[n.type] || '';
         const isRead = n.is_read;
-        const nonClickable = isRead && !['user_pending','permission_request','note_reminder'].includes(n.type);
+        const nonClickable = isRead && !['user_pending','permission_request','note_reminder','commission_request_submitted'].includes(n.type);
         const opacity = nonClickable ? 'opacity:0.5;pointer-events:none;' : '';
 
         let onclick = '';
@@ -1137,6 +1142,8 @@
             onclick = `onclick="event.stopPropagation();handleTripDoneNotifClick(${n.id}, ${n.note_id})"`;
         } else if (n.type === 'client_done' && n.note_id) {
             onclick = `onclick="event.stopPropagation();handleClientDoneNotifClick(${n.id}, ${n.note_id})"`;
+        } else if (n.type === 'commission_request_submitted' && n.note_id) {
+            onclick = `onclick="event.stopPropagation();handleCommissionRequestNotifClick(${n.id}, ${n.note_id})"`;
         }
 
         return `<div class="notification-item ${isRead ? '' : 'unread'}" style="cursor:${onclick ? 'pointer' : 'default'};${opacity}" ${onclick}>

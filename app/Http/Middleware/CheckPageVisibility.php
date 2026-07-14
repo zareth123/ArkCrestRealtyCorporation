@@ -14,7 +14,6 @@ class CheckPageVisibility
         'summary-report.yearly'        => 'summary-report',
         'departments.admin'            => 'departments',
         'commission-monitoring'        => 'commission-monitoring',
-        'cash-advance'                  => 'cash-advance',
         'calendar'                     => 'calendar',
         'sales-marketing'              => 'sales-marketing',
         'forms'                        => 'forms',

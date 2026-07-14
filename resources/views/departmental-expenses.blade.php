@@ -312,7 +312,7 @@
             </div>
         </div>
         <div class="table-wrapper">
-            <table class="requests-table js-sort-table">
+            <table class="requests-table">
                 <thead>
                     <tr>
                         <th style="width: 40px; min-width: 40px;">
