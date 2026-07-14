@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CommissionRequest;
 use App\Models\CommissionRequestSales;
+use App\Models\CommissionStageRequest;
 use App\Services\CommissionStageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,8 +38,10 @@ class CommissionMonitoringController extends Controller
         return view('commission-dashboard');
     }
 
-    private function validationRules(bool $updating = false): array
-    {
+    private function validationRules(
+        bool $updating = false,
+        ?CommissionRequest $record = null
+    ): array {
         return [
             'project_name' => 'required|string|max:255',
             'property_details' => 'nullable|string|max:255',
@@ -51,18 +54,17 @@ class CommissionMonitoringController extends Controller
             'discount' => 'nullable|numeric|min:0',
             'net_tcp' => 'nullable|numeric|min:0',
             'commission_percent' => 'nullable|numeric|min:0|max:100',
-            'commission' => 'nullable|numeric|min:0',
+            'commission' => ($updating ? 'nullable' : 'required') . '|numeric|min:0',
             'mode_of_payment' => 'required|string|max:255',
             'date_requested' => 'required|date',
             'reservation_date' => 'nullable|date',
             'date_released' => 'nullable|date',
-            'status' => 'nullable|in:For Request,Not Released,Released',
+            'status' => 'required|in:Not Yet Released,Released',
             'payment_type' => 'required|string|max:50',
-            'value_of_payment_terms' => 'nullable|numeric|min:0',
+            'value_of_payment_terms' => ($updating ? 'nullable' : 'required') . '|numeric|min:0',
             'remarks' => 'nullable|string',
-            'source_client_record_id' => $updating
-                ? 'nullable|integer|exists:commission_requests_sales,id'
-                : 'nullable|integer|exists:commission_requests_sales,id',
+            'source_client_record_id' => 'nullable|integer|exists:commission_requests_sales,id',
+            'commission_stage_request_id' => 'nullable|integer|exists:commission_stage_requests,id',
             'commission_stage' => 'nullable|integer|min:1|max:3',
             'commission_stage_total' => 'nullable|integer|min:1|max:3',
             'stage_threshold_amount' => 'nullable|numeric|min:0',
@@ -76,8 +78,40 @@ class CommissionMonitoringController extends Controller
 
             return DB::transaction(function () use ($validated) {
                 $source = null;
+                $stageRequest = null;
 
-                if (!empty($validated['source_client_record_id'])) {
+                if (!empty($validated['commission_stage_request_id'])) {
+                    $stageRequest = CommissionStageRequest::lockForUpdate()
+                        ->findOrFail($validated['commission_stage_request_id']);
+
+                    if ($stageRequest->commission_request_id) {
+                        return redirect()->route('commission-monitoring')
+                            ->with('error', 'This Sales request has already been processed by Finance.');
+                    }
+
+                    $source = CommissionRequestSales::lockForUpdate()
+                        ->findOrFail($stageRequest->source_client_record_id);
+
+                    $alreadyFiled = CommissionRequest::withTrashed()
+                        ->where('source_client_record_id', $source->id)
+                        ->where('commission_stage', $stageRequest->commission_stage)
+                        ->lockForUpdate()
+                        ->exists();
+
+                    if ($alreadyFiled) {
+                        return redirect()->route('commission-monitoring')
+                            ->with('error', 'Commission stage ' . $stageRequest->commission_stage . '/' . $stageRequest->commission_stage_total . ' has already been recorded.');
+                    }
+
+                    // Stage ownership comes from the Sales request, never from
+                    // editable form values.
+                    $validated['source_client_record_id'] = $source->id;
+                    $validated['commission_stage'] = $stageRequest->commission_stage;
+                    $validated['commission_stage_total'] = $stageRequest->commission_stage_total;
+                    $validated['stage_threshold_amount'] = $stageRequest->stage_threshold_amount;
+                } elseif (!empty($validated['source_client_record_id'])) {
+                    // Preserve direct Admin entry from Client Database when no
+                    // Sales request token was supplied.
                     $source = CommissionRequestSales::lockForUpdate()
                         ->findOrFail($validated['source_client_record_id']);
 
@@ -89,7 +123,6 @@ class CommissionMonitoringController extends Controller
                     }
 
                     $stage = (int) $summary['next_requestable_stage'];
-
                     $alreadyFiled = CommissionRequest::withTrashed()
                         ->where('source_client_record_id', $source->id)
                         ->where('commission_stage', $stage)
@@ -101,7 +134,6 @@ class CommissionMonitoringController extends Controller
                             ->with('error', 'Commission stage ' . $stage . '/' . $summary['downpayment_stage_total'] . ' has already been requested.');
                     }
 
-                    $validated['source_client_record_id'] = $source->id;
                     $validated['commission_stage'] = $stage;
                     $validated['commission_stage_total'] = $summary['downpayment_stage_total'];
                     $validated['stage_threshold_amount'] = $summary['next_threshold_amount'];
@@ -112,6 +144,8 @@ class CommissionMonitoringController extends Controller
                         $validated['stage_threshold_amount']
                     );
                 }
+
+                unset($validated['commission_stage_request_id']);
 
                 $month = now()->format('m');
                 $year = now()->format('y');
@@ -128,11 +162,19 @@ class CommissionMonitoringController extends Controller
                 $validated['department'] = 'Commission';
                 $validated['category'] = 'Commission';
                 $validated['requested_amount'] = $validated['net_tcp'] ?? 0;
-                $validated['status'] = in_array($validated['status'] ?? null, ['Released', 'Not Released'], true)
-                    ? $validated['status']
-                    : 'Not Released';
+                $validated['status'] = ($validated['status'] ?? null) === 'Released'
+                    ? 'Released'
+                    : 'Not Yet Released';
 
                 $record = CommissionRequest::create($validated);
+
+                if ($stageRequest) {
+                    $stageRequest->update([
+                        'commission_request_id' => $record->id,
+                        'status' => $record->status,
+                        'processed_at' => now(),
+                    ]);
+                }
 
                 if ($source) {
                     $source->update([
@@ -192,7 +234,7 @@ class CommissionMonitoringController extends Controller
     {
         try {
             $record = CommissionRequest::findOrFail($id);
-            $validated = $request->validate($this->validationRules(true));
+            $validated = $request->validate($this->validationRules(true, $record));
 
             // Stage ownership is server-controlled and cannot be changed by editing.
             unset(
@@ -203,8 +245,20 @@ class CommissionMonitoringController extends Controller
             );
 
             $oldStatus = $record->status;
+
+            if (($validated['status'] ?? null) === 'Not Released') {
+                $validated['status'] = 'Not Yet Released';
+            }
+
             $record->update($validated);
             $record->refresh();
+
+            CommissionStageRequest::where('commission_request_id', $record->id)
+                ->update([
+                    'status' => $record->status,
+                    'processed_at' => now(),
+                    'updated_at' => now(),
+                ]);
 
             if ($record->source_client_record_id) {
                 $source = CommissionRequestSales::find($record->source_client_record_id);

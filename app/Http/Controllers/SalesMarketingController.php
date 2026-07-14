@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\CommissionRequest;
 use App\Models\CommissionRequestSales;
+use App\Models\CommissionStageRequest;
 use App\Models\ActivityLog;
 use App\Models\SalesTeam;
 use App\Models\CommissionThreshold;
@@ -49,7 +51,7 @@ class SalesMarketingController extends Controller
     }
 
     /**
-     * Calculate the required total downpayment from TCP and payment terms.
+     * Calculate the required total downpayment from Net TCP and payment terms.
      */
     private function calculateTotalDownpayment(CommissionRequestSales $record): float
     {
@@ -119,13 +121,16 @@ class SalesMarketingController extends Controller
         CommissionRequestSales $record,
         string $type,
         string $title,
-        string $message
+        string $message,
+        ?int $referenceId = null
     ): void {
         $financePositions = [
-            'chief in finance',
-            'finance secretary',
-            'finance officer',
             'finance',
+            'accounting',
+            'accountant',
+            'treasury',
+            'audit',
+            'bookkeep',
         ];
 
         $recipients = User::where('status', 'active')
@@ -149,7 +154,7 @@ class SalesMarketingController extends Controller
                 'message' => $message,
                 'is_read' => false,
                 'notified_at' => now(),
-                'note_id' => $record->id,
+                'note_id' => $referenceId ?? $record->id,
             ]);
         }
     }
@@ -291,7 +296,7 @@ class SalesMarketingController extends Controller
         // Today's summary for banner
         $today = \Carbon\Carbon::today()->toDateString();
         $todayTrips    = \App\Models\TripSchedule::whereDate('tripping_date', $today)->whereIn('status', ['confirmed', 'pending'])->count();
-        $todayReleases = \App\Models\CommissionRequestSales::whereDate('date_released', $today)->where('status', 'Not Released')->count();
+        $todayReleases = \App\Models\CommissionRequestSales::whereDate('date_released', $today)->whereIn('status', ['Not Yet Released', 'Not Released'])->count();
         $todayEvents   = \App\Models\CommissionRequestSales::where(function($q) use ($today) {
             $q->whereDate('reservation_date', $today)->orWhereDate('date_of_downpayment', $today);
         })->count();
@@ -423,6 +428,106 @@ class SalesMarketingController extends Controller
         return redirect()->route('reserved-clients')->with('success', 'Client deleted.');
     }
 
+    private function nextCommissionControlNumber(): string
+    {
+        $month = now()->format('m');
+        $year = now()->format('y');
+        $count = 1;
+
+        do {
+            $controlNumber = sprintf('CM-%s-%03d-%s', $month, $count, $year);
+            $count++;
+        } while (CommissionRequest::withTrashed()
+            ->where('control_number', $controlNumber)
+            ->exists());
+
+        return $controlNumber;
+    }
+
+    /**
+     * Submit the next eligible DP stage to Finance without creating the final
+     * commission_requests row. Finance creates that record only after completing
+     * the Add New Commission Request form.
+     */
+    public function requestCommissionStage(Request $request, $id)
+    {
+        return DB::transaction(function () use ($id) {
+            $record = CommissionRequestSales::lockForUpdate()->findOrFail($id);
+            $summary = $this->stageService->summarize($record);
+
+            if (!$summary['commission_ready'] || !$summary['next_requestable_stage']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $summary['all_commission_stages_requested']
+                        ? 'All eligible commission stages have already been requested.'
+                        : 'The next commission stage is not ready yet.',
+                    'commission_stages' => $summary['commission_stages'],
+                ], 422);
+            }
+
+            $stage = (int) $summary['next_requestable_stage'];
+            $stageTotal = (int) $summary['downpayment_stage_total'];
+
+            $alreadyRequested = CommissionStageRequest::where(
+                'source_client_record_id',
+                $record->id
+            )
+                ->where('commission_stage', $stage)
+                ->lockForUpdate()
+                ->exists();
+
+            $alreadyRecorded = CommissionRequest::withTrashed()
+                ->where('source_client_record_id', $record->id)
+                ->where('commission_stage', $stage)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($alreadyRequested || $alreadyRecorded) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "DP stage {$stage}/{$stageTotal} has already been requested.",
+                ], 422);
+            }
+
+            $stageRequest = CommissionStageRequest::create([
+                'source_client_record_id' => $record->id,
+                'commission_request_id' => null,
+                'commission_stage' => $stage,
+                'commission_stage_total' => $stageTotal,
+                'stage_threshold_amount' => $summary['next_threshold_amount'],
+                'requested_by_user_id' => auth()->id(),
+                'requested_by_name' => auth()->user()->name,
+                'requested_at' => now(),
+                'status' => 'Requested',
+                'processed_at' => null,
+            ]);
+
+            $record->update(['status' => 'Requested']);
+
+            $this->notifyFinanceUsers(
+                $record,
+                'commission_request_submitted',
+                'New Commission Request',
+                "{$record->client_name} — DP stage {$stage}/{$stageTotal} was requested by " . auth()->user()->name . '.',
+                $stageRequest->id
+            );
+
+            ActivityLog::log(
+                'create',
+                'Client Database',
+                "Requested commission for '{$record->client_name}' DP stage {$stage}/{$stageTotal}"
+            );
+
+            $updatedSummary = $this->stageService->summarize($record->fresh());
+
+            return response()->json(array_merge([
+                'success' => true,
+                'message' => "Commission request for DP stage {$stage}/{$stageTotal} was sent to Finance.",
+                'commission_stage_request_id' => $stageRequest->id,
+            ], $updatedSummary));
+        });
+    }
+
     public function prefillCommission($id)
     {
         $record = CommissionRequestSales::findOrFail($id);
@@ -468,6 +573,53 @@ class SalesMarketingController extends Controller
         ]);
     }
 
+    public function prefillCommissionStageRequest($id)
+    {
+        $stageRequest = CommissionStageRequest::with('sourceClientRecord')->findOrFail($id);
+
+        if ($stageRequest->commission_request_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This commission request has already been processed by Finance.',
+                'commission_request_id' => $stageRequest->commission_request_id,
+            ], 409);
+        }
+
+        $record = $stageRequest->sourceClientRecord;
+
+        if (!$record) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The source client record could not be found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'commission_stage_request_id' => $stageRequest->id,
+            'id' => $record->id,
+            'source_client_record_id' => $record->id,
+            'commission_stage' => $stageRequest->commission_stage,
+            'commission_stage_total' => $stageRequest->commission_stage_total,
+            'stage_threshold_amount' => $stageRequest->stage_threshold_amount,
+            'client_name' => $record->client_name ?? '',
+            'project_name' => $record->project_name ?? '',
+            'agent_name' => $record->agent_name ?? '',
+            'net_tcp' => $record->net_tcp ?? '',
+            'reservation_date' => $record->reservation_date?->format('Y-m-d') ?? '',
+            'terms_of_payment' => $record->terms_of_payment ?? '',
+            'number_of_units' => $record->number_of_units ?? 1,
+            'date_requested' => now()->format('Y-m-d'),
+            'developer_name' => $record->developer_name ?? '',
+            'block_lot_number' => $record->block_lot_number ?? '',
+            'property_details' => $record->property_details ?? '',
+            'price_sqm' => $record->price_sqm ?? '',
+            'lot_area' => $record->lot_area ?? '',
+            'discount' => $record->discount ?? '',
+            'mode_of_payment' => $record->mode_of_payment ?? '',
+        ]);
+    }
+
     public function downpaymentSummary($id)
     {
         $record = CommissionRequestSales::findOrFail($id);
@@ -480,7 +632,16 @@ class SalesMarketingController extends Controller
 
     public function clientDatabase()
     {
-        $commissionRequests = CommissionRequestSales::orderBy('date_requested', 'asc')->get();
+        $commissionRequests = CommissionRequestSales::with([
+            'commissionRequests' => fn ($query) => $query
+                ->withTrashed()
+                ->whereNotNull('commission_stage')
+                ->orderByDesc('commission_stage')
+                ->orderByDesc('id'),
+            'commissionStageRequests' => fn ($query) => $query
+                ->orderByDesc('commission_stage')
+                ->orderByDesc('id'),
+        ])->orderBy('date_requested', 'asc')->get();
 
         // Developer names can come from two places:
         //  1. Existing client records (the free-text developer_name column), and
@@ -583,7 +744,7 @@ class SalesMarketingController extends Controller
     {
         $validated = $request->validate($this->validationRules());
         if (empty($validated['status'])) {
-            $validated['status'] = 'Not Released';
+            $validated['status'] = 'Not Yet Released';
         }
         $record = CommissionRequestSales::create($validated);
         $initialSummary = $this->stageService->summarize($record);
@@ -657,9 +818,9 @@ class SalesMarketingController extends Controller
         $commissionRequest->update($validated);
         ActivityLog::log('update', 'Sales & Marketing', "Updated sale entry for client '{$validated['client_name']}' (ID: {$id})");
 
-        // Notify finance when the release decision changes to Released or Not Released.
+        // Notify finance when the release decision changes to Released or Not Yet Released.
         $newStatus = $commissionRequest->fresh()->status;
-        if (in_array($newStatus, ['Released', 'Not Released'], true)
+        if (in_array($newStatus, ['Released', 'Not Yet Released', 'Not Released'], true)
             && $oldStatus !== $newStatus) {
             $releaseDate = $commissionRequest->date_released
                 ? Carbon::parse($commissionRequest->date_released)->format('F j, Y')
@@ -672,7 +833,7 @@ class SalesMarketingController extends Controller
                     : 'commission_not_released',
                 $newStatus === 'Released'
                     ? 'Commission Released'
-                    : 'Commission Marked Not Released',
+                    : 'Commission Marked Not Yet Released',
                 "{$commissionRequest->client_name} — {$commissionRequest->project_name}: {$newStatus} ({$releaseDate})."
             );
 
@@ -768,7 +929,7 @@ class SalesMarketingController extends Controller
         $calculatedTotal = $this->calculateTotalDownpayment($record);
         $requestedTotal = round((float) ($validated['total_amount'] ?? 0), 2);
 
-        // Known payment terms are always calculated from TCP.
+        // Known payment terms are always calculated from Net TCP.
         // "Others" may use the amount supplied by the user.
         $totalAmount = $calculatedTotal > 0
             ? $calculatedTotal
@@ -1037,6 +1198,21 @@ class SalesMarketingController extends Controller
 
         return DB::transaction(function () use ($id) {
             $installment = DownpaymentInstallment::lockForUpdate()->findOrFail($id);
+
+            $hasCommissionRequest = CommissionRequest::withTrashed()
+                ->where('source_client_record_id', $installment->commission_request_sales_id)
+                ->exists()
+                || CommissionStageRequest::where(
+                    'source_client_record_id',
+                    $installment->commission_request_sales_id
+                )->exists();
+
+            if ($hasCommissionRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This payment can no longer be undone because a commission request has already been recorded.',
+                ], 422);
+            }
 
             $installment->update([
                 'is_paid' => false,

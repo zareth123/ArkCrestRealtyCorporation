@@ -47,6 +47,11 @@ class CommissionRequestSales extends Model
         return $this->hasMany(CommissionRequest::class, 'source_client_record_id');
     }
 
+    public function commissionStageRequests()
+    {
+        return $this->hasMany(CommissionStageRequest::class, 'source_client_record_id');
+    }
+
     protected $casts = [
         'date_requested' => 'date',
         'reservation_date' => 'date',

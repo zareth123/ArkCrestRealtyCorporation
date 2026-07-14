@@ -78,14 +78,14 @@ return new class extends Migration
                     }
 
                     $stageTotal = $terms === 2 ? 2 : ($terms >= 3 ? 3 : 1);
-                    $tcp = max(0, (float) ($record->tcp ?? 0));
+                    $netTcp = max(0, (float) ($record->net_tcp ?? 0));
                     $totalDownpayment = max(0, (float) ($record->downpayment_amount ?? 0));
                     $upperLabel = strtoupper($label);
 
                     if (str_contains($upperLabel, 'STRAIGHT PAYMENT')) {
-                        $totalDownpayment = $tcp;
+                        $totalDownpayment = $netTcp;
                     } elseif (preg_match('/(\d+(?:\.\d+)?)\s*%\s*DP/i', $label, $matches)) {
-                        $totalDownpayment = round($tcp * ((float) $matches[1] / 100), 2);
+                        $totalDownpayment = round($netTcp * ((float) $matches[1] / 100), 2);
                     }
 
                     $paidTotal = (float) DB::table('downpayment_installments')
