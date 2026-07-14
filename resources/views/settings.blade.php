@@ -864,6 +864,7 @@
               'summary-report'                   => 'Summary Report',
               'commission-monitoring'            => 'Commission Monitoring',
               'commission-monitoring.dashboard'  => '↳ Commission Dashboard',
+              'cash-advance'                     => 'Cash Advance',
               'calendar'                         => 'Calendar',
             ],
             'Sales & Marketing' => [

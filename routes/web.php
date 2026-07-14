@@ -233,6 +233,13 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::delete('/commission-monitoring/{id}', [App\Http\Controllers\CommissionMonitoringController::class, 'destroy'])->name('commission-monitoring.destroy');
     Route::post('/commission-monitoring/bulk-delete', [App\Http\Controllers\CommissionMonitoringController::class, 'bulkDestroy'])->name('commission-monitoring.bulk-delete');
 
+    // Cash Advance
+    Route::get('/cash-advance', [App\Http\Controllers\CashAdvanceController::class, 'index'])->name('cash-advance')->middleware('page.visible');
+    Route::post('/cash-advance', [App\Http\Controllers\CashAdvanceController::class, 'store'])->name('cash-advance.store');
+    Route::post('/cash-advance/{id}/approve', [App\Http\Controllers\CashAdvanceController::class, 'approve'])->name('cash-advance.approve');
+    Route::post('/cash-advance/{id}/reject', [App\Http\Controllers\CashAdvanceController::class, 'reject'])->name('cash-advance.reject');
+    Route::delete('/cash-advance/{id}', [App\Http\Controllers\CashAdvanceController::class, 'destroy'])->name('cash-advance.destroy');
+
     // Calendar
     Route::get('/calendar', [App\Http\Controllers\CalendarController::class, 'index'])->name('calendar')->middleware('page.visible');
     Route::get('/sales-calendar', [App\Http\Controllers\CalendarController::class, 'salesCalendar'])->name('sales-calendar');
