@@ -864,7 +864,6 @@
               'summary-report'                   => 'Summary Report',
               'commission-monitoring'            => 'Commission Monitoring',
               'commission-monitoring.dashboard'  => '↳ Commission Dashboard',
-              'cash-advance'                     => 'Cash Advance',
               'calendar'                         => 'Calendar',
             ],
             'Sales & Marketing' => [
@@ -1135,8 +1134,12 @@
           <td style="font-size:11px;color:#94a3b8;">{{ $exp->deleted_at ? $exp->deleted_at->format('M d, Y g:i A') : '—' }}</td>
           <td>
             <div style="display:flex;gap:6px;">
-              <button type="button" class="st-btn st-btn-primary st-btn-sm" onclick="delSingleAction('expense', {{ $exp->id }}, 'restore')">Restore</button>
-              <button type="button" class="st-btn st-btn-danger st-btn-sm" onclick="delSingleAction('expense', {{ $exp->id }}, 'delete')">Delete</button>
+              <form method="POST" action="{{ route('expenses.restore', $exp->id) }}">@csrf
+                <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
+              </form>
+              <form method="POST" action="{{ route('expenses.purge', $exp->id) }}" onsubmit="return confirm('Permanently delete this record?')">@csrf @method('DELETE')
+                <button type="submit" class="st-btn st-btn-danger st-btn-sm">Delete</button>
+              </form>
             </div>
           </td>
         </tr>
@@ -1177,9 +1180,13 @@
         </div>
         <div style="display:flex;gap:8px;flex-shrink:0;">
           @if($log->meta)
-          <button type="button" class="st-btn st-btn-primary st-btn-sm" onclick="delSingleAction('log', {{ $log->id }}, 'restore')">Restore</button>
+          <form method="POST" action="{{ route('settings.deleted.restore', $log->id) }}">@csrf
+            <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
+          </form>
           @endif
-          <button type="button" class="st-btn st-btn-danger st-btn-sm" onclick="delSingleAction('log', {{ $log->id }}, 'delete')">Delete</button>
+          <form method="POST" action="{{ route('settings.deleted.purge', $log->id) }}" onsubmit="return confirm('Permanently delete?')">@csrf @method('DELETE')
+            <button type="submit" class="st-btn st-btn-danger st-btn-sm">Delete</button>
+          </form>
         </div>
       </div>
       @endforeach
@@ -2291,75 +2298,25 @@ function clearDelSelection() {
     updateDelBulkBar();
 }
 
-// Single-row Restore/Delete for the Deleted Records list. These used to be plain
-// <form> submits, which caused a full-page navigation to the controller's raw JSON
-// response instead of showing a toast and refreshing in place. Route through the
-// same bulk endpoint with a one-item payload so the response is handled properly.
-// Shared POST helper for the deleted-records restore/delete actions. Always sends
-// Accept: application/json (and X-Requested-With) so Laravel returns a JSON error
-// body for validation failures, 403s, and exceptions too. Without this header,
-// Laravel treats the request as a normal page load and renders a full HTML error
-// page instead — which fails to parse as JSON and used to get silently swallowed,
-// reloading the page with no explanation and no actual restore/delete happening.
-function delPost(url, payload) {
-    var csrf = document.querySelector('meta[name=csrf-token]').content;
-    return fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': csrf
-        },
-        body: JSON.stringify(payload)
-    }).then(function(r) {
-        return r.json().catch(function() {
-            throw new Error('Server returned an unexpected response (HTTP ' + r.status + ').');
-        }).then(function(d) {
-            if (!r.ok && !d.message) {
-                throw new Error('Request failed (HTTP ' + r.status + ').');
-            }
-            return d;
-        });
-    });
-}
-
-function delSingleAction(type, id, kind) {
-    var url = kind === 'delete' ? '{{ route("settings.deleted.bulk-delete") }}' : '{{ route("settings.deleted.bulk-restore") }}';
-    var msg = kind === 'delete'
-        ? 'Permanently delete this record? This cannot be undone.'
-        : 'Restore this record?';
-
-    window.showConfirmModal(msg).then(function(confirmed) {
-        if (!confirmed) return;
-        delPost(url, { items: [{ type: type, id: id }] }).then(function(d) {
-            alert(d.message || 'Done.');
-            window.location.reload();
-        }).catch(function(err) {
-            alert('Something went wrong: ' + err.message);
-        });
-    });
-}
-
 function bulkAction(kind) {
     var checked = document.querySelectorAll('.del-select:checked');
     if (!checked.length) return;
-
-    var url = kind === 'delete' ? '{{ route("settings.deleted.bulk-delete") }}' : '{{ route("settings.deleted.bulk-restore") }}';
-    var msg = kind === 'delete'
+    if (!confirm(kind === 'delete'
         ? 'Permanently delete ' + checked.length + ' record(s)? This cannot be undone.'
-        : 'Restore ' + checked.length + ' record(s)?';
+        : 'Restore ' + checked.length + ' record(s)?')) return;
 
-    window.showConfirmModal(msg).then(function(confirmed) {
-        if (!confirmed) return;
-        var items = Array.from(checked).map(c => ({ type: c.dataset.type, id: parseInt(c.dataset.id) }));
-        delPost(url, { items: items }).then(function(d) {
-            alert(d.message || 'Done.');
-            window.location.reload();
-        }).catch(function(err) {
-            alert('Something went wrong: ' + err.message);
-        });
-    });
+    var items = Array.from(checked).map(c => ({ type: c.dataset.type, id: parseInt(c.dataset.id) }));
+    var url = kind === 'delete' ? '{{ route("settings.deleted.bulk-delete") }}' : '{{ route("settings.deleted.bulk-restore") }}';
+    var csrf = document.querySelector('meta[name=csrf-token]').content;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN': csrf},
+        body: JSON.stringify({ items: items })
+    }).then(r => r.json()).then(function(d) {
+        alert(d.message || 'Done.');
+        window.location.reload();
+    }).catch(function(){ window.location.reload(); });
 }
 </script>
 @endsection

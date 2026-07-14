@@ -314,7 +314,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
             <div id="cdActiveColumnFiltersRow" class="active-column-filters-row" style="display:none;"></div>
         </div>
         <div class="cd-table-wrap">
-            <table class="cd-records-table js-sort-table">
+            <table class="cd-records-table">
                 <thead style="background:linear-gradient(135deg,#1e4575,#2563eb)">
                     <tr>
                         <th class="cd-sticky-col cd-sticky-checkbox" style="padding:14px 8px">

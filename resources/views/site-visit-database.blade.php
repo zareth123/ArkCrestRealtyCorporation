@@ -246,7 +246,7 @@
         <div id="svdActiveFiltersRow_confirmed" class="active-column-filters-row" style="display:none;"></div>
     </div>
     <div class="tbl-wrap">
-    <table class="svd-table js-sort-table">
+    <table class="svd-table">
         <thead><tr>
             <th style="width:40px;text-align:center">#</th>
             <th>Name of Client</th><th>Property</th><th>Company</th>
