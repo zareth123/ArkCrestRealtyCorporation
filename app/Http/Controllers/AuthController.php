@@ -82,7 +82,7 @@ class AuthController extends Controller
                     }
                 }
                 $tomorrowReleases = \App\Models\CommissionRequestSales::whereDate('date_released', today()->addDay())
-                    ->where('status', 'Not Released')->count();
+                    ->whereIn('status', ['Not Yet Released', 'Not Released'])->count();
                 if ($tomorrowReleases > 0) {
                     $alreadyNotified = \App\Models\SystemNotification::where('user_id', $user->id)
                         ->where('type', 'commission_release')->where('title', 'Commission Releases Tomorrow')

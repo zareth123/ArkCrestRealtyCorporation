@@ -388,8 +388,29 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                                 </select>
                             </form>
                         </td>
+                        @php
+                            $latestCommissionRecord = $req->commissionRequests->first();
+                            $latestSalesRequest = $req->commissionStageRequests->first();
+                            $latestCommissionStage = (int) ($latestCommissionRecord->commission_stage ?? 0);
+                            $latestSalesStage = (int) ($latestSalesRequest->commission_stage ?? 0);
+
+                            if ($latestCommissionRecord && $latestCommissionStage >= $latestSalesStage) {
+                                $dpStageStatus = $latestCommissionRecord->status === 'Not Released'
+                                    ? 'Not Yet Released'
+                                    : ($latestCommissionRecord->status ?: 'Not Yet Released');
+                            } elseif ($latestSalesRequest) {
+                                $dpStageStatus = 'Requested';
+                            } elseif ($req->status === 'For Request') {
+                                $dpStageStatus = 'Ready to request';
+                            } else {
+                                $dpStageStatus = null;
+                            }
+                        @endphp
                         <td id="dpStage_{{ $req->id }}" style="padding:10px 12px;white-space:nowrap;text-align:center;font-weight:700;color:#1e4575">
-                            {{ ($req->downpayment_stage ?? 0).'/'.($req->downpayment_stage_total ?? 1) }}
+                            <div id="dpStageValue_{{ $req->id }}">{{ ($req->downpayment_stage ?? 0).'/'.($req->downpayment_stage_total ?? 1) }}</div>
+                            <div id="dpStageStatus_{{ $req->id }}" style="display:{{ $dpStageStatus ? 'block' : 'none' }};margin-top:3px;font-size:9px;font-weight:800;text-transform:uppercase;color:{{ $dpStageStatus === 'Released' ? '#166534' : ($dpStageStatus === 'Not Yet Released' ? '#92400e' : ($dpStageStatus === 'Requested' ? '#1d4ed8' : '#A37929')) }};">
+                                {{ $dpStageStatus ?? '' }}
+                            </div>
                         </td>
                         <td style="padding:10px 12px;white-space:nowrap">
                             <button id="dpBtn_{{ $req->id }}" onclick="openDPModalFromBtn(this)"
@@ -399,7 +420,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                                 data-per-term="{{ $req->downpayment_per_term ?? 0 }}"
                                 data-status="{{ addslashes($req->downpayment_status ?? '') }}"
                                 data-dp-date="{{ $req->downpayment_date ? $req->downpayment_date->format('Y-m-d') : '' }}"
-                                data-tcp="{{ $req->tcp ?? 0 }}"
+                                data-net-tcp="{{ $req->net_tcp ?? 0 }}"
                                 data-terms-label="{{ addslashes($req->terms_of_payment ?? '') }}"
                                 data-stage="{{ $req->downpayment_stage ?? 0 }}"
                                 data-stage-total="{{ $req->downpayment_stage_total ?? 1 }}"
@@ -888,7 +909,7 @@ function viewRow(id){
             ['Downpayment Amount',fmtP(d.downpayment_amount)],
             ['Downpayment Terms',d.downpayment_terms?d.downpayment_terms+' month'+(d.downpayment_terms>1?'s':''):'-'],
             ['DP Stage',(d.downpayment_stage ?? 0)+'/'+(d.downpayment_stage_total ?? 1)],
-            ['Commission Status',fmt(d.status || 'Not Released')],
+            ['Commission Status',fmt(d.status || 'Not Yet Released')],
             ['Date of Downpayment',fmtD(d.downpayment_date || d.date_of_downpayment)],
         ];
         document.getElementById('viewContent').innerHTML=fields.map(([l,v])=>`<div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">${l}</label><div style="font-size:14px;color:#374151;font-weight:500;padding:10px 14px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">${v}</div></div>`).join('');
@@ -1695,7 +1716,7 @@ function goToDuplicateRecord() {
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
-                    <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px">TCP</label>
+                    <label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px">Net TCP</label>
                     <div id="dp_summary_tcp" style="font-size:14px;font-weight:700;color:#374151;">₱0.00</div>
                 </div>
                 <div>
@@ -1841,7 +1862,7 @@ function goToDuplicateRecord() {
             </p>
             <div style="display:flex;gap:10px;justify-content:flex-end;">
                 <button onclick="dismissCommissionReadyModal()" style="padding:9px 18px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">Not Now</button>
-                <button onclick="continueToCommissionRequest()" style="padding:9px 20px;background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Continue</button>
+                <button id="commissionRequestBtn" onclick="requestCommissionStage()" style="padding:9px 20px;background:linear-gradient(135deg,#1e4575,#2563eb);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Request</button>
             </div>
         </div>
     </div>
@@ -1849,9 +1870,9 @@ function goToDuplicateRecord() {
 
 <script>
 let _dpRecordId = null;
-let _dpTcp = 0;
+let _dpNetTcp = 0;
 let _dpTermsLabel = '';
-let _dpTotalAmount = 0; // total downpayment amount, computed from TCP x DP%
+let _dpTotalAmount = 0; // total downpayment amount, computed from Net TCP x DP%
 let _dpPaidAmount = 0;
 let _dpRemainingBalance = 0;
 let _dpStage = 0;
@@ -1860,6 +1881,7 @@ let _dpNextCommissionStage = null;
 let _dpCommissionReady = false;
 let _dpAllCommissionStagesRequested = false;
 let _dpCommissionStages = [];
+let _dpHasFiledCommissionStage = false;
 let _dpPendingReload = false; // set true when a page reload was deferred so the commission-ready popup could show first
 const _dpCsrf = document.querySelector('meta[name=csrf-token]')?.content || '';
 const _isAdmin = {{ auth()->user()->isAdmin() ? 'true' : 'false' }};
@@ -1872,7 +1894,7 @@ function openDPModalFromBtn(btn) {
         parseFloat(btn.dataset.perTerm) || 0,
         btn.dataset.status || '',
         btn.dataset.dpDate || '',
-        parseFloat(btn.dataset.tcp) || 0,
+        parseFloat(btn.dataset.netTcp) || 0,
         btn.dataset.termsLabel || '',
         parseInt(btn.dataset.stage) || 0,
         parseInt(btn.dataset.stageTotal) || 1
@@ -1881,7 +1903,7 @@ function openDPModalFromBtn(btn) {
 
 // Parses the DP percentage out of a terms-of-payment label.
 // Examples: "30% DP - 70% BAL 5 YRS" -> 0.30, "50% DP - 50% BAL 5 YRS" -> 0.50,
-// "STRAIGHT PAYMENT" -> 1 (the full TCP is due, no separate "DP" concept).
+// "STRAIGHT PAYMENT" -> 1 (the full Net TCP is due, no separate "DP" concept).
 // Falls back to 0.30 if nothing recognizable is found, since 30% DP is the
 // most common plan — this keeps the header from showing ₱0.00 on odd/legacy labels.
 function parseDPPercent(termsLabel) {
@@ -1925,6 +1947,10 @@ function renderCommissionStageProgress(stages) {
         var icon = '○';
 
         if (status === 'requested') {
+            bg = '#eff6ff'; border = '#bfdbfe'; color = '#1d4ed8'; icon = '↗';
+        } else if (status === 'not_yet_released') {
+            bg = '#fffbeb'; border = '#fde68a'; color = '#92400e'; icon = '◷';
+        } else if (status === 'released') {
             bg = '#f0fdf4'; border = '#bbf7d0'; color = '#166534'; icon = '✓';
         } else if (status === 'ready') {
             bg = '#fffbeb'; border = '#fde68a'; color = '#92400e'; icon = '●';
@@ -1957,16 +1983,41 @@ function refreshDPStageSummary(summary) {
         _dpCommissionStages = Array.isArray(summary.commission_stages)
             ? summary.commission_stages
             : [];
+        _dpHasFiledCommissionStage = Array.isArray(summary.filed_stages)
+            ? summary.filed_stages.length > 0
+            : _dpCommissionStages.some(function (stage) { return !!stage.is_requested; });
     }
 
     var stageEl = document.getElementById('dp_summary_stage');
     var nextEl = document.getElementById('dp_summary_next_stage');
-    var rowStageEl = document.getElementById('dpStage_' + _dpRecordId);
+    var rowStageValueEl = document.getElementById('dpStageValue_' + _dpRecordId);
+    var rowStageStatusEl = document.getElementById('dpStageStatus_' + _dpRecordId);
     var button = document.getElementById('dpBtn_' + _dpRecordId);
 
     var stageText = _dpStage + '/' + _dpStageTotal;
     if (stageEl) stageEl.textContent = stageText;
-    if (rowStageEl) rowStageEl.textContent = stageText;
+    if (rowStageValueEl) rowStageValueEl.textContent = stageText;
+
+    if (rowStageStatusEl) {
+        var rowStatus = '';
+        for (var statusIndex = _dpCommissionStages.length - 1; statusIndex >= 0; statusIndex--) {
+            if (_dpCommissionStages[statusIndex].is_requested) {
+                rowStatus = _dpCommissionStages[statusIndex].status_label || 'Requested';
+                break;
+            }
+        }
+        if (!rowStatus && _dpCommissionReady) {
+            rowStatus = 'Ready to request';
+        }
+
+        rowStageStatusEl.textContent = rowStatus;
+        rowStageStatusEl.style.display = rowStatus ? 'block' : 'none';
+        rowStageStatusEl.style.color = rowStatus === 'Released'
+            ? '#166534'
+            : (rowStatus === 'Not Yet Released'
+                ? '#92400e'
+                : (rowStatus === 'Requested' ? '#1d4ed8' : '#A37929'));
+    }
 
     if (button) {
         button.dataset.stage = _dpStage;
@@ -2005,6 +2056,10 @@ async function loadDownpaymentSummary(showReadyPopup) {
         refreshDPSummaryHeader(summary.paid_total);
         refreshDPStageSummary(summary);
 
+        // Re-render paid rows after the request state arrives so the Admin undo
+        // action disappears as soon as any commission stage has been filed.
+        if (_dpHasFiledCommissionStage) loadInstallments();
+
         if (showReadyPopup) handleCommissionTrigger(summary);
         return summary;
     } catch (error) {
@@ -2012,7 +2067,7 @@ async function loadDownpaymentSummary(showReadyPopup) {
     }
 }
 
-// Recomputes and redraws the read-only summary header (Terms / TCP / Total DP / Remaining).
+// Recomputes and redraws the read-only summary header (Terms / Net TCP / Total DP / Remaining).
 // paidSum = however much of the total DP has actually been paid so far
 // (sum of paid installment amounts, or the full spot amount once paid).
 function refreshDPSummaryHeader(paidSum) {
@@ -2026,7 +2081,7 @@ function refreshDPSummaryHeader(paidSum) {
     _dpRemainingBalance = Math.max(0, _dpTotalAmount - _dpPaidAmount);
 
     document.getElementById('dp_summary_terms').textContent = _dpTermsLabel || '—';
-    document.getElementById('dp_summary_tcp').textContent = fmtPeso(_dpTcp);
+    document.getElementById('dp_summary_tcp').textContent = fmtPeso(_dpNetTcp);
     document.getElementById('dp_summary_total').textContent = fmtPeso(_dpTotalAmount);
     document.getElementById('dp_summary_remaining').textContent = fmtPeso(_dpRemainingBalance);
 }
@@ -2059,8 +2114,73 @@ function dismissCommissionReadyModal() {
     document.getElementById('commissionReadyModal').style.display = 'none';
     if (_dpPendingReload) { _dpPendingReload = false; window.location.reload(); }
 }
-function continueToCommissionRequest() {
-    window.location.href = '/commission-monitoring?add_request_for=' + _dpRecordId;
+function requestCommissionStage() {
+    if (!_dpRecordId || !_dpCommissionReady) {
+        if (typeof showToast === 'function') {
+            showToast('This commission stage is not ready to request yet.', 'error', 'Not Ready');
+        }
+        return;
+    }
+
+    var stageText = _dpNextCommissionStage
+        ? _dpNextCommissionStage + '/' + _dpStageTotal
+        : 'the next eligible stage';
+
+    var submitRequest = function () {
+        var button = document.getElementById('commissionRequestBtn');
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Sending...';
+        }
+
+        fetch('/api/client-database/' + _dpRecordId + '/commission-request', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': _dpCsrf
+            },
+            body: JSON.stringify({})
+        })
+        .then(async function (response) {
+            var data = await response.json().catch(function () { return {}; });
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Unable to send the commission request.');
+            }
+
+            _dpPendingReload = false;
+            refreshDPStageSummary(data);
+            document.getElementById('commissionReadyModal').style.display = 'none';
+
+            if (typeof showToast === 'function') {
+                showToast(data.message, 'success', 'Request Sent');
+            }
+
+            setTimeout(function () { window.location.reload(); }, 700);
+        })
+        .catch(function (error) {
+            if (button) {
+                button.disabled = false;
+                button.textContent = 'Request';
+            }
+
+            if (typeof showToast === 'function') {
+                showToast(error.message, 'error', 'Request Failed');
+            } else {
+                alert(error.message);
+            }
+        });
+    };
+
+    var message = 'Are you sure you want to request commission for DP stage ' + stageText + '? Finance will be notified and this stage cannot be requested again.';
+
+    if (window.showConfirmModal) {
+        window.showConfirmModal(message).then(function (confirmed) {
+            if (confirmed) submitRequest();
+        });
+    } else if (confirm(message)) {
+        submitRequest();
+    }
 }
 
 function updateClientStatusSelect(id, clientStatus) {
@@ -2088,17 +2208,18 @@ function updateDPStatusBadge(id, status, terms, amount) {
     if (amount !== undefined) btn.dataset.amount = amount;
 }
 
-function openDPModal(id, amount, terms, perTerm, status, dpDate, tcp, termsLabel, stage, stageTotal) {
+function openDPModal(id, amount, terms, perTerm, status, dpDate, netTcp, termsLabel, stage, stageTotal) {
     _dpRecordId    = id;
-    _dpTcp         = parseFloat(tcp) || 0;
+    _dpNetTcp      = parseFloat(netTcp) || 0;
     _dpTermsLabel  = termsLabel || '';
-    _dpTotalAmount = _dpTcp * parseDPPercent(_dpTermsLabel);
+    _dpTotalAmount = _dpNetTcp * parseDPPercent(_dpTermsLabel);
     _dpStage = parseInt(stage) || 0;
     _dpStageTotal = parseInt(stageTotal) || 1;
     _dpNextCommissionStage = null;
     _dpCommissionReady = false;
     _dpAllCommissionStagesRequested = false;
     _dpCommissionStages = [];
+    _dpHasFiledCommissionStage = false;
     refreshDPStageSummary();
 
     const isSpotPaid = status === 'Spot Paid';
@@ -2206,7 +2327,7 @@ function saveSpotDP() {
     const amount = _dpTotalAmount;
     const date   = document.getElementById('dp_spot_date').value;
     if (!amount || parseFloat(amount) <= 0) {
-        alert('The total downpayment could not be calculated from TCP and Terms of Payment.');
+        alert('The total downpayment could not be calculated from Net TCP and Terms of Payment.');
         return;
     }
     if (!date) {
@@ -2285,7 +2406,7 @@ function setupInstallments() {
         return;
     }
     if (!amount || amount <= 0) {
-        alert('The total downpayment could not be calculated from TCP and Terms of Payment.');
+        alert('The total downpayment could not be calculated from Net TCP and Terms of Payment.');
         return;
     }
     fetch(`/api/client-database/${_dpRecordId}/installments/setup`, {
@@ -2318,9 +2439,9 @@ function renderInstallments(list) {
         const paidDate = inst.paid_date ? `<span style="font-size:10px;color:#16a34a;margin-left:6px;">${inst.paid_date}</span>` : '';
 
         const actionBtn = inst.is_paid
-            ? (_isAdmin
+            ? (_isAdmin && !_dpHasFiledCommissionStage
                 ? `<button onclick="unmarkPaid(${inst.id})" style="padding:10px 14px;background:#dcfce7;color:#166534;border:none;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;border-left:1.5px solid #bbf7d0;" title="Click to undo">✓ Paid ↩</button>`
-                : `<span style="padding:10px 14px;background:#dcfce7;color:#166534;font-size:12px;font-weight:700;white-space:nowrap;border-left:1.5px solid #bbf7d0;">✓ Paid</span>`)
+                : `<span style="padding:10px 14px;background:#dcfce7;color:#166534;font-size:12px;font-weight:700;white-space:nowrap;border-left:1.5px solid #bbf7d0;" title="${_dpHasFiledCommissionStage ? 'Locked because a commission request has been recorded' : 'Paid'}">✓ Paid${_dpHasFiledCommissionStage ? ' 🔒' : ''}</span>`)
             : `<button onclick="markPaidWithDate(${inst.id}, this)" style="padding:10px 16px;background:linear-gradient(135deg,#A37929,#d4a03a);color:white;border:none;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Paid</button>`;
 
         // Amount input — editable for both admin and staff BEFORE paid; locked after paid
@@ -2512,12 +2633,16 @@ function unmarkPaid(instId) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _dpCsrf },
         body: JSON.stringify({})
-    }).then(r => r.json()).then(res => {
+    }).then(async r => {
+        const res = await r.json().catch(() => ({}));
+        if (!r.ok || !res.success) throw new Error(res.message || 'Unable to undo this payment.');
+        return res;
+    }).then(res => {
         loadInstallments();
         updateDPStatusBadge(_dpRecordId, res.status || '');
         updateClientStatusSelect(_dpRecordId, res.client_status || 'Pending');
         refreshDPStageSummary(res);
-    });
+    }).catch(error => alert(error.message));
 }
 </script>
 

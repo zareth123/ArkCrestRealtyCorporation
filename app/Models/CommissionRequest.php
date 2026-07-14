@@ -50,6 +50,11 @@ class CommissionRequest extends Model
         return $this->belongsTo(CommissionRequestSales::class, 'source_client_record_id');
     }
 
+    public function stageRequest()
+    {
+        return $this->hasOne(CommissionStageRequest::class, 'commission_request_id');
+    }
+
     protected $casts = [
         'date_requested' => 'date',
         'date_released' => 'date',
