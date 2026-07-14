@@ -315,6 +315,7 @@ class GlobalSearchController extends Controller
             ['Commission Monitoring',    '/commission-monitoring',        'document', 'commission-monitoring'],
             ['Commission Dashboard',     '/commission-dashboard',         'chart',    'commission-monitoring'],
             ['ARC Sales',                '/arkcrest-sales',              'chart',    'arkcrest-sales'],
+            ['Cash Advance',             '/cash-advance',                'document', 'cash-advance'],
             ['Calendar',                 '/calendar',                    'calendar', 'calendar'],
             ['Sales & Marketing',        '/sales-marketing',             'chart',    'sales-marketing'],
             ['Client Database',          '/client-database',             'person',   'client-database'],

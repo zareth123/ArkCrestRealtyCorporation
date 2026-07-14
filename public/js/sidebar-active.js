@@ -83,6 +83,14 @@
                 isActive = true;
             } else if (page === 'hr-contact-list' && currentPath.includes('/human-resource/contact-list')) {
                 isActive = true;
+            } else if (page === 'cd-properties' && currentPath.includes('/property-list')) {
+                isActive = true;
+            } else if (page === 'settings-edit-history' && currentPath.includes('/settings/edit-history')) {
+                isActive = true;
+            } else if (page === 'settings-backup' && currentPath.includes('/settings/backup')) {
+                isActive = true;
+            } else if (page === 'settings-export' && currentPath.includes('/admin/export')) {
+                isActive = true;
             }
             
             if (isActive) {
