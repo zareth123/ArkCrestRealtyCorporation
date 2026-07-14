@@ -133,7 +133,7 @@
     </div>
     @else
     <div class="lc-table-scroll" style="overflow-x:auto">
-        <table class="lc-table" id="rcTable">
+        <table class="lc-table js-sort-table" id="rcTable">
             <thead>
                 <tr>
                     <th>#</th>
