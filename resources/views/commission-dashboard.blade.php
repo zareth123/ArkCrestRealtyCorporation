@@ -151,7 +151,7 @@ $byAgent = $all->groupBy('agent_name')->map(function($rows, $agent) {
         </div>
     </div>
     <div class="cd-table-scroll" style="overflow-x:auto;">
-    <table class="cd-table" id="cdAgentTable">
+    <table class="cd-table js-sort-table" id="cdAgentTable">
         <thead>
             <tr>
                 <th>#</th>
@@ -226,7 +226,7 @@ $byAgent = $all->groupBy('agent_name')->map(function($rows, $agent) {
         </div>
     </div>
     <div class="cd-table-scroll" style="overflow-x:auto;">
-    <table class="cd-table" id="cdTxTable">
+    <table class="cd-table js-sort-table" id="cdTxTable">
         <thead>
             <tr>
                 <th>#</th>
