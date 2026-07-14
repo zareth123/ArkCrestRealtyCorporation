@@ -1,12 +1,10 @@
 /**
  * table-sort.js
  * Adds ONE toggle button (Ascending <-> Descending) next to the Filter/Search
- * controls of every record table on the site — sorting by the "#" (index)
- * column. Nothing is added to the table header itself. The button uses its
- * own fixed, self-contained design (not each page's local button styles,
- * since those differ from page to page) so it looks identical everywhere.
- * Works automatically, no per-page markup changes needed, and also picks up
- * tables whose rows are loaded later via AJAX (e.g. client-database).
+ * controls of specific record tables — sorting by the "#" (or first data)
+ * column. Only tables explicitly marked with class="js-sort-table" in their
+ * Blade file are affected — this is intentional, so the button only shows
+ * up on the approved list of tables, nowhere else.
  */
 (function () {
     // Inject styles once — a single, consistent, self-contained design
@@ -206,7 +204,7 @@
     }
 
     function scanAllTables() {
-        document.querySelectorAll('table').forEach(initTable);
+        document.querySelectorAll('table.js-sort-table').forEach(initTable);
     }
 
     document.addEventListener('DOMContentLoaded', scanAllTables);

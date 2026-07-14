@@ -128,7 +128,7 @@
         <div style="padding:40px;text-align:center;color:#94a3b8;font-size:14px;">No released commissions for this period.</div>
         @else
         <div class="arc-table-scroll" style="overflow-x:auto;">
-        <table class="arc-table">
+        <table class="arc-table js-sort-table">
             <thead>
                 <tr>
                     <th>#</th>
