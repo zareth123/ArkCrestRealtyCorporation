@@ -285,7 +285,7 @@
 
         <div class="table-scroll-hint">⟵ Swipe left/right to see more columns ⟶</div>
         <div class="table-wrapper">
-            <table class="monitoring-table{{ $isAdmin ? '' : ' no-checkbox' }}">
+            <table class="monitoring-table js-sort-table{{ $isAdmin ? '' : ' no-checkbox' }}">
                 <thead>
                     <tr>
                         @if($isAdmin)
