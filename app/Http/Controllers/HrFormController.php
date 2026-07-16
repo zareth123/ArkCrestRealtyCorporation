@@ -41,6 +41,8 @@ class HrFormController extends Controller
     {
         $form = HrForm::findOrFail($id);
         \App\Models\ActivityLog::log('delete', 'Human Resource', "Deleted saved form '{$form->title}' (Type: {$form->type})", [
+            'model_class' => HrForm::class,
+            'record_id'   => $form->id,
             'id'         => $form->id,
             'type'       => $form->type,
             'title'      => $form->title,
