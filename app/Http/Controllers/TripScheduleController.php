@@ -391,6 +391,8 @@ class TripScheduleController extends Controller
     {
         $trip = TripSchedule::findOrFail($id);
         \App\Models\ActivityLog::log('delete', 'Site Visit Form', "Deleted site visit record for client '{$trip->client_name}' (ID: {$id})", [
+            'model_class'        => TripSchedule::class,
+            'record_id'          => $trip->id,
             'id'                 => $trip->id,
             'agent_name'         => $trip->agent_name,
             'team_name'          => $trip->team_name,

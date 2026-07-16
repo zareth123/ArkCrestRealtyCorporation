@@ -11,6 +11,30 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Auto-create the cash_advances table if it doesn't exist yet, so no
+        // collaborator ever needs to run `php artisan migrate` manually.
+        // Uses the schema builder (not raw SQL) so it works the same on
+        // MySQL, SQLite, or Postgres.
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('cash_advances')) {
+                \Illuminate\Support\Facades\Schema::create('cash_advances', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->id();
+                    $table->string('control_number')->unique();
+                    $table->foreignId('employee_id')->nullable()->constrained('users')->nullOnDelete();
+                    $table->string('employee_name');
+                    $table->decimal('amount', 12, 2);
+                    $table->text('reason')->nullable();
+                    $table->date('repayment_date');
+                    $table->string('status')->default('PENDING');
+                    $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
+                    $table->timestamp('reviewed_at')->nullable();
+                    $table->softDeletes();
+                    $table->timestamps();
+                });
+            }
+        } catch (\Exception $e) {
+            // Table may already be mid-creation or DB not reachable yet.
+        }
         // Auto-seed departments if empty
         try {
             if (\App\Models\Department::count() === 0) {

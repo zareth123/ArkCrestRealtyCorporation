@@ -1401,6 +1401,8 @@ class SalesMarketingController extends Controller
         $clientName = $record->client_name ?? '';
         $projectName = $record->project_name ?? '';
         ActivityLog::log('delete', 'Sales & Marketing', "Deleted sale entry ID: {$id} ({$clientName} - {$projectName})", [
+            'model_class'         => CommissionRequestSales::class,
+            'record_id'           => $record->id,
             'id'                  => $record->id,
             'developer_name'      => $record->developer_name,
             'date_requested'      => $record->date_requested ? (string)$record->date_requested : null,

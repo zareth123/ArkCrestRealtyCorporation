@@ -19,6 +19,7 @@ class SettingsController extends Controller
     'summary-report',
     'commission-monitoring',
     'commission-monitoring.dashboard',
+    'cash-advance',
     'calendar',
     'settings.users',
     'settings.visibility',
@@ -603,7 +604,17 @@ private function getDeletedExpenses()
         $log = ActivityLog::findOrFail($logId);
         $result = $this->undoLogEntry($log);
 
-        return response()->json($result, $result['success'] ? 200 : 422);
+        // The Deleted Records panel submits this as a plain HTML form (not AJAX),
+        // so a raw JSON response would just get dumped onto the screen instead of
+        // returning the user to the page. Only return JSON for actual AJAX callers
+        // (e.g. the Edit History tab, which does use fetch()).
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json($result, $result['success'] ? 200 : 422);
+        }
+
+        return redirect()->back()
+            ->with($result['success'] ? 'success' : 'error', $result['message'])
+            ->with('open_section', 'deleted');
     }
 
     // Dispatches an Edit History "Undo" click to the right handler based on what
@@ -738,6 +749,7 @@ private function getDeletedExpenses()
             'Note'                     => \App\Models\Note::class,
             'Permission Request'       => \App\Models\PermissionRequest::class,
             'Summary Report'           => \App\Models\SummaryReport::class,
+            'Cash Advance'             => \App\Models\CashAdvance::class,
         ];
 
         $class = $legacy[$meta['record_type'] ?? ''] ?? null;
@@ -746,13 +758,24 @@ private function getDeletedExpenses()
 
     // Flattens meta['changes'][field] = ['old'=>.., 'new'=>..] down to field => old value,
     // which is what both a delete-restore snapshot and an update-revert need.
+    //
+    // Some controllers log deletes manually (ActivityLog::log('delete', ..., [...]))
+    // with the record's fields stored directly at the top level of $meta instead of
+    // wrapped under 'changes' (unlike the ActivityLogObserver, which always uses the
+    // 'changes' shape). Fall back to treating those as the flat snapshot so restores
+    // for those modules actually have data to rebuild the record from.
     private function flattenOldValues(array $meta): array
     {
-        $flat = [];
-        foreach (($meta['changes'] ?? []) as $field => $vals) {
-            $flat[$field] = is_array($vals) ? ($vals['old'] ?? $vals['new'] ?? null) : null;
+        if (!empty($meta['changes'])) {
+            $flat = [];
+            foreach ($meta['changes'] as $field => $vals) {
+                $flat[$field] = is_array($vals) ? ($vals['old'] ?? $vals['new'] ?? null) : null;
+            }
+            return $flat;
         }
-        return $flat;
+
+        $reservedKeys = ['model_class', 'record_type', 'record_id', 'record_label', 'changes'];
+        return array_diff_key($meta, array_flip($reservedKeys));
     }
 
     // Restore a soft-deleted Departmental Expense record (used by bulk restore)
@@ -788,12 +811,19 @@ private function getDeletedExpenses()
     }
 
     // Permanently delete a log entry (removes from deleted records list)
-    public function permanentDeleteRecord($logId)
+    public function permanentDeleteRecord(Request $request, $logId)
     {
         if (!auth()->user()->isAdmin()) abort(403);
         $log = ActivityLog::findOrFail($logId);
         $log->delete();
-        return response()->json(['success' => true, 'message' => 'Record permanently removed from history.']);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Record permanently removed from history.']);
+        }
+
+        return redirect()->back()
+            ->with('success', 'Record permanently removed from history.')
+            ->with('open_section', 'deleted');
     }
 
     // Bulk-restore a mix of activity-log-based and expense-based deleted records.
@@ -920,7 +950,7 @@ private function getDeletedExpenses()
 
         $allPages = [
             'dashboard','departments','summary-report','commission-monitoring','commission-monitoring.dashboard',
-            'calendar','sales-marketing','client-database','client-database.list',
+            'cash-advance','calendar','sales-marketing','client-database','client-database.list',
             'client-database.property','site-visit-database','sales-calendar','forms',
             'human-resource','human-resource.employee-data','human-resource.contact-list',
             'settings.users','settings.teams',
