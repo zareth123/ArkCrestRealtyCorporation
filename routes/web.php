@@ -95,8 +95,8 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
 
     // Settings
     Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('settings');
-    Route::post('/settings/deleted/bulk-restore', [SettingsController::class, 'bulkRestoreRecords'])->name('settings.deleted.bulk-restore');
-    Route::post('/settings/deleted/bulk-delete', [SettingsController::class, 'bulkDeleteRecords'])->name('settings.deleted.bulk-delete');
+    Route::post('/settings/deleted/bulk-restore', [App\Http\Controllers\SettingsController::class, 'bulkRestoreRecords'])->name('settings.deleted.bulk-restore');
+    Route::post('/settings/deleted/bulk-delete', [App\Http\Controllers\SettingsController::class, 'bulkDeleteRecords'])->name('settings.deleted.bulk-delete');
 
     // Edit History / Audit Trail (Administrator only — dedicated controller & route)
     Route::get('/settings/edit-history', [App\Http\Controllers\Admin\EditHistoryController::class, 'index'])
@@ -234,6 +234,13 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::put('/commission-monitoring/{id}', [App\Http\Controllers\CommissionMonitoringController::class, 'update'])->name('commission-monitoring.update');
     Route::delete('/commission-monitoring/{id}', [App\Http\Controllers\CommissionMonitoringController::class, 'destroy'])->name('commission-monitoring.destroy');
     Route::post('/commission-monitoring/bulk-delete', [App\Http\Controllers\CommissionMonitoringController::class, 'bulkDestroy'])->name('commission-monitoring.bulk-delete');
+
+    // Cash Advance
+    Route::get('/cash-advance', [App\Http\Controllers\CashAdvanceController::class, 'index'])->name('cash-advance')->middleware('page.visible');
+    Route::post('/cash-advance', [App\Http\Controllers\CashAdvanceController::class, 'store'])->name('cash-advance.store');
+    Route::post('/cash-advance/{id}/approve', [App\Http\Controllers\CashAdvanceController::class, 'approve'])->name('cash-advance.approve');
+    Route::post('/cash-advance/{id}/reject', [App\Http\Controllers\CashAdvanceController::class, 'reject'])->name('cash-advance.reject');
+    Route::delete('/cash-advance/{id}', [App\Http\Controllers\CashAdvanceController::class, 'destroy'])->name('cash-advance.destroy');
 
     // Calendar
     Route::get('/calendar', [App\Http\Controllers\CalendarController::class, 'index'])->name('calendar')->middleware('page.visible');

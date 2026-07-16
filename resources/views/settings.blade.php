@@ -864,6 +864,7 @@
               'summary-report'                   => 'Summary Report',
               'commission-monitoring'            => 'Commission Monitoring',
               'commission-monitoring.dashboard'  => '↳ Commission Dashboard',
+              'cash-advance'                     => 'Cash Advance',
               'calendar'                         => 'Calendar',
             ],
             'Sales & Marketing' => [
@@ -1134,12 +1135,8 @@
           <td style="font-size:11px;color:#94a3b8;">{{ $exp->deleted_at ? $exp->deleted_at->format('M d, Y g:i A') : '—' }}</td>
           <td>
             <div style="display:flex;gap:6px;">
-              <form method="POST" action="{{ route('expenses.restore', $exp->id) }}">@csrf
-                <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
-              </form>
-              <form method="POST" action="{{ route('expenses.purge', $exp->id) }}" onsubmit="return confirm('Permanently delete this record?')">@csrf @method('DELETE')
-                <button type="submit" class="st-btn st-btn-danger st-btn-sm">Delete</button>
-              </form>
+              <button type="button" class="st-btn st-btn-primary st-btn-sm" onclick="delSingleAction('expense', {{ $exp->id }}, 'restore')">Restore</button>
+              <button type="button" class="st-btn st-btn-danger st-btn-sm" onclick="delSingleAction('expense', {{ $exp->id }}, 'delete')">Delete</button>
             </div>
           </td>
         </tr>

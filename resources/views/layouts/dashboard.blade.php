@@ -22,16 +22,16 @@
         cursor: default;
     }
     table tbody tr:hover {
-        background: #eff6ff !important;
+        background: #fdf6e8 !important;
         transform: scaleY(1.03);
-        box-shadow: 0 2px 8px rgba(30,69,117,.10);
+        box-shadow: 0 2px 8px rgba(163,121,41,.20);
         position: relative;
         z-index: 1;
     }
     table tbody tr:hover td {
-        color: #1e3a5f !important;
+        color: #bf932a !important;
         font-weight: 600;
-    }    .tbl-wrap::-webkit-scrollbar,
+    }   .tbl-wrap::-webkit-scrollbar,
     .table-wrapper::-webkit-scrollbar,
     .table-container::-webkit-scrollbar,
     .tbl-scroll::-webkit-scrollbar { height: 8px; }
@@ -278,7 +278,7 @@
                 <ul class="nav-list">
                     <!-- Finance with Dropdown -->
                     @php
-                    $financeChildren = array_filter(['departments','summary-report','commission-monitoring'], fn($k) => $canSee($k));
+                    $financeChildren = array_filter(['departments','summary-report','commission-monitoring','cash-advance'], fn($k) => $canSee($k));
                     @endphp
                     @if(count($financeChildren) > 0)
                     <li class="nav-item-wrapper">
@@ -349,6 +349,16 @@
                                         </a>
                                     </li>
                                 </ul>
+                            </li>
+                            @endif
+                            @if($canSee('cash-advance'))
+                            <li>
+                                <a href="{{ route('cash-advance') }}" class="nav-subitem" data-page="cash-advance">
+                                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                    </svg>
+                                    <span class="sidebar-text">Cash Advance</span>
+                                </a>
                             </li>
                             @endif
                             @if($canSee('calendar'))
@@ -1074,6 +1084,7 @@
     <script src="{{ asset('js/sidebar-toggle.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/sidebar-active.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('js/global-search.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/table-sort.js') }}?v={{ time() }}"></script>
 
     <script>
     // ===== REAL-TIME NOTIFICATION POLLING (every 30s) =====

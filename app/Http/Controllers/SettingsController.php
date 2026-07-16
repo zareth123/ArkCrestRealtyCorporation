@@ -19,6 +19,7 @@ class SettingsController extends Controller
     'summary-report',
     'commission-monitoring',
     'commission-monitoring.dashboard',
+    'cash-advance',
     'calendar',
     'settings.users',
     'settings.visibility',
@@ -738,6 +739,7 @@ private function getDeletedExpenses()
             'Note'                     => \App\Models\Note::class,
             'Permission Request'       => \App\Models\PermissionRequest::class,
             'Summary Report'           => \App\Models\SummaryReport::class,
+            'Cash Advance'             => \App\Models\CashAdvance::class,
         ];
 
         $class = $legacy[$meta['record_type'] ?? ''] ?? null;
@@ -920,7 +922,7 @@ private function getDeletedExpenses()
 
         $allPages = [
             'dashboard','departments','summary-report','commission-monitoring','commission-monitoring.dashboard',
-            'calendar','sales-marketing','client-database','client-database.list',
+            'cash-advance','calendar','sales-marketing','client-database','client-database.list',
             'client-database.property','site-visit-database','sales-calendar','forms',
             'human-resource','human-resource.employee-data','human-resource.contact-list',
             'settings.users','settings.teams',
