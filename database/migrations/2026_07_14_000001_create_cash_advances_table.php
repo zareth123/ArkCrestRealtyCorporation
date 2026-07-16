@@ -8,16 +8,26 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('cash_advances')) {
+            return;
+        }
+
         Schema::create('cash_advances', function (Blueprint $table) {
             $table->id();
             $table->string('control_number')->unique();
-            $table->foreignId('employee_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('employee_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
             $table->string('employee_name');
             $table->decimal('amount', 12, 2);
             $table->text('reason')->nullable();
             $table->date('repayment_date');
-            $table->string('status')->default('PENDING'); // PENDING, APPROVED, REJECTED
-            $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('status')->default('PENDING');
+            $table->foreignId('reviewed_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
             $table->timestamp('reviewed_at')->nullable();
             $table->softDeletes();
             $table->timestamps();
