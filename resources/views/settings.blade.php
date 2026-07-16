@@ -1169,7 +1169,7 @@
       @endphp
       <div class="del-rec-item">
         <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-          <input type="checkbox" class="del-select" data-type="log" data-id="{{ $log->id }}" {{ !$log->meta ? 'disabled title=Not restorable' : '' }}>
+          <input type="checkbox" class="del-select" data-type="log" data-id="{{ $log->id }}" {{ !$log->meta ? 'disabled title="Not restorable"' : '' }}>
           <div style="min-width:0;cursor:pointer;" onclick='openDelDetail(@json($logDetail))'>
             <div style="font-size:13px;font-weight:600;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $log->description }}</div>
             <div style="font-size:11px;color:#94a3b8;">by {{ $log->user->name ?? 'System' }} &bull; {{ $log->created_at->format('M d, Y g:i A') }}</div>
@@ -1177,7 +1177,7 @@
         </div>
         <div style="display:flex;gap:8px;flex-shrink:0;">
           @if($log->meta)
-          <form method="POST" action="{{ route('settings.deleted.restore', $log->id) }}">@csrf
+          <form method="POST" action="{{ route('settings.deleted.restore', $log->id) }}" onsubmit="return confirm('Restore this record?')">@csrf
             <button type="submit" class="st-btn st-btn-primary st-btn-sm">Restore</button>
           </form>
           @endif
@@ -2295,25 +2295,64 @@ function clearDelSelection() {
     updateDelBulkBar();
 }
 
-function bulkAction(kind) {
+// Single-row Restore/Delete (e.g. Departmental Expenses rows). Reuses the same
+// bulk endpoints as bulkAction() with a one-item payload. Uses the app's own
+// confirm modal / toast (native confirm()/alert() won't work here — confirm()
+// is globally overridden to always return true with no popup, see layouts/dashboard.blade.php).
+async function delSingleAction(type, id, kind) {
+    var message = kind === 'delete'
+        ? 'Permanently delete this record? This cannot be undone.'
+        : 'Restore this record?';
+    var confirmed = window.showConfirmModal ? await window.showConfirmModal(message) : true;
+    if (!confirmed) return;
+
+    var url = kind === 'delete' ? '{{ route("settings.deleted.bulk-delete") }}' : '{{ route("settings.deleted.bulk-restore") }}';
+    var csrf = document.querySelector('meta[name=csrf-token]').content;
+
+    try {
+        var res = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRF-TOKEN': csrf, 'Accept':'application/json'},
+            body: JSON.stringify({ items: [{ type: type, id: id }] })
+        });
+        var d = await res.json();
+        if (window.showToast) { window.showToast(d.message || 'Done.', d.success ? 'success' : 'error'); }
+        else { alert(d.message || 'Done.'); }
+        setTimeout(function(){ window.location.reload(); }, 600);
+    } catch (e) {
+        if (window.showToast) { window.showToast('Something went wrong. Please try again.', 'error'); }
+        else { alert('Something went wrong. Please try again.'); }
+    }
+}
+
+async function bulkAction(kind) {
     var checked = document.querySelectorAll('.del-select:checked');
     if (!checked.length) return;
-    if (!confirm(kind === 'delete'
+
+    var message = kind === 'delete'
         ? 'Permanently delete ' + checked.length + ' record(s)? This cannot be undone.'
-        : 'Restore ' + checked.length + ' record(s)?')) return;
+        : 'Restore ' + checked.length + ' record(s)?';
+    var confirmed = window.showConfirmModal ? await window.showConfirmModal(message) : true;
+    if (!confirmed) return;
 
     var items = Array.from(checked).map(c => ({ type: c.dataset.type, id: parseInt(c.dataset.id) }));
     var url = kind === 'delete' ? '{{ route("settings.deleted.bulk-delete") }}' : '{{ route("settings.deleted.bulk-restore") }}';
     var csrf = document.querySelector('meta[name=csrf-token]').content;
 
-    fetch(url, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json','X-CSRF-TOKEN': csrf},
-        body: JSON.stringify({ items: items })
-    }).then(r => r.json()).then(function(d) {
-        alert(d.message || 'Done.');
-        window.location.reload();
-    }).catch(function(){ window.location.reload(); });
+    try {
+        var res = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRF-TOKEN': csrf, 'Accept':'application/json'},
+            body: JSON.stringify({ items: items })
+        });
+        var d = await res.json();
+        if (window.showToast) { window.showToast(d.message || 'Done.', d.success ? 'success' : 'error'); }
+        else { alert(d.message || 'Done.'); }
+        setTimeout(function(){ window.location.reload(); }, 600);
+    } catch (e) {
+        if (window.showToast) { window.showToast('Something went wrong. Please try again.', 'error'); }
+        else { alert('Something went wrong. Please try again.'); }
+    }
 }
 </script>
 @endsection
