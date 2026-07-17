@@ -2599,20 +2599,33 @@ function getInstallmentApiError(data, fallback) {
     return fallback || 'Unable to save the installment.';
 }
 
-function readInstallmentAmount(instId) {
+function readInstallmentAmount(instId, silent) {
     var amountEl = document.getElementById('inst_amount_' + instId);
     var rawAmount = amountEl ? amountEl.value.trim() : '';
     var amount = Number(rawAmount);
 
+    function showAmountError(message) {
+        if (!amountEl || silent) return;
+        amountEl.setCustomValidity(message);
+        amountEl.reportValidity();
+        amountEl.focus();
+        amountEl.addEventListener('input', function clearV() {
+            amountEl.setCustomValidity('');
+            amountEl.removeEventListener('input', clearV);
+        }, { once: true });
+    }
+
     if (!rawAmount || !Number.isFinite(amount) || amount <= 0) {
-        throw new Error('Enter a valid finite payment amount greater than zero.');
+        showAmountError('Enter a valid finite payment amount greater than zero.');
+        return null;
     }
 
     if (_dpRemainingBalance > 0 && amount > _dpRemainingBalance + 0.01) {
-        throw new Error(
+        showAmountError(
             'The payment cannot exceed the remaining DP balance of '
             + fmtPeso(_dpRemainingBalance) + '.'
         );
+        return null;
     }
 
     return {
@@ -2623,15 +2636,8 @@ function readInstallmentAmount(instId) {
 }
 
 async function saveInstallmentAmount(instId, silent) {
-    var payment;
-
-    try {
-        payment = readInstallmentAmount(instId);
-    } catch (error) {
-        if (!silent) alert(error.message);
-        return false;
-    }
-
+    var payment = readInstallmentAmount(instId, silent);
+    if (!payment) return false;
     try {
         var response = await fetch(`/api/installments/${instId}/amount`, {
             method: 'PATCH',
@@ -2671,24 +2677,51 @@ function markPaid(instId) {
     markPaidWithDate(instId, btn);
 }
 
+function showFieldTooltip(el, message) {
+    var existing = document.getElementById('_fieldTooltip');
+    if (existing) existing.remove();
+
+    var rect = el.getBoundingClientRect();
+    var tip = document.createElement('div');
+    tip.id = '_fieldTooltip';
+    tip.style.cssText = 'position:fixed;top:' + (rect.bottom + 8) + 'px;left:' + rect.left + 'px;'
+        + 'z-index:99999;background:white;border:1px solid #d1d5db;border-radius:6px;'
+        + 'box-shadow:0 4px 12px rgba(0,0,0,.15);padding:8px 12px;display:flex;align-items:center;'
+        + 'gap:8px;font-size:13px;color:#1f2937;max-width:280px;';
+    tip.innerHTML =
+        '<span style="flex-shrink:0;width:18px;height:18px;background:#dc2626;color:white;'
+        + 'border-radius:3px;display:flex;align-items:center;justify-content:center;font-weight:700;'
+        + 'font-size:12px;">!</span><span>' + message + '</span>'
+        + '<div style="position:absolute;top:-6px;left:16px;width:12px;height:12px;background:white;'
+        + 'border-left:1px solid #d1d5db;border-top:1px solid #d1d5db;transform:rotate(45deg);"></div>';
+
+    document.body.appendChild(tip);
+    el.focus();
+
+    function remove() {
+        tip.remove();
+        el.removeEventListener('input', remove);
+        document.removeEventListener('click', onOutsideClick);
+    }
+    function onOutsideClick(e) {
+        if (!tip.contains(e.target) && e.target !== el) remove();
+    }
+    el.addEventListener('input', remove, { once: true });
+    setTimeout(function() { document.addEventListener('click', onOutsideClick); }, 0);
+    setTimeout(remove, 4000);
+}
+
 async function markPaidWithDate(instId, btn) {
     var dateEl = document.getElementById('inst_date_' + instId);
     var date = dateEl ? dateEl.value : '';
 
     if (!date) {
-        alert('Date of payment is required.');
-        if (dateEl) dateEl.focus();
+        if (dateEl) showFieldTooltip(dateEl, 'Date of payment is required.');
         return;
     }
 
-    var payment;
-
-    try {
-        payment = readInstallmentAmount(instId);
-    } catch (error) {
-        alert(error.message);
-        return;
-    }
+    var payment = readInstallmentAmount(instId);
+    if (!payment) return;
 
     if (!confirm('Mark this term as paid for ' + fmtPeso(payment.value) + '?')) {
         return;
