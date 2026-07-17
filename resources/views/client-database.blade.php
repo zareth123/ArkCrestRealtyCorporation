@@ -111,6 +111,40 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
   .column-filter-chip input,.column-filter-chip select{flex:1 1 auto;min-width:0;width:100%}
   .clear-column-filters-btn{width:100%;text-align:center}
 }
+
+/* Print Selected — same feature/fix as Departmental Expenses */
+.cd-print-only{display:none}
+@media print{
+    /* #cdPrintArea is reparented to be a direct child of <body> by
+       cdPrintSelectedRecords() right before printing. Hiding every OTHER
+       direct child of body (display:none, not visibility:hidden) removes
+       it from layout entirely, instead of just hiding it visually while
+       it still reserves its full height — that reserved height was what
+       produced several blank pages when only one row was selected. */
+    body > *:not(.cd-print-only){
+        display:none !important;
+    }
+    html, body{
+        overflow:visible !important;
+        height:auto !important;
+        max-height:none !important;
+    }
+    .cd-print-only{
+        display:block !important;
+        position:static !important;
+        width:100%;
+    }
+    .cd-print-header{margin-bottom:20px}
+    .cd-print-header h2{margin:0 0 4px;font-size:18px;color:#1e4575}
+    .cd-print-header p{margin:0;font-size:12px;color:#555}
+    .cd-print-table{width:100%;border-collapse:collapse;font-size:11px}
+    .cd-print-table th,.cd-print-table td{border:1px solid #999;padding:6px 8px;text-align:left}
+    .cd-print-table th{background:#eef2f7 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .cd-print-table tr{page-break-inside:avoid}
+    .cd-print-table thead{display:table-header-group}
+    @page{size:landscape;margin:12mm}
+}
+
 </style>
 
 <div class="cd-wrap">
@@ -307,6 +341,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                     <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#6b7280" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     <input type="text" id="cdSearch" placeholder="Search request..." style="width:340px;max-width:100%;padding:9px 12px 9px 36px;border:2px solid #d0d5dd;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;" oninput="cdFilter()">
                 </div>
+                <button id="cdPrintSelectedBtn" class="cd-bulk-btn" style="background:#1e4575;" onclick="cdPrintSelectedRecords()">Print Selected</button>
                 <button id="cdBulkDeleteBtn" class="cd-bulk-btn" disabled onclick="cdDeleteSelected()">Delete Selected (0)</button>
                 <span id="cdCount" style="font-size:12px;color:#94a3b8;white-space:nowrap;"></span>
                 <button onclick="cdClearAll()" style="padding:9px 14px;background:#f1f5f9;border:2px solid #d0d5dd;border-radius:8px;font-size:13px;color:#64748b;cursor:pointer;">Clear</button>
@@ -463,6 +498,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
         <div id="cdScrollTrack" class="cd-scroll-track">
             <div id="cdScrollThumb" class="cd-scroll-thumb"></div>
         </div>
+        <div id="cdPrintArea" class="cd-print-only"></div>
     </div>
 </div>
 
@@ -1590,6 +1626,89 @@ function cdConfirmBulkDelete() {
         alert('Some records may not have been deleted. Reloading the page...');
         window.location.reload();
     });
+}
+
+// ── Print Selected ──
+function cdGetSelectedPrintRows() {
+    return Array.from(document.querySelectorAll('.cd-row-checkbox:checked'))
+        .map(function(cb) { return cb.closest('tr'); })
+        .filter(function(row) { return row.style.display !== 'none'; });
+}
+
+// Most cells are plain text, but Client Status (a <select>) and DP Stage
+// (two stacked <div>s) aren't — textContent on those would include every
+// option or run the two divs together, so they're pulled out explicitly.
+function cdGetPrintCellText(row, index) {
+    const cells = row.cells;
+    if (index === 17) { // Client Status
+        const sel = cells[17].querySelector('select');
+        if (sel) return sel.value || '— No Status —';
+        return cells[17].textContent.trim();
+    }
+    if (index === 18) { // DP Stage
+        const valueEl = cells[18].querySelector('div[id^="dpStageValue_"]');
+        const statusEl = cells[18].querySelector('div[id^="dpStageStatus_"]');
+        const val = valueEl ? valueEl.textContent.trim() : '';
+        const status = (statusEl && statusEl.style.display !== 'none') ? statusEl.textContent.trim() : '';
+        return status ? (val + ' (' + status + ')') : val;
+    }
+    return cells[index].textContent.trim();
+}
+
+function cdPrintSelectedRecords() {
+    const rows = cdGetSelectedPrintRows();
+    if (rows.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast('Please select at least one record to print.', 'warning', 'No Selection');
+        } else {
+            alert('Please select at least one record to print.');
+        }
+        return;
+    }
+
+    const headers = ['Developer','Project','Block & Lot','Client','Lot Area','Price/SQM','TCP','Discount (%)','Discount Value','Net TCP','Terms','Reservation Date','Units','Downpayment Date','Agent','Client Status','DP Stage','Downpayment Status'];
+
+    let tableHtml = '<table class="cd-print-table"><thead><tr>';
+    headers.forEach(function(h) { tableHtml += '<th>' + h + '</th>'; });
+    tableHtml += '</tr></thead><tbody>';
+
+    rows.forEach(function(row) {
+        tableHtml += '<tr>';
+        // cells 0=checkbox, 1=#, 2..19=data columns above, 20=Actions (skipped)
+        for (let i = 2; i <= 19; i++) {
+            tableHtml += '<td>' + cdGetPrintCellText(row, i) + '</td>';
+        }
+        tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody></table>';
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const printArea = document.getElementById('cdPrintArea');
+    printArea.innerHTML = `
+        <div class="cd-print-header">
+            <h2>Client Database Report</h2>
+            <p>Generated on ${dateStr} — ${rows.length} record(s)</p>
+        </div>
+        ${tableHtml}
+    `;
+
+    // Reparent out of the clipped ancestor chain for the duration of the
+    // print, same fix as Departmental Expenses — the @media print overflow
+    // overrides above handle the rest.
+    const printAreaAnchor = document.createComment('cdPrintArea-anchor');
+    printArea.parentNode.insertBefore(printAreaAnchor, printArea);
+    document.body.appendChild(printArea);
+
+    function restoreCdPrintArea() {
+        printAreaAnchor.parentNode.insertBefore(printArea, printAreaAnchor);
+        printAreaAnchor.remove();
+        window.removeEventListener('afterprint', restoreCdPrintArea);
+    }
+    window.addEventListener('afterprint', restoreCdPrintArea);
+
+    window.print();
 }
 
 

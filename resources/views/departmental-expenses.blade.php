@@ -663,13 +663,23 @@
 .print-only { display: none; }
 
 @media print {
-    body * { visibility: hidden; }
-    .print-only, .print-only * { visibility: visible; }
+    /* #printArea is reparented to be a direct child of <body> by
+       printSelectedRecords() right before printing. Hiding every OTHER
+       direct child of body (display:none, not visibility:hidden) removes
+       it from layout entirely, instead of just hiding it visually while
+       it still reserves its full height — that reserved height was what
+       produced several blank pages when only one row was selected. */
+    body > *:not(.print-only) {
+        display: none !important;
+    }
+    html, body {
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+    }
     .print-only {
-        display: block;
-        position: absolute;
-        top: 0;
-        left: 0;
+        display: block !important;
+        position: static !important;
         width: 100%;
     }
     .print-header { margin-bottom: 20px; }
@@ -686,6 +696,8 @@
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
+    .print-table tr { page-break-inside: avoid; }
+    .print-table thead { display: table-header-group; }
     @page { size: landscape; margin: 12mm; }
 }
 </style>
@@ -2332,13 +2344,32 @@ function printSelectedRecords() {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    document.getElementById('printArea').innerHTML = `
+    const printArea = document.getElementById('printArea');
+    printArea.innerHTML = `
         <div class="print-header">
             <h2>Departmental Expenses Report</h2>
             <p>Generated on ${dateStr} — ${rows.length} record(s)</p>
         </div>
         ${tableHtml}
     `;
+
+    // #printArea normally sits inside .main-content, which (along with
+    // .content-wrapper / .dashboard-container in layouts.dashboard) uses
+    // overflow:hidden. That clips printed content to one viewport-sized
+    // box instead of letting it paginate. layouts.dashboard already works
+    // around this for position:fixed modals by moving them to <body> — we
+    // do the same here for #printArea, then move it back afterward so the
+    // page's DOM/layout is unaffected outside of printing.
+    const printAreaAnchor = document.createComment('printArea-anchor');
+    printArea.parentNode.insertBefore(printAreaAnchor, printArea);
+    document.body.appendChild(printArea);
+
+    function restorePrintArea() {
+        printAreaAnchor.parentNode.insertBefore(printArea, printAreaAnchor);
+        printAreaAnchor.remove();
+        window.removeEventListener('afterprint', restorePrintArea);
+    }
+    window.addEventListener('afterprint', restorePrintArea);
 
     window.print();
 }

@@ -251,6 +251,9 @@
                 @if($isAdmin)
                 <div style="display:flex;gap:8px;">
                     <button type="button" id="cmSelectModeBtn" class="clear-dates-btn" onclick="cmToggleSelectMode()">Select</button>
+                    <button type="button" id="cmPrintSelectedBtn" class="clear-dates-btn" style="background:#1e4575;color:#fff;border-color:#1e4575;display:none;" onclick="cmPrintSelectedRecords()">
+                        Print Selected (<span id="cmPrintSelectedCount">0</span>)
+                    </button>
                     <button type="button" id="cmDeleteSelectedBtn" class="clear-dates-btn" style="background:#fee2e2;color:#dc2626;border-color:#fecaca;display:none;" onclick="cmDeleteSelected()">
                         Delete Selected (<span id="cmSelectedCount">0</span>)
                     </button>
@@ -442,6 +445,7 @@
                 <div style="font-size:13px;">Try adjusting your search or filter criteria</div>
             </div>
         </div>
+        <div id="cmPrintArea" class="cm-print-only"></div>
     </div>
     @endif
 </div>
@@ -1563,8 +1567,41 @@
             grid-template-columns: 1fr !important;
         }
     }
-</style>
 
+    /* Print Selected — same feature/fix as Departmental Expenses / Client Database */
+    .cm-print-only{display:none}
+    @media print{
+        /* #cmPrintArea is reparented to be a direct child of <body> by
+           cmPrintSelectedRecords() right before printing. Hiding every
+           OTHER direct child of body (display:none, not
+           visibility:hidden) removes it from layout entirely, instead of
+           just hiding it visually while it still reserves its full
+           height — that reserved height was what produced several blank
+           pages when only one row was selected. */
+        body > *:not(.cm-print-only){
+            display:none !important;
+        }
+        html, body{
+            overflow:visible !important;
+            height:auto !important;
+            max-height:none !important;
+        }
+        .cm-print-only{
+            display:block !important;
+            position:static !important;
+            width:100%;
+        }
+        .cm-print-header{margin-bottom:20px}
+        .cm-print-header h2{margin:0 0 4px;font-size:18px;color:#1e4575}
+        .cm-print-header p{margin:0;font-size:12px;color:#555}
+        .cm-print-table{width:100%;border-collapse:collapse;font-size:10px}
+        .cm-print-table th,.cm-print-table td{border:1px solid #999;padding:5px 7px;text-align:left}
+        .cm-print-table th{background:#eef2f7 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        .cm-print-table tr{page-break-inside:avoid}
+        .cm-print-table thead{display:table-header-group}
+        @page{size:landscape;margin:10mm}
+    }
+</style>
 <script>
 // ---- Column Filter fields (matches the "All Expenses" filter dropdown pattern) ----
 // Date Requested / Date Released are handled separately as range pickers above.
@@ -2442,9 +2479,102 @@ function cmUpdateSelectedCount() {
     if (countEl) countEl.textContent = checked.length;
     if (btn) btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
 
+    const printBtn = document.getElementById('cmPrintSelectedBtn');
+    const printCountEl = document.getElementById('cmPrintSelectedCount');
+    if (printCountEl) printCountEl.textContent = checked.length;
+    if (printBtn) printBtn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+
     const selectAll = document.getElementById('cmSelectAll');
     const allBoxes = document.querySelectorAll('.cm-row-check');
     if (selectAll) selectAll.checked = allBoxes.length > 0 && checked.length === allBoxes.length;
+}
+
+// ── Print Selected ──
+// Reads headers/cells straight from the DOM rather than hardcoded indices,
+// since several columns (Price/SQM, Lot Area, Discount, Commission %,
+// Commission, and the checkbox column) only render for admins — hardcoded
+// positions would silently misalign depending on who's viewing the page.
+function cmGetSelectedPrintRows() {
+    return Array.from(document.querySelectorAll('.cm-row-check:checked'))
+        .map(function(cb) { return cb.closest('tr'); })
+        .filter(function(row) { return row.style.display !== 'none'; });
+}
+
+function cmGetPrintHeaders() {
+    const ths = Array.from(document.querySelectorAll('.monitoring-table thead th'));
+    return ths
+        .filter(function(th) { return !th.classList.contains('col-sticky-check') && !th.classList.contains('col-sticky-index'); })
+        .slice(0, -1) // drop Actions (always last)
+        .map(function(th) { return th.textContent.trim(); });
+}
+
+function cmGetPrintRowCells(row) {
+    const tds = Array.from(row.querySelectorAll('td'));
+    const filtered = tds.filter(function(td) {
+        return !td.classList.contains('col-sticky-check') && !td.classList.contains('col-sticky-index');
+    });
+    filtered.pop(); // drop Actions (always last)
+    return filtered.map(function(td) {
+        // Status cell has a .status-badge plus optional highlight badges
+        // (Overdue/Updated/High Value) — only the badge text belongs in print.
+        const badge = td.querySelector('.status-badge');
+        if (badge) return badge.textContent.trim();
+        return td.textContent.trim();
+    });
+}
+
+function cmPrintSelectedRecords() {
+    const rows = cmGetSelectedPrintRows();
+    if (rows.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast('Please select at least one record to print.', 'warning', 'No Selection');
+        } else {
+            alert('Please select at least one record to print.');
+        }
+        return;
+    }
+
+    const headers = cmGetPrintHeaders();
+
+    let tableHtml = '<table class="cm-print-table"><thead><tr>';
+    headers.forEach(function(h) { tableHtml += '<th>' + h + '</th>'; });
+    tableHtml += '</tr></thead><tbody>';
+
+    rows.forEach(function(row) {
+        const cells = cmGetPrintRowCells(row);
+        tableHtml += '<tr>';
+        cells.forEach(function(c) { tableHtml += '<td>' + c + '</td>'; });
+        tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody></table>';
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const printArea = document.getElementById('cmPrintArea');
+    printArea.innerHTML = `
+        <div class="cm-print-header">
+            <h2>Commission Monitoring Report</h2>
+            <p>Generated on ${dateStr} — ${rows.length} record(s)</p>
+        </div>
+        ${tableHtml}
+    `;
+
+    // Reparent out of the clipped ancestor chain for the duration of the
+    // print — same fix as Departmental Expenses / Client Database; the
+    // @media print overflow overrides above handle the rest.
+    const printAreaAnchor = document.createComment('cmPrintArea-anchor');
+    printArea.parentNode.insertBefore(printAreaAnchor, printArea);
+    document.body.appendChild(printArea);
+
+    function restoreCmPrintArea() {
+        printAreaAnchor.parentNode.insertBefore(printArea, printAreaAnchor);
+        printAreaAnchor.remove();
+        window.removeEventListener('afterprint', restoreCmPrintArea);
+    }
+    window.addEventListener('afterprint', restoreCmPrintArea);
+
+    window.print();
 }
 
 function cmDeleteSelected() {
