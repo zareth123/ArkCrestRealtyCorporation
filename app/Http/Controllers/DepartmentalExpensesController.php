@@ -117,7 +117,7 @@ class DepartmentalExpensesController extends Controller
             // most recently released first
             $recentExpenses[$dept->name] = DepartmentalExpense::where('department', $dept->name)
                 ->where('status', 'LIQUIDATED')
-                ->orderByDesc('date_released')
+                ->orderByDesc('created_at')
                 ->orderByDesc('id')
                 ->take(3)
                 ->get();
