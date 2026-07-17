@@ -8,12 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('properties', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('developer')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('properties')) {
+            Schema::create('properties', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('developer')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void
