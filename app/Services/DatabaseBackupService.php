@@ -217,16 +217,43 @@ class DatabaseBackupService
      */
     public function createPdfBackup(): string
     {
-        // Rendering many tables/rows through Dompdf is memory-hungry (it builds
-        // a full layout tree per cell). Bump the limit just for this request
-        // as a safety net — this only affects this one PHP process, not the
-        // server-wide setting, and silently no-ops if the host disallows it.
-        ini_set('memory_limit', '512M');
+        // Rendering many tables/rows through Dompdf is memory-hungry — it
+        // keeps the full HTML string AND its own internal render tree (which
+        // is much bigger than the HTML itself) in memory at the same time.
+        // "Allowed memory size exhausted" is a fatal error that PHP cannot
+        // catch with try/catch (unlike a normal Exception/Error), so if this
+        // limit is too low the request just dies with a raw 500 page — even
+        // though the PDF may have already finished writing to disk right
+        // before the crash, which is exactly what was happening here.
+        ini_set('memory_limit', '1024M');
+
+        // Same idea for execution time: on a remote/cloud database, every
+        // query here is a network round trip instead of a near-instant local
+        // call, so this can legitimately take longer than the default 30s.
+        // This only affects this one request, and silently no-ops if the
+        // host disallows overriding it (e.g. some shared/managed hosts) —
+        // the row cap below is the real fix for that case.
+        set_time_limit(120);
+
+        // Diagnostic aid: if a fatal error (including the otherwise-uncatchable
+        // memory-exhausted / time-exceeded kind) kills this request, write what
+        // PHP actually reports to laravel.log instead of failing silently with
+        // just a blank/500 page and no way to tell what happened.
+        register_shutdown_function(function () {
+            $err = error_get_last();
+            if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+                \Illuminate\Support\Facades\Log::error('PDF backup export crashed: ' . $err['message']
+                    . ' in ' . $err['file'] . ':' . $err['line']
+                    . ' | peak memory: ' . round(memory_get_peak_usage(true) / 1048576, 1) . 'MB');
+            }
+        });
 
         // This export is for quick viewing/printing, not a full data dump
         // (that's what the CSV backup is for) — capping rows per table keeps
         // both the memory usage and the resulting PDF's size reasonable.
-        $rowLimit = 1000000;
+        // Temporarily set very low while we isolate whether this is a row-
+        // volume/memory issue or something else entirely.
+        $rowLimit = 50;
 
         $tables = $this->backupableTables();
 
@@ -250,7 +277,13 @@ class DatabaseBackupService
 
             $html .= '<h2>' . e($table) . '</h2>';
 
-            $rows = DB::table($table)->orderBy($columns[0])->limit($rowLimit)->get();
+            // Fetch one row over the limit so we can tell "there are more
+            // rows" without a second COUNT(*) round trip per table.
+            $rows = DB::table($table)->orderBy($columns[0])->limit($rowLimit + 1)->get();
+            $hasMore = $rows->count() > $rowLimit;
+            if ($hasMore) {
+                $rows = $rows->take($rowLimit);
+            }
 
             if ($rows->isEmpty()) {
                 $html .= '<div class="empty-note">No records.</div>';
@@ -274,9 +307,11 @@ class DatabaseBackupService
             }
             $html .= '</tbody></table>';
 
-            if (DB::table($table)->count() > $rowLimit) {
+            if ($hasMore) {
                 $html .= '<div class="empty-note">Showing first ' . $rowLimit . ' rows only. Use the CSV backup for a complete export.</div>';
             }
+
+            unset($rows); // free each table's result set as soon as it's been written into $html
         }
 
         $options = new Options();
@@ -284,15 +319,19 @@ class DatabaseBackupService
         $options->set('defaultFont', 'DejaVu Sans');
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
+        unset($html); // Dompdf has already copied what it needs — free the (potentially large) PHP string before the memory-heavy render step
         $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
 
         $filename = 'backup_' . now()->format('Y-m-d_His') . '.pdf';
+        $output = $dompdf->output();
+        unset($dompdf); // free Dompdf's internal render tree before/while writing to disk
+
         $disk = Storage::disk(self::DISK);
         if (!$disk->exists(self::FOLDER)) {
             $disk->makeDirectory(self::FOLDER);
         }
-        $disk->put(self::FOLDER . '/' . $filename, $dompdf->output());
+        $disk->put(self::FOLDER . '/' . $filename, $output);
 
         return $filename;
     }

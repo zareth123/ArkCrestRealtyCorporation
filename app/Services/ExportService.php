@@ -155,9 +155,38 @@ class ExportService
      */
     public function exportPdf(string $moduleKey, ?string $startDate, ?string $endDate)
     {
+        // Same issue as the Backup & Restore PDF export: Dompdf holds the full
+        // HTML string AND its own (much larger) internal render tree in memory
+        // at once. A wide date range can pull thousands of rows, which blows
+        // past the default limits — and "memory exhausted" is a fatal error
+        // PHP can't catch with try/catch, so it just dies with a raw 500.
+        ini_set('memory_limit', '1024M');
+        set_time_limit(120);
+
+        register_shutdown_function(function () {
+            $err = error_get_last();
+            if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+                \Illuminate\Support\Facades\Log::error('Export Records PDF crashed: ' . $err['message']
+                    . ' in ' . $err['file'] . ':' . $err['line']
+                    . ' | peak memory: ' . round(memory_get_peak_usage(true) / 1048576, 1) . 'MB');
+            }
+        });
+
         $module  = self::modules()[$moduleKey];
         $records = $this->getRecords($moduleKey, $startDate, $endDate);
         $headers = array_keys($module['columns']);
+
+        // PDF is for viewing/printing, not a full data dump — cap how many
+        // rows actually get rendered through Dompdf so a wide date range
+        // can't take down the request. CSV export (above) has no such cap
+        // since it streams row-by-row instead of building everything in
+        // memory at once.
+        $rowLimit = 500;
+        $totalCount = $records->count();
+        $truncated = $totalCount > $rowLimit;
+        if ($truncated) {
+            $records = $records->take($rowLimit);
+        }
 
         $rows = $records->map(function ($record) use ($module) {
             $row = [];
@@ -166,10 +195,14 @@ class ExportService
             }
             return $row;
         });
+        unset($records);
 
         $rangeLabel = $startDate || $endDate
             ? ($startDate ?: 'earliest') . ' to ' . ($endDate ?: 'latest')
             : 'All Records';
+        if ($truncated) {
+            $rangeLabel .= ' (showing first ' . $rowLimit . ' of ' . $totalCount . ' records — narrow the date range for the rest)';
+        }
 
         $html = view('admin.export-pdf', [
             'moduleLabel' => $module['label'],
@@ -178,6 +211,7 @@ class ExportService
             'rows'        => $rows,
             'generatedAt' => now()->format('F j, Y g:i A'),
         ])->render();
+        unset($rows);
 
         $options = new Options();
         $options->set('isRemoteEnabled', false);
@@ -185,12 +219,15 @@ class ExportService
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
+        unset($html); // Dompdf has already copied what it needs — free the (potentially large) PHP string before the memory-heavy render step
         $dompdf->setPaper('A4', count($headers) > 6 ? 'landscape' : 'portrait');
         $dompdf->render();
 
         $filename = $this->buildFilename($moduleKey, 'pdf');
+        $output = $dompdf->output();
+        unset($dompdf); // free Dompdf's internal render tree before building the response
 
-        return response($dompdf->output(), 200, [
+        return response($output, 200, [
             'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
