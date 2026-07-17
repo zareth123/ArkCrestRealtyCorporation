@@ -157,7 +157,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
     <div class="cd-header">
         <div style="position:relative;z-index:2;">
             <div class="cd-header-eyebrow">Sales & Marketing</div>
-            <h1>Client Database</h1>
+            <h1>Clients</h1>
             <p>Manage client records and commission requests</p>
         </div>
         <div style="position:absolute;top:0;right:0;width:300px;height:100%;pointer-events:none;">
