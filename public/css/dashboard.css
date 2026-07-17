@@ -1216,12 +1216,6 @@ color: #8A9BAD;
 .hidden {
 display: none;
 }
-/* Responsive */
-@media (max-width: 1024px) {
-    .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    }
-}
 /* NOTE: sidebar width/position for phones & tablets is now handled entirely
    by the single unified mobile-drawer block further down this file — see
    "RESPONSIVE NAVIGATION — SINGLE SOURCE OF TRUTH". Do not redefine
@@ -1442,13 +1436,8 @@ color: #856404;
 background-color: #f8d7da;
 color: #721c24;
 }
-/* Responsive */
+
 @media (max-width: 1024px) {
-.dashboard-grid-3 {
-grid-template-columns: repeat(2, 1fr);
-}
-}
-@media (max-width: 768px) {
 .dashboard-grid-3,
 .dashboard-grid-2 {
 grid-template-columns: 1fr;
@@ -2110,7 +2099,7 @@ transform: translateY(-2px);
 box-shadow: 0 6px 16px rgba(138, 155, 173, 0.5);
 }
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
 .department-tabs {
 margin: -20px -20px 20px -20px;
 }
@@ -2375,7 +2364,7 @@ font-weight: 600;
 color: #a37929;
 }
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
 .report-controls {
 flex-direction: column;
 align-items: stretch;
@@ -3360,7 +3349,7 @@ box-shadow: 0 0 0 3px rgba(163, 121, 41, 0.1);
 border-color: #A37929;
 background: linear-gradient(135deg, rgba(163, 121, 41, 0.05), rgba(163, 121, 41, 0.02));
 }
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
 .filter-controls {
 flex-direction: column;
 align-items: stretch;
@@ -3604,12 +3593,7 @@ padding-right: 12px !important;
 .sidebar-collapsed .nav-submenu {
 display: none;
 }
-/* ============================================================
-   RESPONSIVE NAVIGATION — SINGLE SOURCE OF TRUTH
-   One breakpoint (1024px) drives the off-canvas sidebar drawer,
-   so behavior is identical on every phone/tablet instead of
-   depending on several breakpoints fighting each other.
-   ============================================================ */
+
 .mobile-menu-btn {
 display: none;
 background: transparent;
@@ -3641,107 +3625,7 @@ body.drawer-open {
 overflow: hidden;
 }
 
-@media (max-width: 1024px) {
-    /* Hamburger visible; desktop collapse-arrow hidden (drawer replaces it) */
-    .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
-    .sidebar-toggle { display: none !important; }
 
-    /* Fixed, consistent header height on every phone/tablet */
-    .header-content { height: 58px; padding: 0 12px; }
-    .content-wrapper { margin-top: 58px; height: calc(100vh - 58px); }
-
-    /* header-left shrinks (via the company name) so header-right — the
-       icon buttons — always has the room it needs and is never clipped,
-       regardless of how narrow the phone is. */
-    .header-content { flex-wrap: nowrap; }
-    .header-left { gap: 8px; min-width: 0; flex: 1 1 auto; overflow: hidden; }
-    .header-right { flex: 0 0 auto; gap: 2px; }
-    .mobile-menu-btn { width: 32px; height: 32px; flex-shrink: 0; }
-    .mobile-menu-btn svg { width: 20px; height: 20px; }
-
-    /* Sidebar becomes a full off-canvas drawer — one mechanism, every device */
-    .sidebar {
-        position: fixed;
-        top: 58px;
-        left: 0;
-        bottom: 0;
-        width: min(280px, 82vw) !important;
-        height: calc(100vh - 58px);
-        transform: translateX(-100%);
-        transition: transform .3s ease;
-        z-index: 500;
-        overflow-y: auto;
-        overflow-x: hidden;
-    }
-    .sidebar.mobile-open {
-        transform: translateX(0);
-        box-shadow: 6px 0 30px rgba(0,0,0,.35);
-    }
-
-    /* Drawer always shows full labels — icon-only "collapsed" state is desktop-only */
-    .sidebar-text,
-    .profile-info,
-    .nav-item span,
-    .logout-btn span {
-        display: inline !important;
-        opacity: 1 !important;
-    }
-    .profile-info { display: flex !important; }
-    .nav-item { justify-content: flex-start !important; padding: 12px 14px !important; }
-    .logout-btn { justify-content: flex-start !important; padding: 12px 14px !important; }
-    .logout-section {
-        padding: 10px !important;
-        border-top: 1px solid rgba(255,255,255,.1);
-    }
-
-    /* Content always takes full width — sidebar no longer pushes it */
-    .sidebar-expanded ~ .main-content,
-    .sidebar-collapsed ~ .main-content {
-        margin-left: 0 !important;
-        width: 100%;
-    }
-
-    .page-content { padding: clamp(14px, 4vw, 22px); }
-    .section-title { font-size: clamp(18px, 5vw, 24px); }
-    .section-subtitle { font-size: clamp(12px, 3vw, 14px); }
-    .content-section { padding: clamp(12px, 4vw, 20px); }
-    .stat-card { padding: clamp(12px, 4vw, 18px); }
-    .stats-grid { grid-template-columns: 1fr; gap: 14px; }
-    .dashboard-grid-3, .dashboard-grid-2 { grid-template-columns: 1fr; }
-    .big-number { font-size: 28px; }
-
-    /* Company name flexes and truncates to whatever space is left AFTER
-       the icon buttons take their fixed space — this is what guarantees
-       the notification bell is never pushed off-screen on small phones. */
-    .company-name {
-        font-size: 13px;
-        flex: 1 1 auto;
-        min-width: 0;
-        max-width: none;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .logo, .logo-img { width: 28px; height: 28px; flex-shrink: 0; }
-
-    /* Icon buttons keep a consistent, tappable, non-shrinking size on
-       every phone — they are reserved space, never squeezed or clipped */
-    .hdr-btn { width: 34px; height: 34px; flex-shrink: 0; }
-    .hdr-btn svg { width: 19px; height: 19px; }
-
-    /* Search / notification / notes dropdowns never overflow the viewport */
-    .search-bar, .notification-panel, .notes-panel {
-        position: fixed !important;
-        top: 58px !important;
-        right: 8px !important;
-        left: auto !important;
-        width: min(320px, 92vw) !important;
-    }
-    .search-input { width: 100% !important; }
-
-    img, svg, table, .modal, .content-section, .stat-card { max-width: 100%; }
-    body, html { overflow-x: hidden; }
-}
 
 /* Extra-small phones (older iPhones, small Androids ~380px and under) —
    spacing only, navigation logic above is unchanged */

@@ -25,16 +25,31 @@
     <!-- Stats -->
     <div class="ca-stats-grid">
         <div class="ca-stat-card">
-            <div class="ca-stat-label">Total Records</div>
-            <div class="ca-stat-value" id="caStatTotalRecords">{{ $totalRecords }}</div>
+            <div class="ca-stat-icon ca-stat-icon-records">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <div>
+                <div class="ca-stat-label">Total Records</div>
+                <div class="ca-stat-value" id="caStatTotalRecords">{{ $totalRecords }}</div>
+            </div>
         </div>
         <div class="ca-stat-card">
-            <div class="ca-stat-label">Pending</div>
-            <div class="ca-stat-value" id="caStatPending">{{ $pendingCount }}</div>
+            <div class="ca-stat-icon ca-stat-icon-pending">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <div class="ca-stat-label">Pending</div>
+                <div class="ca-stat-value" id="caStatPending">{{ $pendingCount }}</div>
+            </div>
         </div>
         <div class="ca-stat-card">
-            <div class="ca-stat-label">Total Requested</div>
-            <div class="ca-stat-value" id="caStatTotalRequested">₱{{ number_format($totalRequested, 2) }}</div>
+            <div class="ca-stat-icon ca-stat-icon-requested">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m0-2c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <div class="ca-stat-label">Total Requested</div>
+                <div class="ca-stat-value" id="caStatTotalRequested">₱{{ number_format($totalRequested, 2) }}</div>
+            </div>
         </div>
     </div>
 
@@ -159,12 +174,42 @@
 .ca-circle-3 { width: 90px; height: 90px; bottom: -25px; right: 60px; }
 
 .ca-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 24px; }
-.ca-stat-card { background: #fff; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); border: 1px solid #eef1f5; }
-.ca-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #8A9BAD; margin-bottom: 8px; }
+.ca-stat-card { background: #fff; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); border: 1px solid #eef1f5; display: flex; align-items: center; gap: 14px; }
+.ca-stat-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ca-stat-icon svg { width: 22px; height: 22px; }
+.ca-stat-icon-records { background: #eef2ff; color: #4338ca; }
+.ca-stat-icon-pending { background: #fff7ed; color: #c2410c; }
+.ca-stat-icon-requested { background: #ecfdf5; color: #059669; }
+.ca-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #8A9BAD; margin-bottom: 4px; }
 .ca-stat-value { font-size: 24px; font-weight: 700; color: #1e2a3a; }
 
 .ca-grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 900px) { .ca-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Mobile responsiveness for stat cards, matching the 768px breakpoint
+   convention used elsewhere on the site (e.g. departmental-expenses). The
+   3-column grid is too cramped once icons were added, so stack to one
+   column and let the icon/label/value row breathe on narrow screens. */
+@media (max-width: 768px) {
+    .ca-stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    .ca-stat-card {
+        padding: 14px 16px !important;
+    }
+    .ca-stat-icon {
+        width: 38px !important;
+        height: 38px !important;
+    }
+    .ca-stat-icon svg {
+        width: 20px !important;
+        height: 20px !important;
+    }
+    .ca-stat-value {
+        font-size: 20px !important;
+    }
+}
 
 .ca-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,.06); border: 1px solid #eef1f5; min-width: 0; }
 .ca-card-title { font-size: 16px; font-weight: 700; color: #1e2a3a; margin: 0 0 4px; }

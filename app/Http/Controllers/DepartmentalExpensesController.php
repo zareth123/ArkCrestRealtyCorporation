@@ -108,11 +108,22 @@ class DepartmentalExpensesController extends Controller
         // DepartmentalExpense records — used by the "Departments Allowable
         // Budgets" card grid so Remaining/progress bar reflect real spend.
         $commitments = [];
+        $commitments = [];
+        $recentExpenses = [];
         foreach ($departments as $dept) {
             $commitments[$dept->name] = $this->remainingBudget($dept->name);
+
+            // 3 most recent LIQUIDATED expenses for this department,
+            // most recently released first
+            $recentExpenses[$dept->name] = DepartmentalExpense::where('department', $dept->name)
+                ->where('status', 'LIQUIDATED')
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->take(3)
+                ->get();
         }
 
-        return view('departmental-expenses', compact('requests', 'categories', 'departments', 'requestorNames', 'commitments'));
+        return view('departmental-expenses', compact('requests', 'categories', 'departments', 'requestorNames', 'commitments', 'recentExpenses'));
     }
 
     public function store(Request $request)

@@ -170,7 +170,11 @@
 .sc-event.type-release     { background:#059669;color:white; }
 .sc-event.type-trip        { background:linear-gradient(135deg,#A37929,#d4a03a);color:white; }
 .sc-event.type-downpayment { background:#0891b2;color:white; }
-.sc-more { font-size:9px;color:#94a3b8;text-align:right;margin-top:1px;flex-shrink:0;font-weight:600; }
+.sc-more {
+    font-size:9px;color:#94a3b8;text-align:right;margin-top:1px;
+    flex-shrink:0;font-weight:600;cursor:pointer;text-decoration:underline;
+}
+.sc-more:hover { color:#1e4575; }
 
 /* ── List view ── */
 .sc-list-wrap {
@@ -302,7 +306,7 @@
                 </div>
                 @endforeach
                 @if($events->count() > 5)
-                <div class="sc-more">+{{ $events->count()-5 }} more</div>
+                <div class="sc-more" onclick="event.stopPropagation(); showScDayEvents('{{ $dateStr }}')">+{{ $events->count()-5 }} more</div>
                 @endif
             </div>
             @endfor
@@ -364,6 +368,20 @@
     </div>
     @endif
 
+{{-- Day Events Modal --}}
+<div id="scDayModal" class="sc-modal-overlay" onclick="if(event.target===this)this.style.display='none'">
+    <div class="sc-modal-box" style="max-height:80vh;display:flex;flex-direction:column;">
+        <div class="sc-modal-hdr" style="background:linear-gradient(135deg,#1e4575dd,#1e4575);flex-shrink:0;">
+            <div>
+                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px;opacity:.75;color:white;">All Events</div>
+                <div id="scDayModalTitle" style="color:white;font-size:16px;font-weight:700;"></div>
+            </div>
+            <button class="sc-modal-close" onclick="document.getElementById('scDayModal').style.display='none'">&times;</button>
+        </div>
+        <div class="sc-modal-body" style="overflow-y:auto;" id="scDayModalBody"></div>
+    </div>
+</div>
+
 {{-- Event Detail Modal --}}
 <div id="scModal" class="sc-modal-overlay" onclick="if(event.target===this)this.style.display='none'">
     <div class="sc-modal-box">
@@ -382,6 +400,7 @@
 
 <script>
 const scTypeConfig = @json($typeConfig);
+const scAllEvents = @json($allEvents);
 
 function showScModal(ev) {
     const cfg = scTypeConfig[ev.type] || {color:'#1e4575', bg:'#eff6ff', label: ev.type};
@@ -417,6 +436,28 @@ function showScModal(ev) {
     `).join('');
 
     document.getElementById('scModal').style.display = 'flex';
+}
+
+function showScDayEvents(dateStr) {
+    const dayEvents = scAllEvents.filter(e => e.date && e.date.slice(0,10) === dateStr);
+    window._scDayEvents = dayEvents;
+
+    const dt = new Date(dateStr + 'T00:00:00');
+    document.getElementById('scDayModalTitle').textContent = dt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+    document.getElementById('scDayModalBody').innerHTML = dayEvents.map((ev, i) => {
+        const cfg = scTypeConfig[ev.type] || {color:'#1e4575', bg:'#eff6ff', label: ev.type};
+        return `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px;cursor:pointer;"
+             onclick="document.getElementById('scDayModal').style.display='none';showScModal(window._scDayEvents[${i}])">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${cfg.bg};color:${cfg.color};">${cfg.label}</span>
+                <span style="font-size:13px;font-weight:600;color:#1e293b;">${ev.label || '—'}</span>
+            </div>
+        </div>`;
+    }).join('') || '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:20px;">No events found.</div>';
+
+    document.getElementById('scDayModal').style.display = 'flex';
 }
 </script>
 @endsection
