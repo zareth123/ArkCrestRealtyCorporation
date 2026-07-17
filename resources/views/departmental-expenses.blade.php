@@ -99,67 +99,30 @@
     }
     </script>
 
-    <!-- Department Budget Overview -->
+    <!-- Department Expenses Overview (observation only — budget tracking removed) -->
     @if(!in_array('departments.budget-cards', $hiddenSections))
     <div class="budget-overview-container">
         <h3 class="budget-overview-title">
             <svg class="title-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            Departments Allowable Budgets
+            Departments Expenses
         </h3>
         <div class="budget-cards-grid">
             @foreach($departments as $dept)
                 @if($dept->slug !== 'capex')
                 @php
                     $totalExpenses = $commitments[$dept->name]['liquidated'] ?? 0;
-                    $remaining = $dept->allowable_budget - $totalExpenses;
-                    $pct = $dept->allowable_budget > 0 ? min(100, ($totalExpenses / $dept->allowable_budget) * 100) : 0;
-                    $barColor = $pct >= 90 ? '#ef4444' : ($pct >= 70 ? '#f59e0b' : '#16a34a');
                 @endphp
                 <div class="budget-card-compact" onclick="selectDepartmentFromCard('{{ $dept->name }}')" style="cursor:pointer;" title="Click to select {{ $dept->name }}">
                     <div class="budget-card-header-compact" style="padding-bottom:8px;border-bottom:1px solid #e5e7eb;margin-bottom:10px;">
                         <h4 style="font-size:13px;font-weight:700;color:#fff;margin:0;white-space:normal;word-break:break-word;">{{ $dept->name }}</h4>
-                        @if($dept->budget_from || $dept->budget_to)
-                        <div style="font-size:12px;color:rgba(255,255,255,0.9);margin-top:5px;font-weight:500;">
-                            {{ $dept->budget_from?->format('M d, Y') ?? '—' }} → {{ $dept->budget_to?->format('M d, Y') ?? '—' }}
-                        </div>
-                        @else
-                        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:5px;font-style:italic;">No date set</div>
-                        @endif
                     </div>
                     <div class="budget-card-body-compact">
-                        <div style="display:flex;flex-direction:column;gap:6px;">
-                            <div style="display:flex;justify-content:space-between;font-size:12px;">
-                                <span style="color:#6b7280;">Budget</span>
-                                <span style="font-weight:700;color:#1e4575;" id="budget_display_{{ $dept->id }}">₱{{ number_format($dept->allowable_budget, 2) }}</span>
-                            </div>
-                            <div style="display:flex;justify-content:space-between;font-size:12px;">
-                                <span style="color:#6b7280;">Expenses</span>
-                                <span style="font-weight:600;color:#dc2626;">₱{{ number_format($totalExpenses, 2) }}</span>
-                            </div>
-                            <div style="display:flex;justify-content:space-between;font-size:12px;">
-                                <span style="color:#6b7280;">Remaining</span>
-                                <span style="font-weight:700;color:{{ $remaining >= 0 ? '#16a34a' : '#dc2626' }};" id="remaining_display_{{ $dept->id }}">₱{{ number_format($remaining, 2) }}</span>
-                            </div>
+                        <div style="display:flex;justify-content:space-between;font-size:12px;">
+                            <span style="color:#6b7280;">Expenses</span>
+                            <span style="font-weight:600;color:#dc2626;">₱{{ number_format($totalExpenses, 2) }}</span>
                         </div>
-                        {{-- Progress bar --}}
-                        <div style="margin-top:10px;background:#f3f4f6;border-radius:99px;height:6px;overflow:hidden;">
-                            <div style="height:100%;width:{{ $pct }}%;background:{{ $barColor }};border-radius:99px;"></div>
-                        </div>
-                        <div style="font-size:10px;color:#9ca3af;text-align:right;margin-top:2px;">{{ number_format($pct, 1) }}% used</div>
-                        @if(auth()->user()->isAdmin())
-                        <div style="display:flex;gap:8px;margin-top:10px;">
-                            <button onclick="event.stopPropagation();openBudgetModal({{ $dept->id }}, '{{ $dept->name }}', {{ $dept->allowable_budget }}, '{{ $dept->budget_from?->format('Y-m-d') ?? '' }}', '{{ $dept->budget_to?->format('Y-m-d') ?? '' }}')" class="btn-update-budget" style="flex:1;justify-content:center;">
-                                <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                Edit
-                            </button>
-                            <button onclick="event.stopPropagation();deleteDepartment({{ $dept->id }}, '{{ $dept->name }}')" style="padding:6px 10px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;">
-                                <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                Delete
-                            </button>
-                        </div>
-                        @endif
                     </div>
                 </div>
                 @endif

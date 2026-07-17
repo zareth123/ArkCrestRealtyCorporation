@@ -302,7 +302,7 @@
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                     </svg>
-                                    <span class="sidebar-text">Departments</span>
+                                    <span class="sidebar-text">Departmental Expenses</span>
                                 </a>
                             </li>
                             @endif
@@ -398,7 +398,7 @@
                                         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                                         </svg>
-                                        <span class="sidebar-text">Client Database</span>
+                                        <span class="sidebar-text">Clients</span>
                                     </a>
                                     <button class="dropdown-toggle-btn" id="clientDbDropdownToggle" type="button" onclick="toggleClientDbDropdown(event)">
                                         <svg class="dropdown-arrow" id="clientDbArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -426,7 +426,7 @@
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                     </svg>
-                                    <span class="sidebar-text">Site Visit Database</span>
+                                    <span class="sidebar-text">Site Visits</span>
                                 </a>
                             </li>
                             <li>
