@@ -123,6 +123,25 @@
                             <span style="color:#6b7280;">Expenses</span>
                             <span style="font-weight:600;color:#dc2626;">₱{{ number_format($totalExpenses, 2) }}</span>
                         </div>
+
+                        @php $recent = $recentExpenses[$dept->name] ?? collect(); @endphp
+                        @if($recent->isNotEmpty())
+                        <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e5e7eb;">
+                            <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">
+                                Recent Expenses
+                            </div>
+                            @foreach($recent as $exp)
+                            <div style="display:flex;justify-content:space-between;font-size:11px;color:#374151;margin-bottom:2px;">
+                                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;" title="{{ $exp->category }}">
+                                    {{ $exp->category }}
+                                </span>
+                                <span style="color:#059669;font-weight:600;">
+                                    ₱{{ number_format($exp->total_expenses, 2) }}
+                                </span>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
                     </div>
                 </div>
                 @endif
