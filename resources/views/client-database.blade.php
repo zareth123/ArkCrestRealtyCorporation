@@ -2664,7 +2664,13 @@ async function saveInstallmentAmount(instId, silent) {
         payment.element.reportValidity();
         payment.element.setCustomValidity('');
 
-        if (!silent) alert(error.message);
+        if (!silent) {
+            if (typeof showToast === 'function') {
+                showToast(error.message, 'error', 'Payment Error');
+            } else {
+                alert(error.message);
+            }
+        }
         return false;
     }
 }
@@ -2770,7 +2776,11 @@ async function markPaidWithDate(instId, btn) {
         refreshDPStageSummary(res);
         handleCommissionTrigger(res);
     } catch (error) {
-        alert(error.message);
+        if (typeof showToast === 'function') {
+            showToast(error.message, 'error', 'Payment Error');
+        } else {
+            alert(error.message);
+        }
 
         if (btn) {
             btn.disabled = false;
@@ -2794,7 +2804,13 @@ function unmarkPaid(instId) {
         updateDPStatusBadge(_dpRecordId, res.status || '');
         updateClientStatusSelect(_dpRecordId, res.client_status || 'Pending');
         refreshDPStageSummary(res);
-    }).catch(error => alert(error.message));
+    }).catch(error => {
+        if (typeof showToast === 'function') {
+            showToast(error.message, 'error', 'Undo Failed');
+        } else {
+            alert(error.message);
+        }
+    });
 }
 </script>
 

@@ -68,6 +68,7 @@
 .column-filter-chip .cfm-remove:hover{color:#dc2626}
 .clear-column-filters-btn{font-size:11px;font-weight:600;color:#1e4575;background:#eef2f7;border:1px solid #d0d5dd;border-radius:6px;padding:7px 12px;cursor:pointer;white-space:nowrap}
 .hr-filters-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 16px 14px;}
+#empTableWrap{overflow-x:auto !important;overflow-y:hidden;}
 @media (max-width:768px){
   .column-filter-menu{left:0;right:0;min-width:0;width:100%;box-sizing:border-box}
   .active-column-filters-row{flex-direction:column;align-items:stretch}
@@ -150,7 +151,7 @@
         </div>
     </div>
     <div id="empActiveColumnFiltersRow" class="active-column-filters-row" style="display:none;"></div>
-    <div style="overflow-x:auto;">
+    <div id="empTableWrap" style="overflow-x:auto;">
         @if($activeUsers->isEmpty())
             <div style="padding:40px;text-align:center;color:#94a3b8;">No employees yet.</div>
         @else
