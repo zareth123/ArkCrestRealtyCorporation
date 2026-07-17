@@ -929,67 +929,60 @@
             <span class="close" onclick="closeViewModal()">&times;</span>
         </div>
         <div class="modal-body">
-            <div class="view-details">
-                <!-- Header Section with Control Number -->
-                <div class="view-header-section">
-                    <div class="view-control-label">Control Number</div>
-                    <div class="view-control-number" id="view_control_number"></div>
+            <div class="de-modal-grid">
+                <div class="de-modal-field full-width">
+                    <label>Control Number</label>
+                    <div class="de-field-value" id="view_control_number">-</div>
                 </div>
 
-                <!-- Requestor Information -->
-                <div class="section-title-view">Requestor Information</div>
-                
-                <div class="detail-row full-width">
-                    <span class="detail-label">Requestor Name</span>
-                    <span class="detail-value" id="view_requestor_name"></span>
-                </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">Department</span>
-                    <span class="detail-value" id="view_department"></span>
-                </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">Category</span>
-                    <span class="detail-value" id="view_category"></span>
-                </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">Date Requested</span>
-                    <span class="detail-value" id="view_date_requested"></span>
+                <div class="de-modal-field full-width">
+                    <label>Requestor Name</label>
+                    <div class="de-field-value" id="view_requestor_name">-</div>
                 </div>
 
-                <!-- Financial Information -->
-                <div class="section-title-view">Financial Information</div>
-                
-                <div class="detail-row highlight-row">
-                    <span class="detail-label">Requested Amount</span>
-                    <span class="detail-value amount" id="view_requested_amount"></span>
+                <div class="de-modal-field">
+                    <label>Department</label>
+                    <div class="de-field-value" id="view_department">-</div>
                 </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">Status</span>
-                    <span class="detail-value" id="view_status"></span>
+
+                <div class="de-modal-field">
+                    <label>Category</label>
+                    <div class="de-field-value" id="view_category">-</div>
                 </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">Date Released</span>
-                    <span class="detail-value" id="view_date_released"></span>
+
+                <div class="de-modal-field">
+                    <label>Date Requested</label>
+                    <div class="de-field-value" id="view_date_requested">-</div>
                 </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">Total Expenses</span>
-                    <span class="detail-value" id="view_total_expenses"></span>
+
+                <div class="de-modal-field">
+                    <label>Requested Amount</label>
+                    <div class="de-field-value" id="view_requested_amount">-</div>
                 </div>
-                
-                <div class="detail-row highlight-row">
-                    <span class="detail-label">Amount Returned</span>
-                    <span class="detail-value amount" id="view_amount_returned"></span>
+
+                <div class="de-modal-field">
+                    <label>Status</label>
+                    <div class="de-field-value" id="view_status">-</div>
                 </div>
-                
-                <div class="detail-row">
-                    <span class="detail-label">Date of Amount Returned</span>
-                    <span class="detail-value" id="view_date_of_amount_returned"></span>
+
+                <div class="de-modal-field">
+                    <label>Date Released</label>
+                    <div class="de-field-value" id="view_date_released">-</div>
+                </div>
+
+                <div class="de-modal-field">
+                    <label>Total Expenses</label>
+                    <div class="de-field-value" id="view_total_expenses">-</div>
+                </div>
+
+                <div class="de-modal-field">
+                    <label>Amount Returned</label>
+                    <div class="de-field-value" id="view_amount_returned">-</div>
+                </div>
+
+                <div class="de-modal-field full-width">
+                    <label>Date of Amount Returned</label>
+                    <div class="de-field-value" id="view_date_of_amount_returned">-</div>
                 </div>
             </div>
         </div>
