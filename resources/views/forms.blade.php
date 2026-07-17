@@ -131,6 +131,17 @@
     #frmPreviewModal, #frmPreviewModal *{visibility:visible}
     #frmPreviewModal{position:fixed;inset:0;background:#fff;padding:0;margin:0;display:flex!important;align-items:flex-start;justify-content:center;overflow:visible;}
     #frmPreviewModal .modal-bar{display:none!important}
+    #frmPreviewModal .frm-preview-frame{
+    width:auto!important;
+    height:auto!important;
+    overflow:visible!important;
+    }
+    #frmPreviewModal .modal-body-pad{
+    display:block!important;
+    overflow:visible!important;
+    height:auto!important;
+    padding:0!important;
+    }
     #frmPreviewBody{box-shadow:none!important;width:auto!important;height:auto!important;background:transparent!important;padding:0!important}
     #frmPreviewBody .frm-card{
     position:static;
@@ -418,7 +429,9 @@
     @foreach($properties as $prop)
     <option value="{{ $prop->name }}" data-developer="{{ $prop->developer }}">{{ $prop->name }}{{ $prop->developer ? ' ('.$prop->developer.')' : '' }}</option>
     @endforeach
+    <option value="__others__">Others (type property name)</option>
     </select>
+    <input type="text" id="sv_property_other" placeholder="Type property name, then press Enter or click away" autocomplete="off" style="display:none;margin-top:4px;" onkeydown="if(event.key==='Enter'){event.preventDefault();commitOtherPropertySV(this);}" onblur="commitOtherPropertySV(this)">
     @else
     <input type="text" id="sv_property" required placeholder="Type property name..." autocomplete="off" oninput="svPropertyAutocomplete(this.value)" onblur="setTimeout(checkDuplicateSV,300)">
     <div id="svPropertyAcList" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ccc;border-radius:0 0 6px 6px;box-shadow:0 6px 18px rgba(0,0,0,.12);z-index:999;max-height:150px;overflow-y:auto;font-size:12px;"></div>
@@ -499,7 +512,7 @@
     {{-- Shared Preview / Print Modal  --}}
     {{-- ============================= --}}
     <div id="frmPreviewModal" class="frm-preview-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;overflow:hidden;padding:0;">
-    <div style="background:white;width:100vw;height:100vh;display:flex;flex-direction:column;box-shadow:none;overflow:hidden;">
+    <div class="frm-preview-frame" style="background:white;width:100vw;height:100vh;display:flex;flex-direction:column;box-shadow:none;overflow:hidden;">
     {{-- Modal Header --}}
     <div class="modal-bar" style="background:linear-gradient(135deg,#1e4575,#2563eb);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;">
     <div style="color:white;font-weight:700;font-size:16px;" id="frmPreviewLabel">Preview</div>
@@ -971,10 +984,55 @@ function fetchAgentName(){
 }
 document.addEventListener('DOMContentLoaded', fetchAgentName);
 
+// Handles the Property Name <select>. When the user picks "Others",
+// reveal the free-text field instead of treating "__others__" as a
+// real property. When a real property is picked, auto-fill the
+// developer and run the usual duplicate check.
 function onPropertySelectSV(sel){
+    var otherInput = document.getElementById('sv_property_other');
+    if(sel.value === '__others__'){
+    // Reveal the free-text field and wait for a name — skip the
+    // duplicate check / developer auto-fill until it's actually typed.
+    if(otherInput){
+    otherInput.style.display = '';
+    otherInput.value = '';
+    otherInput.focus();
+    }
+    return;
+    }
+    if(otherInput) otherInput.style.display = 'none';
     var opt = sel.options[sel.selectedIndex];
     var dev = opt ? opt.getAttribute('data-developer') : '';
     if (dev) document.getElementById('sv_company').value = dev;
+    checkDuplicateSV();
+}
+
+// Commits whatever was typed in the "Others" field as a new option on
+// <select id="sv_property">, so the select stays the single source of
+// truth for everything downstream (duplicate check, submission, print
+// preview, PDF) without any of that code needing to change.
+function commitOtherPropertySV(input){
+    var sel = document.getElementById('sv_property');
+    if(!sel) return;
+    var name = input.value.trim();
+    if(!name){
+    sel.value = '';
+    input.style.display = 'none';
+    return;
+    }
+    var existing = Array.prototype.filter.call(sel.options, function(o){
+    return o.value === name && o.value !== '__others__';
+    })[0];
+    if(!existing){
+    existing = document.createElement('option');
+    existing.value = name;
+    existing.textContent = name;
+    existing.setAttribute('data-custom', '1');
+    sel.insertBefore(existing, sel.querySelector('option[value="__others__"]'));
+    }
+    sel.value = name;
+    input.style.display = 'none';
+    input.value = '';
     checkDuplicateSV();
 }
 
@@ -1020,7 +1078,7 @@ function checkDuplicateSV(){
     var property = propEl ? propEl.value.trim() : '';
     var warn = document.getElementById('svDupWarning');
     var btn = document.getElementById('svSubmitBtn');
-    if(!client || !property){ warn.classList.remove('show'); return; }
+    if(!client || !property || property === '__others__'){ warn.classList.remove('show'); return; }
     fetch('/api/tripping/check-duplicate?client_name='+encodeURIComponent(client)+'&property_name='+encodeURIComponent(property))
     .then(function(r){return r.json();})
     .then(function(d){
@@ -1070,7 +1128,17 @@ function clearSVForm(){
     if(el) el.value = '';
     });
     var propEl = document.getElementById('sv_property');
-    if(propEl) propEl.value = '';
+    if(propEl){
+    if(propEl.tagName === 'SELECT'){
+    // Remove any custom "Others" options added during this session so
+    // a cleared form doesn't leave stale one-off property names sitting
+    // in the dropdown for the next entry.
+    Array.prototype.slice.call(propEl.querySelectorAll('option[data-custom="1"]')).forEach(function(o){ o.remove(); });
+    }
+    propEl.value = '';
+    }
+    var propOtherEl = document.getElementById('sv_property_other');
+    if(propOtherEl){ propOtherEl.style.display = 'none'; propOtherEl.value = ''; }
     var teamSelect = document.getElementById('sv_team_select');
     if(teamSelect) teamSelect.value = '';
     document.getElementById('svDupWarning').classList.remove('show');
@@ -1087,7 +1155,7 @@ function submitSiteVisit(){
     var data = collectSVData();
     var errors = [];
     if(!data.client_name) errors.push('Client name is required.');
-    if(!data.property_name) errors.push('Property name is required.');
+    if(!data.property_name || data.property_name === '__others__') errors.push('Property name is required.');
     if(!data.tripping_date) errors.push('Visit date is required.');
     if(!data.tripping_time) errors.push('Visit time is required.');
     if(!data.tripping_type) errors.push('Mode of visit is required.');
@@ -1180,6 +1248,63 @@ function openPreview(cardId, label, action){
     var clone = document.getElementById(cardId).cloneNode(true);
     clone.querySelectorAll('.frm-btns,.dept-sel,.no-print-sv').forEach(function(el){ el.remove(); });
 
+    // The "Others" free-text input for Property Name is an editing aid
+    // only — by preview time its value has already been committed onto
+    // the <select>, so drop the raw input element from the printed clone.
+    var propOtherClone = clone.querySelector('#sv_property_other');
+    if(propOtherClone) propOtherClone.remove();
+
+    // Mode of Visit and Property Name are the two Site Visit fields paired
+    // with a sibling "suggestion" element in the same cell (a <datalist>
+    // for Mode of Visit; a <select> or a custom autocomplete box for
+    // Property Name, depending on whether properties exist in the DB).
+    // Rather than rely on clone/list-attribute/select quirks to carry the
+    // value across, read it directly from the live, connected element and
+    // drop it in as plain text.
+    if(cardId === 'frmCardSV'){
+    var propOtherLive = document.getElementById('sv_property_other');
+    if(propOtherLive && propOtherLive.style.display !== 'none' && propOtherLive.value.trim()){
+        commitOtherPropertySV(propOtherLive);
+    }
+
+    var modeLive = document.getElementById('sv_mode');
+    var modeClone = clone.querySelector('#sv_mode');
+    if(modeClone){
+    var modeSpan = document.createElement('span');
+    modeSpan.textContent = modeLive ? modeLive.value : '';
+    var modeCs = getComputedStyle(modeLive || modeClone);
+    modeSpan.style.font = modeCs.font;
+    modeSpan.style.display = 'inline-block';
+    modeSpan.style.width = '100%';
+    modeClone.parentNode.replaceChild(modeSpan, modeClone);
+    }
+    var svModeDatalist = clone.querySelector('#svVisitTypeOptions');
+    if(svModeDatalist) svModeDatalist.remove();
+
+    var propLive = document.getElementById('sv_property');
+    var propClone = clone.querySelector('#sv_property');
+    if(propClone){
+    var propText = '';
+    if(propLive){
+    if(propLive.tagName === 'SELECT'){
+    var liveOpt = propLive.options[propLive.selectedIndex];
+    propText = (liveOpt && liveOpt.value && liveOpt.value !== '__others__') ? liveOpt.text : '';
+    } else {
+    propText = propLive.value || '';
+    }
+    }
+    var propSpan = document.createElement('span');
+    propSpan.textContent = propText;
+    var propCs = getComputedStyle(propLive || propClone);
+    propSpan.style.font = propCs.font;
+    propSpan.style.display = 'inline-block';
+    propSpan.style.width = '100%';
+    propClone.parentNode.replaceChild(propSpan, propClone);
+    }
+    var svPropAcList = clone.querySelector('#svPropertyAcList');
+    if(svPropAcList) svPropAcList.remove();
+    }
+
     // Strip placeholder text from every field so empty inputs show blank
     // in the print preview and actual print/PDF output, instead of
     // displaying hint text like "0.00" or "Select date".
@@ -1213,13 +1338,14 @@ function openPreview(cardId, label, action){
     field.parentNode.replaceChild(span, field);
     });
 
-    // <select> fields (e.g. Team) show their first/default option text
-    // when nothing meaningful is selected. Replace with plain text of the
-    // selected option, or blank if the selected value is empty.
+    // <select> fields (e.g. Team, Property) show their first/default
+    // option text when nothing meaningful is selected. Replace with plain
+    // text of the selected option, or blank if the selected value is
+    // empty or still the "Others" placeholder value.
     clone.querySelectorAll('select').forEach(function(field){
     var opt = field.options[field.selectedIndex];
     var span = document.createElement('span');
-    span.textContent = (opt && opt.value) ? opt.text : '';
+    span.textContent = (opt && opt.value && opt.value !== '__others__') ? opt.text : '';
     var cs = getComputedStyle(field);
     span.style.font = cs.font;
     span.style.display = 'inline-block';
@@ -1301,10 +1427,15 @@ function generatePDF(cardId, filename, incrementCtrl){
 
     el.querySelectorAll('input,textarea,select').forEach(function(field){
     if(field.classList.contains('friendly-date-hidden')) return;
+    // Skip fields that are already hidden for other reasons (e.g. the
+    // inactive "Others" property text input) — capturing/replacing them
+    // would force them visible again once cleanup() restores display.
+    if(field.style.display === 'none') return;
     var span=document.createElement('span');
     var value;
     if(field.tagName==='SELECT'){
-    value = field.options[field.selectedIndex]?.text || '';
+    var selOpt = field.options[field.selectedIndex];
+    value = (selOpt && selOpt.value !== '__others__') ? (selOpt.text || '') : '';
     } else if(field.type === 'date'){
     value = field.value ? formatFriendlyDate(field.value) : '';
     } else {
@@ -1319,12 +1450,13 @@ function generatePDF(cardId, filename, incrementCtrl){
     span.style.padding=cs.padding;
     span.style.margin=cs.margin;
     span.style.border='none';
+    var originalDisplay = field.style.display;
     field.style.display='none';
     field.parentNode.insertBefore(span,field);
-    replacements.push({field:field,span:span});
+    replacements.push({field:field,span:span,originalDisplay:originalDisplay});
 });
     function cleanup(){
-    replacements.forEach(r=>{r.span.remove();r.field.style.display='';});
+    replacements.forEach(r=>{r.span.remove();r.field.style.display=r.originalDisplay;});
     el.querySelectorAll('.frm-btns,.dept-sel,.no-print-sv').forEach(e=>e.style.display='');
     if(dlBtn) dlBtn.disabled=false;
     // Re-apply mobile auto-fit scaling now that the full-size capture is done

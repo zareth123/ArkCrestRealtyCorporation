@@ -2948,6 +2948,27 @@ function submitCmPermRequest() {
         window.history.replaceState({}, '', window.location.pathname);
     }
 
+    function showPrefillError(message) {
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;'
+            + 'display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML =
+            '<div style="background:white;border-radius:16px;max-width:420px;width:90%;padding:28px;'
+            + 'box-shadow:0 24px 64px rgba(0,0,0,.3);text-align:center;">'
+            + '<div style="width:48px;height:48px;border-radius:50%;background:#fef2f2;display:flex;'
+            + 'align-items:center;justify-content:center;margin:0 auto 16px;">'
+            + '<svg width="24" height="24" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24">'
+            + '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>'
+            + '</svg></div>'
+            + '<p style="font-size:14px;color:#1f2937;margin:0 0 20px;line-height:1.5;">' + message + '</p>'
+            + '<button id="_prefillErrOk" style="padding:10px 28px;background:#1e4575;color:white;'
+            + 'border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">OK</button>'
+            + '</div>';
+        document.body.appendChild(overlay);
+        document.getElementById('_prefillErrOk').addEventListener('click', function() { overlay.remove(); });
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         if (stageRequestId) {
             fetch('/api/commission-stage-requests/' + encodeURIComponent(stageRequestId) + '/prefill')
@@ -2957,7 +2978,7 @@ function submitCmPermRequest() {
                     return data;
                 })
                 .then(data => applyPrefill(data, data.commission_stage))
-                .catch(err => alert(err.message));
+                .catch(err => showPrefillError(err.message));
             return;
         }
 
@@ -2969,7 +2990,7 @@ function submitCmPermRequest() {
                     return data;
                 })
                 .then(data => applyPrefill(data, data.commission_stage || data.next_commission_stage))
-                .catch(err => alert(err.message));
+                .catch(err => showPrefillError(err.message));
             return;
         }
 

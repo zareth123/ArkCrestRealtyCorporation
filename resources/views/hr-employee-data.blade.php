@@ -44,6 +44,40 @@
 .hr-btn-ghost { background:#f1f5f9;color:#374151; }
 .hr-btn-ghost:hover { background:#e2e8f0; }
 .hr-btn-lg { padding:10px 24px;font-size:13px; }
+
+/* ---- Filter dropdown + search bar (matches Client Database / Reserved Clients pattern) ---- */
+.emp-search{position:relative}
+.emp-search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#94a3b8}
+.emp-search input{padding:8px 12px 8px 34px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;color:#111827;background:white;width:280px;transition:all .2s;box-sizing:border-box}
+.emp-search input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.column-filter-dropdown{position:relative}
+.column-filter-btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;font-weight:600;color:#1e4575;background:white;border:2px solid #1e4575;border-radius:8px;padding:8px 13px;cursor:pointer;height:34px;box-sizing:border-box;transition:all .2s ease}
+.column-filter-btn:hover{background:#eef2f7}
+.filter-count-badge{background:#2563eb;color:white;font-size:10px;font-weight:700;border-radius:999px;min-width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}
+.column-filter-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:200px;max-height:300px;overflow-y:auto;background:white;border:1.5px solid #d0d5dd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:500;padding:6px}
+.column-filter-menu-item{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:12px;font-weight:500;color:#344054;border-radius:6px;cursor:pointer;white-space:nowrap}
+.column-filter-menu-item:hover{background:#eef2f7}
+.column-filter-menu-item .cfm-check{width:14px;color:#2563eb;font-weight:700;visibility:hidden}
+.column-filter-menu-item.is-active .cfm-check{visibility:visible}
+.column-filter-menu-item.is-active{color:#1e4575;font-weight:700}
+.active-column-filters-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 16px 14px;}
+.column-filter-chip{display:flex;align-items:center;gap:6px;background:#f5f7fa;border:1.5px solid #d0d5dd;border-radius:8px;padding:5px 6px 5px 10px}
+.column-filter-chip label{font-size:10px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.column-filter-chip input,.column-filter-chip select{font-size:12px;padding:5px 7px;border:1.5px solid #d0d5dd;border-radius:6px;color:#344054;min-width:120px}
+.column-filter-chip .cfm-remove{background:none;border:none;color:#8a9bad;cursor:pointer;font-size:15px;line-height:1;padding:2px 4px}
+.column-filter-chip .cfm-remove:hover{color:#dc2626}
+.clear-column-filters-btn{font-size:11px;font-weight:600;color:#1e4575;background:#eef2f7;border:1px solid #d0d5dd;border-radius:6px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.hr-filters-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 16px 14px;}
+#empTableWrap{overflow-x:auto !important;overflow-y:hidden;}
+@media (max-width:768px){
+  .column-filter-menu{left:0;right:0;min-width:0;width:100%;box-sizing:border-box}
+  .active-column-filters-row{flex-direction:column;align-items:stretch}
+  .column-filter-chip{width:100%;flex-wrap:wrap;box-sizing:border-box}
+  .column-filter-chip label{flex:1 1 100%}
+  .column-filter-chip input,.column-filter-chip select{flex:1 1 auto;min-width:0;width:100%}
+  .clear-column-filters-btn{width:100%;text-align:center}
+  .emp-search input{width:100%}
+}
 </style>
 
 <div class="hr-banner">
@@ -98,14 +132,30 @@
     <div class="hr-card-header">
         <div>
             <div class="hr-card-title">Employee Records</div>
-            <div class="hr-card-sub">{{ $activeUsers->count() }} employees on record</div>
+            <div class="hr-card-sub"><span id="empRecordCount">{{ $activeUsers->count() }}</span> employees on record</div>
         </div>
     </div>
-    <div style="overflow-x:auto;">
+    <div class="hr-filters-bar">
+        <div class="column-filter-dropdown" id="empColumnFilterDropdown">
+            <button type="button" class="column-filter-btn" onclick="toggleEmpColumnFilterMenu(event)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span>Filter</span>
+                <span id="empFilterCountBadge" class="filter-count-badge" style="display:none;">0</span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div id="empColumnFilterMenu" class="column-filter-menu" style="display:none;"></div>
+        </div>
+        <div class="emp-search">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" id="empSearch" placeholder="Search by name, email, position, ID..." oninput="empApplyFilters()">
+        </div>
+    </div>
+    <div id="empActiveColumnFiltersRow" class="active-column-filters-row" style="display:none;"></div>
+    <div id="empTableWrap" style="overflow-x:auto;">
         @if($activeUsers->isEmpty())
             <div style="padding:40px;text-align:center;color:#94a3b8;">No employees yet.</div>
         @else
-        <table class="hr-table">
+        <table class="hr-table" id="empTable">
             <thead>
                 <tr>
                     <th>#</th><th>Name</th><th>Email</th><th>Position</th><th>Employee ID</th><th>Date Hired</th><th>Role</th><th>Status</th>
@@ -114,7 +164,15 @@
             </thead>
             <tbody>
                 @foreach($activeUsers as $i => $u)
-                <tr id="emp-view-{{ $u->id }}">
+                <tr id="emp-view-{{ $u->id }}"
+                    class="emp-row"
+                    data-name="{{ strtolower($u->name ?? '') }}"
+                    data-email="{{ strtolower($u->email ?? '') }}"
+                    data-position="{{ strtolower($u->position ?? '') }}"
+                    data-empid="{{ strtolower($u->employee_id ?? '') }}"
+                    data-datehired="{{ strtolower($u->date_hired ? $u->date_hired->format('M d, Y') : '') }}"
+                    data-role="{{ strtolower($u->role ?? 'staff') }}"
+                    data-status="{{ strtolower($u->status ?? '') }}">
                     <td style="color:#cbd5e1;font-weight:600;">{{ $i + 1 }}</td>
                     <td style="font-weight:700;color:#0f172a;">
                         <div style="display:flex;align-items:center;gap:8px;">
@@ -164,5 +222,155 @@ function toggleEmpEdit(id) {
     var edit = document.getElementById('emp-edit-' + id);
     edit.style.display = edit.style.display === 'none' ? 'table-row' : 'none';
 }
+
+/* ---- Filter dropdown + search bar ---- */
+var EMP_FILTERABLE_FIELDS = [
+    { key: 'name',       label: 'Name',        dataAttr: 'data-name' },
+    { key: 'email',      label: 'Email',       dataAttr: 'data-email' },
+    { key: 'position',   label: 'Position',    dataAttr: 'data-position' },
+    { key: 'empid',      label: 'Employee ID', dataAttr: 'data-empid' },
+    { key: 'datehired',  label: 'Date Hired',  dataAttr: 'data-datehired' },
+    { key: 'role',       label: 'Role',        dataAttr: 'data-role' },
+    { key: 'status',     label: 'Status',      dataAttr: 'data-status' },
+];
+var empColumnFilters = {};
+
+function empFieldConfig(key) {
+    return EMP_FILTERABLE_FIELDS.find(function (f) { return f.key === key; });
+}
+
+function toggleEmpColumnFilterMenu(e) {
+    e.stopPropagation();
+    var menu = document.getElementById('empColumnFilterMenu');
+    if (menu.style.display === 'block') { menu.style.display = 'none'; return; }
+    renderEmpColumnFilterMenu();
+    menu.style.display = 'block';
+}
+
+function renderEmpColumnFilterMenu() {
+    var menu = document.getElementById('empColumnFilterMenu');
+    menu.innerHTML = '';
+    EMP_FILTERABLE_FIELDS.forEach(function (f) {
+        var item = document.createElement('div');
+        item.className = 'column-filter-menu-item' + (empColumnFilters.hasOwnProperty(f.key) ? ' is-active' : '');
+        item.innerHTML = '<span class="cfm-check">✓</span><span>' + f.label + '</span>';
+        item.onclick = function (ev) { ev.stopPropagation(); empToggleColumnFilter(f.key); };
+        menu.appendChild(item);
+    });
+}
+
+function empToggleColumnFilter(key) {
+    if (empColumnFilters.hasOwnProperty(key)) delete empColumnFilters[key];
+    else empColumnFilters[key] = '';
+    renderEmpColumnFilterMenu();
+    renderEmpActiveColumnFilters();
+    updateEmpFilterBadge();
+    empApplyFilters();
+    document.getElementById('empColumnFilterMenu').style.display = 'none';
+}
+
+function empRemoveColumnFilter(key) {
+    delete empColumnFilters[key];
+    renderEmpActiveColumnFilters();
+    updateEmpFilterBadge();
+    empApplyFilters();
+}
+
+function updateEmpFilterBadge() {
+    var badge = document.getElementById('empFilterCountBadge');
+    var count = Object.keys(empColumnFilters).length;
+    badge.style.display = count > 0 ? 'inline-flex' : 'none';
+    badge.textContent = count;
+}
+
+function renderEmpActiveColumnFilters() {
+    var row = document.getElementById('empActiveColumnFiltersRow');
+    var keys = Object.keys(empColumnFilters);
+    row.innerHTML = '';
+    if (keys.length === 0) { row.style.display = 'none'; return; }
+    row.style.display = 'flex';
+
+    keys.forEach(function (key) {
+        var f = empFieldConfig(key);
+        if (!f) return;
+        var chip = document.createElement('div');
+        chip.className = 'column-filter-chip';
+        var label = document.createElement('label');
+        label.textContent = f.label;
+        chip.appendChild(label);
+
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Search ' + f.label.toLowerCase() + '...';
+        input.value = empColumnFilters[key];
+        input.oninput = function () { empColumnFilters[key] = this.value; empApplyFilters(); };
+        chip.appendChild(input);
+
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'cfm-remove';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.onclick = function () { empRemoveColumnFilter(key); };
+        chip.appendChild(removeBtn);
+
+        row.appendChild(chip);
+    });
+
+    var clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'clear-column-filters-btn';
+    clearBtn.textContent = 'Clear Filters';
+    clearBtn.onclick = function () {
+        empColumnFilters = {};
+        renderEmpActiveColumnFilters();
+        updateEmpFilterBadge();
+        empApplyFilters();
+    };
+    row.appendChild(clearBtn);
+}
+
+function empMatchesColumnFilters(row) {
+    for (var key in empColumnFilters) {
+        var f = empFieldConfig(key);
+        if (!f) continue;
+        var filterVal = (empColumnFilters[key] || '').toString().trim().toLowerCase();
+        if (!filterVal) continue;
+        var rowVal = (row.getAttribute(f.dataAttr) || '').toString().toLowerCase();
+        if (!rowVal.includes(filterVal)) return false;
+    }
+    return true;
+}
+
+function empApplyFilters() {
+    var raw = (document.getElementById('empSearch').value || '').toLowerCase().trim();
+    var keywords = raw ? raw.split(/\s+/).filter(function (k) { return k.length > 0; }) : [];
+    var visibleCount = 0;
+
+    document.querySelectorAll('#empTable tbody tr.emp-row').forEach(function (row) {
+        var text = row.textContent.toLowerCase();
+        var keyMatch = keywords.length === 0 || keywords.every(function (k) { return text.includes(k); });
+        var columnMatch = empMatchesColumnFilters(row);
+        var show = keyMatch && columnMatch;
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+
+        var id = row.id ? row.id.replace('emp-view-', '') : null;
+        if (id) {
+            var editRow = document.getElementById('emp-edit-' + id);
+            if (editRow && !show) editRow.style.display = 'none';
+        }
+    });
+
+    var countEl = document.getElementById('empRecordCount');
+    if (countEl) countEl.textContent = visibleCount;
+}
+
+document.addEventListener('click', function (e) {
+    var dropdown = document.getElementById('empColumnFilterDropdown');
+    if (dropdown && !dropdown.contains(e.target)) {
+        var menu = document.getElementById('empColumnFilterMenu');
+        if (menu) menu.style.display = 'none';
+    }
+});
 </script>
 @endsection
