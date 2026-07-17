@@ -126,7 +126,9 @@
 .cal-more {
     font-size:9px;color:#94a3b8;text-align:right;
     margin-top:1px;flex-shrink:0;font-weight:600;
+    cursor:pointer;text-decoration:underline;
 }
+.cal-more:hover { color:#1e4575; }
 
 /* Legend */
 .cal-legend {
@@ -234,7 +236,7 @@
                 </div>
                 @endforeach
                 @if($events->count() > 2)
-                <div class="cal-more">+{{ $events->count()-2 }} more</div>
+                <div class="cal-more" onclick="event.stopPropagation(); showDayEvents('{{ $dateStr }}')">+{{ $events->count()-2 }} more</div>
                 @endif
             </div>
             @endfor
@@ -249,6 +251,20 @@
     </div>
     @endif
 
+</div>
+
+{{-- Day Events Modal --}}
+<div id="calDayModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:white;border-radius:14px;width:480px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+        <div style="background:linear-gradient(135deg,#1e4575,#2563eb);padding:18px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+            <div>
+                <div style="color:rgba(255,255,255,.65);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px;">All Releases</div>
+                <div style="color:white;font-size:16px;font-weight:700;" id="calDayModalTitle"> </div>
+            </div>
+            <button onclick="document.getElementById('calDayModal').style.display='none'" style="background:rgba(255,255,255,.15);border:none;color:white;width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:16px;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:14px 16px;overflow-y:auto;" id="calDayModalBody"></div>
+    </div>
 </div>
 
 {{-- Event Detail Modal --}}
@@ -290,6 +306,24 @@ function showEventDetail(type, id) {
             `).join('')}
         </div>`;
     document.getElementById('calEventModal').style.display = 'flex';
+}
+
+function showDayEvents(dateStr) {
+    const dayEvents = calEvents.filter(e => e.date_released && e.date_released.slice(0,10) === dateStr);
+    const fmt = v => v ? '\u20B1' + parseFloat(v).toLocaleString('en-US',{minimumFractionDigits:2}) : ' ';
+    const dt = new Date(dateStr + 'T00:00:00');
+    document.getElementById('calDayModalTitle').textContent = dt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    document.getElementById('calDayModalBody').innerHTML = dayEvents.map(ev => `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px;cursor:pointer;"
+             onclick="document.getElementById('calDayModal').style.display='none';showEventDetail('${ev._type}', ${ev.id})">
+            <div>
+                <div style="font-size:13px;font-weight:700;color:#1e293b;">${ev.client_name || ' '}</div>
+                <div style="font-size:11px;color:#94a3b8;">${ev.agent_name || ' '}</div>
+            </div>
+            <div style="font-size:12px;font-weight:700;color:#059669;">${fmt(ev.commission)}</div>
+        </div>
+    `).join('') || '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:20px;">No releases found.</div>';
+    document.getElementById('calDayModal').style.display = 'flex';
 }
 </script>
 @endsection
