@@ -102,8 +102,17 @@ class SummaryReportController extends Controller
             ->where('client_status', '!=', 'Cancelled')
             ->sum('net_tcp');
 
-        // Calculate net sales from the editable gross_sales value
-        $editableGrossSales = ($summaryReport->exists && $summaryReport->gross_sales > 0)
+        // Calculate net sales from the editable gross_sales value.
+        // Trust the saved record whenever one exists for this period — a saved
+        // value of 0 is a valid, intentional value and should not be silently
+        // replaced by the auto-computed suggestion. Same treatment for units,
+        // so the summary cards at the top of the page stay in sync with what
+        // was actually saved instead of always showing the live commission-data
+        // calculation.
+        $editableUnits = $summaryReport->exists
+            ? $summaryReport->units
+            : $units;
+        $editableGrossSales = $summaryReport->exists
             ? $summaryReport->gross_sales
             : $grossSalesFromClient;
         $netSales = $editableGrossSales - $totalExpenses;
@@ -120,6 +129,8 @@ class SummaryReportController extends Controller
             'netSales',
             'units',
             'grossSalesFromClient',
+            'editableUnits',
+            'editableGrossSales',
             'pendingReservation',
             'cancelledReservation',
             'totalReservation',

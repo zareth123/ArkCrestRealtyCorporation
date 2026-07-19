@@ -75,9 +75,9 @@
                 </div>
                 <div class="card-content">
                     <div class="card-label">Units</div>
-                    <div class="card-value" id="card_units">{{ number_format($units, 0) }}</div>
+                    <div class="card-value" id="card_units">{{ number_format($editableUnits, 0) }}</div>
                     <div style="font-size:12px;color:#64748b;margin-top:4px;">
-                        Gross Sales: <strong id="card_gross_sales">&#8369;{{ number_format($grossSalesFromClient, 0) }}</strong>
+                        Gross Sales: <strong id="card_gross_sales">&#8369;{{ number_format($editableGrossSales, 0) }}</strong>
                     </div>
                 </div>
             </div>
@@ -154,7 +154,7 @@
                         <td class="label-cell">Units</td>
                         <td class="value-cell">
                             <input type="text" id="units" class="form-control-inline"
-                                value="{{ $summaryReport->exists && $summaryReport->units > 0 ? $summaryReport->units : $units }}"
+                                value="{{ $summaryReport->exists ? $summaryReport->units : $units }}"
                                 oninput="recalcNetSales()">
                         </td>
                     </tr>
@@ -162,7 +162,7 @@
                         <td class="label-cell">Gross Sales</td>
                         <td class="value-cell">
                             <input type="text" id="gross_sales" class="form-control-inline"
-                                value="{{ $summaryReport->exists && $summaryReport->gross_sales > 0 ? $summaryReport->gross_sales : $grossSalesFromClient }}"
+                                value="{{ $summaryReport->exists ? $summaryReport->gross_sales : $grossSalesFromClient }}"
                                 oninput="recalcNetSales()">
                         </td>
                     </tr>
