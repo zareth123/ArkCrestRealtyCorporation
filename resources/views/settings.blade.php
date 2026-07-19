@@ -1236,11 +1236,11 @@
       <div class="st-card" style="margin-bottom:20px;">
         <div class="st-card-hdr"><div class="st-card-hdr-text"><h3>Add New Team</h3></div></div>
         <div class="st-card-body">
-          <form method="POST" action="{{ route('settings.teams.store') }}">@csrf
+          <form method="POST" action="{{ route('settings.teams.store') }}" onsubmit="return validateAddTeamForm(this)">@csrf
             <div class="st-form-grid">
-              <div class="st-form-group"><label class="st-label">Team Name</label><input class="st-input" type="text" name="team_name" required></div>
+              <div class="st-form-group"><label class="st-label">Team Name</label><input class="st-input" type="text" name="team_name" required oninput="this.setCustomValidity('')"></div>
               <div class="st-form-group"><label class="st-label">Sales Manager <span style="font-weight:400;color:#94a3b8;font-size:11px">(optional)</span></label><input class="st-input" type="text" name="sales_manager"></div>
-              <div class="st-form-group"><label class="st-label">Team Leader</label><input class="st-input" type="text" name="leader_name" required></div>
+              <div class="st-form-group"><label class="st-label">Team Leader</label><input class="st-input" type="text" name="leader_name" required oninput="this.setCustomValidity('')"></div>
             </div>
             <div style="margin-top:14px;"><button type="submit" class="st-btn st-btn-primary">Add Team</button></div>
           </form>
@@ -1345,7 +1345,7 @@
             {{-- Add Agent --}}
             <form method="POST" action="{{ route('settings.agents.store') }}" style="display:flex;gap:8px;margin-top:10px;">@csrf
               <input type="hidden" name="team_id" value="{{ $team->id }}">
-              <input class="st-input" type="text" name="name" placeholder="Add agent name" style="flex:1;">
+              <input class="st-input" type="text" name="name" placeholder="Add agent name" style="flex:1;" required oninput="this.setCustomValidity('')">
               <button type="submit" class="st-btn st-btn-primary st-btn-sm">+ Add</button>
             </form>
           </div>
@@ -1362,10 +1362,10 @@
               </form>
             </div>
             @endforeach
-            <form method="POST" action="{{ route('settings.teams.quota', $team->id) }}" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">@csrf
-              <input class="st-input" type="date" name="date_from" style="flex:1;min-width:120px;">
-              <input class="st-input" type="date" name="date_to" style="flex:1;min-width:120px;">
-              <input class="st-input" type="number" name="quota_amount" placeholder="Amount" style="flex:1;min-width:100px;">
+            <form method="POST" action="{{ route('settings.teams.quota', $team->id) }}" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;" onsubmit="return validateQuotaDates(this)">@csrf
+              <input class="st-input" type="date" name="date_from" required style="flex:1;min-width:120px;" oninput="this.setCustomValidity('')">
+              <input class="st-input" type="date" name="date_to" required style="flex:1;min-width:120px;" oninput="this.setCustomValidity('')">
+              <input class="st-input" type="number" name="quota_amount" placeholder="Amount" style="flex:1;min-width:100px;" min="0" step="0.01" required oninput="this.setCustomValidity('')">
               <button type="submit" class="st-btn st-btn-primary st-btn-sm">Set</button>
             </form>
           </div>
@@ -1378,10 +1378,10 @@
       <div id="editTeamModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)closeEditTeam();">
         <div style="background:white;border-radius:14px;padding:24px 28px;width:440px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2);">
           <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;">Edit Team</div>
-          <form id="editTeamForm" method="POST">@csrf @method('PUT')
+          <form id="editTeamForm" method="POST" onsubmit="return validateAddTeamForm(this)">@csrf @method('PUT')
             <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px;">
-              <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Team Name</label><input class="st-input" type="text" id="edit_team_name" name="team_name" required></div>
-              <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Team Leader</label><input class="st-input" type="text" id="edit_leader_name" name="leader_name" required></div>
+              <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Team Name</label><input class="st-input" type="text" id="edit_team_name" name="team_name" required oninput="this.setCustomValidity('')"></div>
+              <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Team Leader</label><input class="st-input" type="text" id="edit_leader_name" name="leader_name" required oninput="this.setCustomValidity('')"></div>
               <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Sales Manager <span style="font-weight:400;color:#94a3b8;">(optional)</span></label><input class="st-input" type="text" id="edit_sales_manager" name="sales_manager"></div>
             </div>
             <div style="display:flex;gap:10px;">
@@ -1877,6 +1877,30 @@ function filterTeams() {
         var name = card.getAttribute('data-team-name') || '';
         card.style.display = name.includes(q) ? '' : 'none';
     });
+}
+function validateAddTeamForm(form) {
+    var required = ['team_name', 'leader_name'];
+    for (var i = 0; i < required.length; i++) {
+        var field = form.querySelector('[name="' + required[i] + '"]');
+        field.setCustomValidity('');
+        if (!field.value.trim()) {
+            field.setCustomValidity('Please fill out this field.');
+            field.reportValidity();
+            return false;
+        }
+    }
+    return true;
+}
+function validateQuotaDates(form) {
+    var dateFrom = form.querySelector('[name="date_from"]');
+    var dateTo = form.querySelector('[name="date_to"]');
+    dateTo.setCustomValidity('');
+    if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+        dateTo.setCustomValidity('End date must be on or after the start date.');
+        dateTo.reportValidity();
+        return false;
+    }
+    return true;
 }
 function openEditTeam(id, name, leader, manager) {
     _editTeamId = id;
