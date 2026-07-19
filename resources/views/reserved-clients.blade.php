@@ -120,7 +120,7 @@
             </div>
             <div class="lc-search">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                <input type="text" id="lcSearch" placeholder="Search by name, email, phone..." oninput="lcApplyFilters()">
+                <input type="text" id="lcSearch" placeholder="Search by control #, name, email, phone..." oninput="lcApplyFilters()">
             </div>
         </div>
         <div id="lcActiveColumnFiltersRow" class="active-column-filters-row" style="display:none;"></div>
@@ -137,6 +137,7 @@
             <thead>
                 <tr>
                     <th>#</th>
+                    <th>Control Number</th>
                     <th>Client Name</th>
                     <th>Email</th>
                     <th>Phone</th>
@@ -155,10 +156,12 @@
             @endphp
             <tr
                 data-client="{{ strtolower($c->client_name ?? '') }}"
+                data-control="{{ strtolower($c->control_number ?? '') }}"
                 data-email="{{ strtolower($emails->implode(', ')) }}"
                 data-phone="{{ strtolower($phones->implode(', ')) }}"
                 data-address="{{ strtolower($address ?? '') }}">
                 <td style="color:#cbd5e1;font-size:11px;font-weight:600;">{{ $i + 1 }}</td>
+                <td><span style="font-family:monospace;background:#f1f5f9;padding:2px 8px;border-radius:6px;font-size:12px;color:#1e4575;font-weight:600;">{{ $c->control_number }}</span></td>
                 <td><div class="lc-name">{{ $c->client_name }}</div></td>
                 <td>
                     @forelse($emails as $email)
@@ -238,6 +241,7 @@
 
 <script>
 var LC_FILTERABLE_FIELDS = [
+    { key: 'control', label: 'Control Number', dataAttr: 'data-control', type: 'text' },
     { key: 'client',  label: 'Client Name', dataAttr: 'data-client',  type: 'text' },
     { key: 'email',   label: 'Email',       dataAttr: 'data-email',   type: 'text' },
     { key: 'phone',   label: 'Phone',       dataAttr: 'data-phone',   type: 'text' },

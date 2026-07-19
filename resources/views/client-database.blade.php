@@ -356,7 +356,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                             <input type="checkbox" id="cdSelectAll" onchange="cdToggleSelectAll(this)" title="Select all">
                         </th>
                         <th class="cd-sticky-col cd-sticky-index" style="padding:14px 8px;color:white;text-transform:uppercase;font-size:11px;">#</th>
-                        @foreach(['Developer','Project','Block & Lot','Client','Lot Area','Price/SQM','TCP','Discount (%)','Discount Value','Net TCP','Terms','Reservation Date','Units','Downpayment Date','Agent','Client Status','DP Stage','Downpayment Status','Actions'] as $h)
+                        @foreach(['Control Number','Developer','Project','Block & Lot','Client','Lot Area','Price/SQM','TCP','Discount (%)','Discount Value','Net TCP','Terms','Reservation Date','Units','Downpayment Date','Agent','Client Status','DP Stage','Downpayment Status','Actions'] as $h)
                         <th style="padding:14px 12px;text-align:left;font-weight:600;color:white;text-transform:uppercase;font-size:11px;white-space:nowrap">{{ $h }}</th>
                         @endforeach
                     </tr>
@@ -365,7 +365,8 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                     @forelse($commissionRequests ?? [] as $req)
                     @php $discVal = $req->tcp && $req->discount ? $req->tcp * ($req->discount / 100) : null; @endphp
                     <tr data-id="{{ $req->id }}"
-                        data-search="{{ strtolower($req->client_name ?? '') }} {{ strtolower($req->agent_name ?? '') }} {{ strtolower($req->project_name ?? '') }} {{ strtolower($req->developer_name ?? '') }} {{ strtolower($req->block_lot_number ?? '') }}"
+                        data-search="{{ strtolower($req->control_number ?? '') }} {{ strtolower($req->client_name ?? '') }} {{ strtolower($req->agent_name ?? '') }} {{ strtolower($req->project_name ?? '') }} {{ strtolower($req->developer_name ?? '') }} {{ strtolower($req->block_lot_number ?? '') }}"
+                        data-control="{{ strtolower($req->control_number ?? '') }}"
                         data-developer="{{ strtolower($req->developer_name ?? '') }}"
                         data-project="{{ strtolower($req->project_name ?? '') }}"
                         data-block-lot="{{ strtolower($req->block_lot_number ?? '') }}"
@@ -389,6 +390,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                             <input type="checkbox" class="cd-row-checkbox" value="{{ $req->id }}" onchange="cdUpdateBulkBar()">
                         </td>
                         <td class="cd-sticky-col cd-sticky-index" style="padding:14px 8px;color:#374151;font-weight:600">{{ $loop->iteration }}</td>
+                        <td style="padding:14px 12px;white-space:nowrap"><span style="font-family:monospace;background:#f1f5f9;padding:2px 8px;border-radius:6px;font-size:12px;color:#1e4575;font-weight:600;">{{ $req->control_number ?? '-' }}</span></td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->developer_name ?? '-' }}</td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->project_name ?? '-' }}</td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->block_lot_number ?? '-' }}</td>
@@ -490,7 +492,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="21" style="text-align:center;padding:40px;color:#6b7280">No client records yet.</td></tr>
+                    <tr><td colspan="22" style="text-align:center;padding:40px;color:#6b7280">No client records yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -1305,6 +1307,7 @@ function cdInitScrollbar() {
 
 /* ---- Filter dropdown + chips ---- */
 var CD_FILTERABLE_FIELDS = [
+    { key: 'control',            label: 'Control Number',     dataAttr: 'data-control',           type: 'text'   },
     { key: 'developer',          label: 'Developer',          dataAttr: 'data-developer',        type: 'text'   },
     { key: 'project',            label: 'Project',            dataAttr: 'data-project',           type: 'text'   },
     { key: 'block-lot',          label: 'Block & Lot',        dataAttr: 'data-block-lot',         type: 'text'   },
@@ -1640,14 +1643,14 @@ function cdGetSelectedPrintRows() {
 // option or run the two divs together, so they're pulled out explicitly.
 function cdGetPrintCellText(row, index) {
     const cells = row.cells;
-    if (index === 17) { // Client Status
-        const sel = cells[17].querySelector('select');
+    if (index === 18) { // Client Status
+        const sel = cells[18].querySelector('select');
         if (sel) return sel.value || '— No Status —';
-        return cells[17].textContent.trim();
+        return cells[18].textContent.trim();
     }
-    if (index === 18) { // DP Stage
-        const valueEl = cells[18].querySelector('div[id^="dpStageValue_"]');
-        const statusEl = cells[18].querySelector('div[id^="dpStageStatus_"]');
+    if (index === 19) { // DP Stage
+        const valueEl = cells[19].querySelector('div[id^="dpStageValue_"]');
+        const statusEl = cells[19].querySelector('div[id^="dpStageStatus_"]');
         const val = valueEl ? valueEl.textContent.trim() : '';
         const status = (statusEl && statusEl.style.display !== 'none') ? statusEl.textContent.trim() : '';
         return status ? (val + ' (' + status + ')') : val;
@@ -1666,7 +1669,7 @@ function cdPrintSelectedRecords() {
         return;
     }
 
-    const headers = ['Developer','Project','Block & Lot','Client','Lot Area','Price/SQM','TCP','Discount (%)','Discount Value','Net TCP','Terms','Reservation Date','Units','Downpayment Date','Agent','Client Status','DP Stage','Downpayment Status'];
+    const headers = ['Control Number','Developer','Project','Block & Lot','Client','Lot Area','Price/SQM','TCP','Discount (%)','Discount Value','Net TCP','Terms','Reservation Date','Units','Downpayment Date','Agent','Client Status','DP Stage','Downpayment Status'];
 
     let tableHtml = '<table class="cd-print-table"><thead><tr>';
     headers.forEach(function(h) { tableHtml += '<th>' + h + '</th>'; });
@@ -1674,8 +1677,8 @@ function cdPrintSelectedRecords() {
 
     rows.forEach(function(row) {
         tableHtml += '<tr>';
-        // cells 0=checkbox, 1=#, 2..19=data columns above, 20=Actions (skipped)
-        for (let i = 2; i <= 19; i++) {
+        // cells 0=checkbox, 1=#, 2..20=data columns above, 21=Actions (skipped)
+        for (let i = 2; i <= 20; i++) {
             tableHtml += '<td>' + cdGetPrintCellText(row, i) + '</td>';
         }
         tableHtml += '</tr>';

@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+﻿@extends('layouts.dashboard')
 
 @section('content')
 <div class="commission-monitoring-container">
@@ -296,6 +296,7 @@
                         @endif
                         <th class="col-sticky col-sticky-index">#</th>
                         <th class="col-sticky col-sticky-name">Client's Name</th>
+                        <th>Control Number</th>
                         <th>Reservation Date</th>
                         <th>Project Name</th>
                         <th>Property Details (Block & Lot No.)</th>
@@ -332,6 +333,7 @@
                         $rowHlClasses = trim(($isOverdue ? 'cm-row-overdue ' : '') . ($isHighValue ? 'cm-row-highvalue ' : ''));
                     @endphp
                     <tr id="cm-{{ $request->id }}" class="{{ $rowHlClasses }}" data-id="{{ $request->id }}"
+                        data-control="{{ $request->control_number }}"
                         data-status="{{ $request->status }}"
                         data-commission-stage="{{ $request->commission_stage ? $request->commission_stage.'/'.($request->commission_stage_total ?: 1) : '' }}"
                         data-date-requested="{{ $request->date_requested ? $request->date_requested->format('Y-m-d') : '' }}"
@@ -360,6 +362,7 @@
                         @endif
                         <td class="col-sticky col-sticky-index">{{ $loop->iteration }}</td>
                         <td class="col-sticky col-sticky-name">{{ $request->client_name ?? '-' }}</td>
+                        <td style="font-weight:700;color:#1e4575;white-space:nowrap;">{{ $request->control_number ?? '—' }}</td>
                         <td>{{ $request->reservation_date ? $request->reservation_date->format('M d, Y') : '-' }}</td>
                         <td>{{ $request->project_name ?? '-' }}</td>
                         <td>{{ $request->property_details ?? '-' }}</td>
@@ -1606,6 +1609,7 @@
 // ---- Column Filter fields (matches the "All Expenses" filter dropdown pattern) ----
 // Date Requested / Date Released are handled separately as range pickers above.
 const FILTERABLE_FIELDS = [
+    { key: 'control_number',    label: 'Control Number',            dataAttr: 'data-control',                type: 'text'  },
     { key: 'client_name',       label: "Client's Name",             dataAttr: 'data-client',                type: 'text'  },
     { key: 'project_name',      label: 'Project Name',              dataAttr: 'data-project',                type: 'text'  },
     { key: 'property_details',  label: 'Property Details',          dataAttr: 'data-property',               type: 'text'  },

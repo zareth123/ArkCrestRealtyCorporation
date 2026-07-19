@@ -363,6 +363,17 @@ class SalesMarketingController extends Controller
             )->orderBy('client_name')->get()
             ->groupBy('client_name')->map(fn($g) => $g->first())->values();
 
+        // Assign a Control Number per client, same ARCS-MM-###-YY format
+        // used in Departmental Expenses, based on that client's date_requested.
+        $monthCounters = [];
+        $clients = $clients->sortBy('date_requested')->values()->map(function ($c) use (&$monthCounters) {
+            $date = $c->date_requested ? \Carbon\Carbon::parse($c->date_requested) : now();
+            $key = $date->format('m') . $date->format('y');
+            $monthCounters[$key] = ($monthCounters[$key] ?? 0) + 1;
+            $c->control_number = sprintf('CLIENT-%s-%03d-%s', $date->format('m'), $monthCounters[$key], $date->format('y'));
+            return $c;
+        })->sortBy('client_name')->values();
+
         $tripData = \App\Models\TripSchedule::select('client_name', 'client_email', 'client_phone', 'client_phone_code')
             ->whereNotNull('client_name')->get()->groupBy('client_name');
 
@@ -642,6 +653,17 @@ class SalesMarketingController extends Controller
                 ->orderByDesc('commission_stage')
                 ->orderByDesc('id'),
         ])->orderBy('date_requested', 'asc')->get();
+
+        // Assign a Control Number per record, same ARCS-MM-###-YY format
+        // used in Departmental Expenses / List of Clients. Records are already
+        // ordered ascending by date_requested above, so counters increase in order.
+        $monthCounters = [];
+        $commissionRequests->each(function ($req) use (&$monthCounters) {
+            $date = $req->date_requested ? \Carbon\Carbon::parse($req->date_requested) : $req->created_at;
+            $key = $date->format('m') . $date->format('y');
+            $monthCounters[$key] = ($monthCounters[$key] ?? 0) + 1;
+            $req->control_number = sprintf('CLS-%s-%03d-%s', $date->format('m'), $monthCounters[$key], $date->format('y'));
+        });
 
         // Developer names can come from two places:
         //  1. Existing client records (the free-text developer_name column), and
