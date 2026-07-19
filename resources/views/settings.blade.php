@@ -888,7 +888,6 @@
               'settings.visibility'              => 'Page Visibility',
               'settings.activity'                => 'Activity Log',
               'settings.deleted'                 => 'Deleted Records',
-              'settings.permissions'             => 'Permission Requests',
               'settings.teams'                   => 'Team Management',
               'settings.period-lock'             => 'Period Lock',
               'settings.backup'                  => 'Backup & Restore',
@@ -1224,125 +1223,6 @@
 
     
 
-    @if($isAdmin || $canSeeS('settings.permissions'))
-
-    {{-- PERMISSION REQUESTS PANEL --}}
-
-    <div class="{{ $panelClass('permission-requests') }}" id="panel-permission-requests">
-
-      <div class="st-page-header"><div class="st-page-title">Permission Requests</div><div class="st-page-sub">Review and approve or reject staff edit &amp; delete requests</div></div>
-
-      @php
-
-        $pendingPermReqs  = \App\Models\PermissionRequest::with('user')->where('status','pending')->orderBy('created_at','desc')->get();
-
-        $reviewedPermReqs = \App\Models\PermissionRequest::with('user')->whereIn('status',['approved','rejected'])->orderBy('updated_at','desc')->limit(50)->get();
-
-      @endphp
-
-      @if($pendingPermReqs->isNotEmpty())
-
-      <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Pending — {{ $pendingPermReqs->count() }} Request(s)</div>
-
-      @foreach($pendingPermReqs as $pr)
-
-      <div class="perm-item pending-perm">
-
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-
-          <div>
-
-            <span style="font-weight:700;font-size:13px;">{{ $pr->user->name ?? '—' }}</span>
-
-            <span style="background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;margin:0 6px;">{{ strtoupper($pr->action) }}</span>
-
-            <span style="font-size:12px;color:#64748b;">{{ $pr->module }}</span>
-
-            @if($pr->record_label)<span style="font-size:12px;color:#94a3b8;"> — {{ $pr->record_label }}</span>@endif
-
-          </div>
-
-          <div style="font-size:11px;color:#94a3b8;">{{ $pr->created_at->format('M d, Y g:i A') }}</div>
-
-        </div>
-
-        @if($pr->reason)<div style="margin-top:8px;padding:8px 12px;background:white;border-radius:6px;border-left:3px solid #f59e0b;"><div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:3px;">Reason</div><div style="font-size:13px;color:#374151;">{{ $pr->reason }}</div></div>@endif
-
-        <div class="perm-actions">
-
-          <input type="text" id="note_{{ $pr->id }}" placeholder="Optional note for staff..." style="flex:1;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:12px;font-family:inherit;">
-
-          @if($pr->record_url)<a href="{{ $pr->record_url }}" target="_blank" class="st-btn st-btn-sm" style="background:#f1f5f9;color:#374151;border:1.5px solid #e2e8f0;text-decoration:none;">View Record</a>@endif
-
-          <form method="POST" action="{{ route('permission-requests.review', $pr->id) }}" onsubmit="event.preventDefault();submitPermReview({{ $pr->id }},'approved',this)">@csrf
-
-            <input type="hidden" name="status" value="approved">
-
-            <input type="hidden" name="admin_note" id="note_approve_{{ $pr->id }}">
-
-            <button type="submit" class="st-btn st-btn-primary st-btn-sm" onclick="document.getElementById('note_approve_{{ $pr->id }}').value=document.getElementById('note_{{ $pr->id }}').value">&#10003; Approve</button>
-
-          </form>
-
-          <form method="POST" action="{{ route('permission-requests.review', $pr->id) }}" onsubmit="event.preventDefault();submitPermReview({{ $pr->id }},'rejected',this)">@csrf
-
-            <input type="hidden" name="status" value="rejected">
-
-            <input type="hidden" name="admin_note" id="note_reject_{{ $pr->id }}">
-
-            <button type="submit" class="st-btn st-btn-danger st-btn-sm" onclick="document.getElementById('note_reject_{{ $pr->id }}').value=document.getElementById('note_{{ $pr->id }}').value">&#10005; Reject</button>
-
-          </form>
-
-        </div>
-
-      </div>
-
-      @endforeach
-
-      @endif
-
-      @if($reviewedPermReqs->isNotEmpty())
-
-      <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px;">Reviewed — {{ $reviewedPermReqs->count() }} Request(s)</div>
-
-      @foreach($reviewedPermReqs as $pr)
-
-      <div class="perm-item {{ $pr->status === 'approved' ? 'approved-perm' : 'rejected-perm' }}">
-
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-
-          <div>
-
-            <span style="font-weight:600;font-size:13px;">{{ $pr->user->name ?? '—' }}</span>
-
-            <span style="font-size:11px;color:#64748b;margin:0 6px;">{{ strtoupper($pr->action) }}</span>
-
-            <span style="font-size:12px;color:#94a3b8;">{{ $pr->module }}@if($pr->record_label) — {{ $pr->record_label }}@endif</span>
-
-          </div>
-
-          <span style="font-size:11px;font-weight:700;color:{{ $pr->status==='approved'?'#16a34a':'#dc2626' }};text-transform:uppercase;">{{ $pr->status }}</span>
-
-        </div>
-
-        @if($pr->admin_note)<div style="font-size:12px;color:#64748b;margin-top:4px;">Note: {{ $pr->admin_note }}</div>@endif
-
-      </div>
-
-      @endforeach
-
-      @endif
-
-      @if($pendingPermReqs->isEmpty() && $reviewedPermReqs->isEmpty())
-
-      <div class="st-card"><div class="st-card-body"><div class="st-empty">No permission requests.</div></div></div>
-
-      @endif
-
-    </div>
-
-    @endif
 
     @if($isAdmin || $canSeeS('settings.teams'))
 
@@ -1356,19 +1236,24 @@
       <div class="st-card" style="margin-bottom:20px;">
         <div class="st-card-hdr"><div class="st-card-hdr-text"><h3>Add New Team</h3></div></div>
         <div class="st-card-body">
-          <form method="POST" action="{{ route('settings.teams.store') }}">@csrf
+          <form method="POST" action="{{ route('settings.teams.store') }}" onsubmit="return validateAddTeamForm(this)">@csrf
             <div class="st-form-grid">
-              <div class="st-form-group"><label class="st-label">Team Name</label><input class="st-input" type="text" name="team_name" required></div>
+              <div class="st-form-group"><label class="st-label">Team Name</label><input class="st-input" type="text" name="team_name" required oninput="this.setCustomValidity('')"></div>
               <div class="st-form-group"><label class="st-label">Sales Manager <span style="font-weight:400;color:#94a3b8;font-size:11px">(optional)</span></label><input class="st-input" type="text" name="sales_manager"></div>
-              <div class="st-form-group"><label class="st-label">Team Leader</label><input class="st-input" type="text" name="leader_name"></div>
+              <div class="st-form-group"><label class="st-label">Team Leader</label><input class="st-input" type="text" name="leader_name" required oninput="this.setCustomValidity('')"></div>
             </div>
             <div style="margin-top:14px;"><button type="submit" class="st-btn st-btn-primary">Add Team</button></div>
           </form>
         </div>
       </div>
 
+      {{-- Search Teams --}}
+      <div style="margin-bottom:16px;">
+        <input type="text" id="teamSearchInput" class="st-input" placeholder="Search for Team Name" oninput="filterTeams()" style="max-width:320px;">
+      </div>
+
       @foreach($salesTeams as $team)
-      <div style="background:white;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;border:1px solid #e2e8f0;">
+      <div class="team-card" data-team-name="{{ strtolower($team->team_name) }}" style="background:white;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;border:1px solid #e2e8f0;">
 
         {{-- Team Header --}}
         <div style="background:linear-gradient(135deg,#0f2444,#1e4575);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
@@ -1460,7 +1345,7 @@
             {{-- Add Agent --}}
             <form method="POST" action="{{ route('settings.agents.store') }}" style="display:flex;gap:8px;margin-top:10px;">@csrf
               <input type="hidden" name="team_id" value="{{ $team->id }}">
-              <input class="st-input" type="text" name="name" placeholder="Add agent name" style="flex:1;">
+              <input class="st-input" type="text" name="name" placeholder="Add agent name" style="flex:1;" required oninput="this.setCustomValidity('')">
               <button type="submit" class="st-btn st-btn-primary st-btn-sm">+ Add</button>
             </form>
           </div>
@@ -1477,10 +1362,10 @@
               </form>
             </div>
             @endforeach
-            <form method="POST" action="{{ route('settings.teams.quota', $team->id) }}" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">@csrf
-              <input class="st-input" type="date" name="date_from" style="flex:1;min-width:120px;">
-              <input class="st-input" type="date" name="date_to" style="flex:1;min-width:120px;">
-              <input class="st-input" type="number" name="quota_amount" placeholder="Amount" style="flex:1;min-width:100px;">
+            <form method="POST" action="{{ route('settings.teams.quota', $team->id) }}" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;" onsubmit="return validateQuotaDates(this)">@csrf
+              <input class="st-input" type="date" name="date_from" required style="flex:1;min-width:120px;" oninput="this.setCustomValidity('')">
+              <input class="st-input" type="date" name="date_to" required style="flex:1;min-width:120px;" oninput="this.setCustomValidity('')">
+              <input class="st-input" type="number" name="quota_amount" placeholder="Amount" style="flex:1;min-width:100px;" min="0" step="0.01" required oninput="this.setCustomValidity('')">
               <button type="submit" class="st-btn st-btn-primary st-btn-sm">Set</button>
             </form>
           </div>
@@ -1493,10 +1378,10 @@
       <div id="editTeamModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)closeEditTeam();">
         <div style="background:white;border-radius:14px;padding:24px 28px;width:440px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2);">
           <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;">Edit Team</div>
-          <form id="editTeamForm" method="POST">@csrf @method('PUT')
+          <form id="editTeamForm" method="POST" onsubmit="return validateAddTeamForm(this)">@csrf @method('PUT')
             <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px;">
-              <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Team Name</label><input class="st-input" type="text" id="edit_team_name" name="team_name" required></div>
-              <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Team Leader</label><input class="st-input" type="text" id="edit_leader_name" name="leader_name"></div>
+              <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Team Name</label><input class="st-input" type="text" id="edit_team_name" name="team_name" required oninput="this.setCustomValidity('')"></div>
+              <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Team Leader</label><input class="st-input" type="text" id="edit_leader_name" name="leader_name" required oninput="this.setCustomValidity('')"></div>
               <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Sales Manager <span style="font-weight:400;color:#94a3b8;">(optional)</span></label><input class="st-input" type="text" id="edit_sales_manager" name="sales_manager"></div>
             </div>
             <div style="display:flex;gap:10px;">
@@ -1986,6 +1871,37 @@ function closeAddContactModal() { document.getElementById('contactAddModal').sty
 
 // Team Management JS
 var _editTeamId = null, _editAgentId = null;
+function filterTeams() {
+    var q = document.getElementById('teamSearchInput').value.trim().toLowerCase();
+    document.querySelectorAll('.team-card').forEach(function(card) {
+        var name = card.getAttribute('data-team-name') || '';
+        card.style.display = name.includes(q) ? '' : 'none';
+    });
+}
+function validateAddTeamForm(form) {
+    var required = ['team_name', 'leader_name'];
+    for (var i = 0; i < required.length; i++) {
+        var field = form.querySelector('[name="' + required[i] + '"]');
+        field.setCustomValidity('');
+        if (!field.value.trim()) {
+            field.setCustomValidity('Please fill out this field.');
+            field.reportValidity();
+            return false;
+        }
+    }
+    return true;
+}
+function validateQuotaDates(form) {
+    var dateFrom = form.querySelector('[name="date_from"]');
+    var dateTo = form.querySelector('[name="date_to"]');
+    dateTo.setCustomValidity('');
+    if (dateFrom.value && dateTo.value && dateTo.value < dateFrom.value) {
+        dateTo.setCustomValidity('End date must be on or after the start date.');
+        dateTo.reportValidity();
+        return false;
+    }
+    return true;
+}
 function openEditTeam(id, name, leader, manager) {
     _editTeamId = id;
     document.getElementById('editTeamForm').action = '/settings/teams/' + id;
@@ -2075,19 +1991,6 @@ function openContactModal(id, name, company, phone, email, facebook, btn) {
 }
 function closeContactModal() {
     document.getElementById('contactEditModal').style.display = 'none';
-}
-
-function submitPermReview(id, status, form) {
-    const note = document.getElementById('note_' + id)?.value || '';
-    const csrf = form.querySelector('[name=_token]')?.value || document.querySelector('meta[name=csrf-token]')?.content || '';
-    fetch('/api/permission-requests/' + id + '/review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
-        body: JSON.stringify({ status: status, admin_note: note })
-    })
-    .then(r => r.json())
-    .then(() => { window.location.reload(); })
-    .catch(() => { window.location.reload(); });
 }
 
 // ── ARC Contact List drag-and-drop ──────────────────────────────────────────

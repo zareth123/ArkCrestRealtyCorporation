@@ -25,7 +25,6 @@ class SettingsController extends Controller
     'settings.visibility',
     'settings.activity',
     'settings.deleted',
-    'settings.permissions',
     'settings.teams',
     'settings.period-lock',
     'settings.backup',
@@ -256,12 +255,12 @@ private function getDeletedExpenses()
         $request->validate([
             'team_name'     => 'required|string|max:255',
             'sales_manager' => 'nullable|string|max:255',
-            'leader_name'   => 'nullable|string|max:255',
+            'leader_name'   => 'required|string|max:255',
         ]);
         \App\Models\SalesTeam::create([
             'team_name'     => $request->team_name,
             'sales_manager' => $request->sales_manager,
-            'leader_name'   => $request->leader_name ?? $request->sales_manager,
+            'leader_name'   => $request->leader_name,
         ]);
         return redirect()->route('settings')->with('success', 'Team added.')->with('open_section', 'teams');
     }
@@ -381,7 +380,7 @@ private function getDeletedExpenses()
     {
         if (!auth()->user()->isAdmin()) abort(403);
         $request->validate([
-            'leader_name'   => 'nullable|string|max:255',
+            'leader_name'   => 'required|string|max:255',
             'sales_manager' => 'nullable|string|max:255',
             'team_name'     => 'nullable|string|max:255',
         ]);
@@ -954,7 +953,7 @@ private function getDeletedExpenses()
             'client-database.property','site-visit-database','sales-calendar','forms',
             'human-resource','human-resource.employee-data','human-resource.contact-list',
             'settings.users','settings.teams',
-            'settings.period-lock','settings.visibility','settings.activity','settings.deleted','settings.permissions',
+            'settings.period-lock','settings.visibility','settings.activity','settings.deleted',
             'settings.backup','settings.export',
         ];
 

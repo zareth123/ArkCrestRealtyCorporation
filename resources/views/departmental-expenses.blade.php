@@ -332,7 +332,7 @@
                         <td>
                             <div class="action-buttons">
                                 <button onclick="viewRequest({{ $req->id }})" class="btn-action btn-view">View</button>
-                                <a href="{{ route('departmental-expenses.view-form', $req->id) }}" target="_blank" class="btn-action btn-view" style="text-decoration:none;display:inline-flex;align-items:center;" title="View & print the original Budget Request Form">Form</a>
+                                <a href="{{ route('departmental-expenses.view-form', $req->id) }}" target="_blank" class="btn-action btn-view" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;" title="View & print the original Budget Request Form">Form</a>
                                 <button onclick="editRequest({{ $req->id }})" class="btn-action btn-edit">Edit</button>
                                 <button onclick="deleteRequest({{ $req->id }})" class="btn-action btn-delete">Delete</button>
                             </div>
