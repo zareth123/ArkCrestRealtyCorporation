@@ -180,7 +180,7 @@
                                 @if(isset($sysNotifs) && $sysNotifs->count() > 0)
                                     @foreach($sysNotifs as $notif)
                                     <div class="notification-item {{ $notif->is_read ? '' : 'unread' }}"
-                                        style="cursor:{{ in_array($notif->type, ['note_reminder','user_pending','permission_request','commission_reminder','commission_request_submitted','downpayment_reminder','tripping_reminder']) ? 'pointer' : 'default' }};{{ $notif->is_read && !in_array($notif->type, ['user_pending','permission_request','note_reminder','commission_reminder','commission_request_submitted','downpayment_reminder','tripping_reminder']) ? 'opacity:0.5;pointer-events:none;' : '' }}"
+                                        style="cursor:{{ in_array($notif->type, ['note_reminder','user_pending','commission_reminder','commission_request_submitted','downpayment_reminder','tripping_reminder']) ? 'pointer' : 'default' }};{{ $notif->is_read && !in_array($notif->type, ['user_pending','note_reminder','commission_reminder','commission_request_submitted','downpayment_reminder','tripping_reminder']) ? 'opacity:0.5;pointer-events:none;' : '' }}"
                                         @if($notif->type === 'note_reminder')
                                         onclick="event.stopPropagation();openNoteModal({{ $notif->note_id ?? 0 }}, '{{ addslashes($notif->title) }}', '{{ addslashes($notif->message) }}', this, {{ $notif->id }})"
                                         @elseif($notif->type === 'commission_reminder')
@@ -193,8 +193,6 @@
                                         onclick="event.stopPropagation();window.location='{{ route('site-visit-database') }}'"
                                         @elseif($notif->type === 'user_pending')
                                         onclick="event.stopPropagation();window.location='{{ route('settings') }}?panel=users'"
-                                        @elseif($notif->type === 'permission_request' && auth()->user()->isAdmin())
-                                        onclick="event.stopPropagation();window.location='{{ route('settings') }}?panel=permission-requests'"
                                         @elseif(in_array($notif->type, ['permission_approved','permission_rejected','permission_sent']))
                                         onclick="event.stopPropagation();handlePermissionNotifClick({{ $notif->id }}, '{{ $notif->note_id }}')"
                                         @endif>
@@ -568,7 +566,7 @@
                                 $userHiddenSettings = $isAdminUser ? [] : ($allHidden ?? []);
                                 $canSeeSetting = fn($k) => $isAdminUser || !in_array($k, $userHiddenSettings);
                             @endphp
-                            @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.activity','settings.deleted','settings.permissions','settings.teams','settings.period-lock','settings.backup','settings.export'], fn($k) => !in_array($k, $userHiddenSettings)))
+                            @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.activity','settings.deleted','settings.teams','settings.period-lock','settings.backup','settings.export'], fn($k) => !in_array($k, $userHiddenSettings)))
                             <li class="nav-submenu-label">Admin</li>
                             @endif
                             @if($canSeeSetting('settings.users'))
@@ -608,16 +606,6 @@
                                 <a href="{{ route('settings') }}?panel=deleted" class="nav-subitem" data-page="settings-deleted">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     <span class="sidebar-text">Deleted Records</span>
-                                </a>
-                            </li>
-                            @endif
-                            @if($canSeeSetting('settings.permissions'))
-                            <li>
-                                <a href="{{ route('settings') }}?panel=permission-requests" class="nav-subitem" data-page="settings-permission-requests">
-                                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-                                    <span class="sidebar-text">Permission Requests</span>
-                                    @php $pendingPerms = \App\Models\PermissionRequest::where('status','pending')->count(); @endphp
-                                    @if($pendingPerms > 0)<span style="background:#ef4444;color:white;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto;">{{ $pendingPerms }}</span>@endif
                                 </a>
                             </li>
                             @endif
@@ -1135,7 +1123,7 @@
         const icon = typeIcons[n.type] || typeIcons.permission_sent;
         const bg = iconBg[n.type] || '';
         const isRead = n.is_read;
-        const nonClickable = isRead && !['user_pending','permission_request','note_reminder','commission_request_submitted'].includes(n.type);
+        const nonClickable = isRead && !['user_pending','note_reminder','commission_request_submitted'].includes(n.type);
         const opacity = nonClickable ? 'opacity:0.5;pointer-events:none;' : '';
 
         let onclick = '';
@@ -1145,8 +1133,6 @@
             onclick = `onclick="event.stopPropagation();openNoteModal(${n.note_id || 0}, '${safeTitle}', '${safeMsg}', this, ${n.id})"`;
         } else if (n.type === 'user_pending') {
             onclick = `onclick="event.stopPropagation();window.location='/settings?panel=users'"`;
-        } else if (n.type === 'permission_request') {
-            onclick = `onclick="event.stopPropagation();window.location='/settings?panel=permission-requests'"`;
         } else if (['permission_approved','permission_rejected','permission_sent'].includes(n.type)) {
             onclick = `onclick="event.stopPropagation();handlePermissionNotifClick(${n.id}, '${n.note_id || ''}')"`;
         } else if (n.type === 'trip_done' && n.note_id) {

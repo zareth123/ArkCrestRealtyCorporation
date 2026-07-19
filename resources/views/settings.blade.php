@@ -888,7 +888,6 @@
               'settings.visibility'              => 'Page Visibility',
               'settings.activity'                => 'Activity Log',
               'settings.deleted'                 => 'Deleted Records',
-              'settings.permissions'             => 'Permission Requests',
               'settings.teams'                   => 'Team Management',
               'settings.period-lock'             => 'Period Lock',
               'settings.backup'                  => 'Backup & Restore',
@@ -1224,125 +1223,6 @@
 
     
 
-    @if($isAdmin || $canSeeS('settings.permissions'))
-
-    {{-- PERMISSION REQUESTS PANEL --}}
-
-    <div class="{{ $panelClass('permission-requests') }}" id="panel-permission-requests">
-
-      <div class="st-page-header"><div class="st-page-title">Permission Requests</div><div class="st-page-sub">Review and approve or reject staff edit &amp; delete requests</div></div>
-
-      @php
-
-        $pendingPermReqs  = \App\Models\PermissionRequest::with('user')->where('status','pending')->orderBy('created_at','desc')->get();
-
-        $reviewedPermReqs = \App\Models\PermissionRequest::with('user')->whereIn('status',['approved','rejected'])->orderBy('updated_at','desc')->limit(50)->get();
-
-      @endphp
-
-      @if($pendingPermReqs->isNotEmpty())
-
-      <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Pending — {{ $pendingPermReqs->count() }} Request(s)</div>
-
-      @foreach($pendingPermReqs as $pr)
-
-      <div class="perm-item pending-perm">
-
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-
-          <div>
-
-            <span style="font-weight:700;font-size:13px;">{{ $pr->user->name ?? '—' }}</span>
-
-            <span style="background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;margin:0 6px;">{{ strtoupper($pr->action) }}</span>
-
-            <span style="font-size:12px;color:#64748b;">{{ $pr->module }}</span>
-
-            @if($pr->record_label)<span style="font-size:12px;color:#94a3b8;"> — {{ $pr->record_label }}</span>@endif
-
-          </div>
-
-          <div style="font-size:11px;color:#94a3b8;">{{ $pr->created_at->format('M d, Y g:i A') }}</div>
-
-        </div>
-
-        @if($pr->reason)<div style="margin-top:8px;padding:8px 12px;background:white;border-radius:6px;border-left:3px solid #f59e0b;"><div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:3px;">Reason</div><div style="font-size:13px;color:#374151;">{{ $pr->reason }}</div></div>@endif
-
-        <div class="perm-actions">
-
-          <input type="text" id="note_{{ $pr->id }}" placeholder="Optional note for staff..." style="flex:1;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:12px;font-family:inherit;">
-
-          @if($pr->record_url)<a href="{{ $pr->record_url }}" target="_blank" class="st-btn st-btn-sm" style="background:#f1f5f9;color:#374151;border:1.5px solid #e2e8f0;text-decoration:none;">View Record</a>@endif
-
-          <form method="POST" action="{{ route('permission-requests.review', $pr->id) }}" onsubmit="event.preventDefault();submitPermReview({{ $pr->id }},'approved',this)">@csrf
-
-            <input type="hidden" name="status" value="approved">
-
-            <input type="hidden" name="admin_note" id="note_approve_{{ $pr->id }}">
-
-            <button type="submit" class="st-btn st-btn-primary st-btn-sm" onclick="document.getElementById('note_approve_{{ $pr->id }}').value=document.getElementById('note_{{ $pr->id }}').value">&#10003; Approve</button>
-
-          </form>
-
-          <form method="POST" action="{{ route('permission-requests.review', $pr->id) }}" onsubmit="event.preventDefault();submitPermReview({{ $pr->id }},'rejected',this)">@csrf
-
-            <input type="hidden" name="status" value="rejected">
-
-            <input type="hidden" name="admin_note" id="note_reject_{{ $pr->id }}">
-
-            <button type="submit" class="st-btn st-btn-danger st-btn-sm" onclick="document.getElementById('note_reject_{{ $pr->id }}').value=document.getElementById('note_{{ $pr->id }}').value">&#10005; Reject</button>
-
-          </form>
-
-        </div>
-
-      </div>
-
-      @endforeach
-
-      @endif
-
-      @if($reviewedPermReqs->isNotEmpty())
-
-      <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px;">Reviewed — {{ $reviewedPermReqs->count() }} Request(s)</div>
-
-      @foreach($reviewedPermReqs as $pr)
-
-      <div class="perm-item {{ $pr->status === 'approved' ? 'approved-perm' : 'rejected-perm' }}">
-
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-
-          <div>
-
-            <span style="font-weight:600;font-size:13px;">{{ $pr->user->name ?? '—' }}</span>
-
-            <span style="font-size:11px;color:#64748b;margin:0 6px;">{{ strtoupper($pr->action) }}</span>
-
-            <span style="font-size:12px;color:#94a3b8;">{{ $pr->module }}@if($pr->record_label) — {{ $pr->record_label }}@endif</span>
-
-          </div>
-
-          <span style="font-size:11px;font-weight:700;color:{{ $pr->status==='approved'?'#16a34a':'#dc2626' }};text-transform:uppercase;">{{ $pr->status }}</span>
-
-        </div>
-
-        @if($pr->admin_note)<div style="font-size:12px;color:#64748b;margin-top:4px;">Note: {{ $pr->admin_note }}</div>@endif
-
-      </div>
-
-      @endforeach
-
-      @endif
-
-      @if($pendingPermReqs->isEmpty() && $reviewedPermReqs->isEmpty())
-
-      <div class="st-card"><div class="st-card-body"><div class="st-empty">No permission requests.</div></div></div>
-
-      @endif
-
-    </div>
-
-    @endif
 
     @if($isAdmin || $canSeeS('settings.teams'))
 
@@ -2075,19 +1955,6 @@ function openContactModal(id, name, company, phone, email, facebook, btn) {
 }
 function closeContactModal() {
     document.getElementById('contactEditModal').style.display = 'none';
-}
-
-function submitPermReview(id, status, form) {
-    const note = document.getElementById('note_' + id)?.value || '';
-    const csrf = form.querySelector('[name=_token]')?.value || document.querySelector('meta[name=csrf-token]')?.content || '';
-    fetch('/api/permission-requests/' + id + '/review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
-        body: JSON.stringify({ status: status, admin_note: note })
-    })
-    .then(r => r.json())
-    .then(() => { window.location.reload(); })
-    .catch(() => { window.location.reload(); });
 }
 
 // ── ARC Contact List drag-and-drop ──────────────────────────────────────────

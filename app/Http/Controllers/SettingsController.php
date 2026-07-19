@@ -25,7 +25,6 @@ class SettingsController extends Controller
     'settings.visibility',
     'settings.activity',
     'settings.deleted',
-    'settings.permissions',
     'settings.teams',
     'settings.period-lock',
     'settings.backup',
@@ -954,7 +953,7 @@ private function getDeletedExpenses()
             'client-database.property','site-visit-database','sales-calendar','forms',
             'human-resource','human-resource.employee-data','human-resource.contact-list',
             'settings.users','settings.teams',
-            'settings.period-lock','settings.visibility','settings.activity','settings.deleted','settings.permissions',
+            'settings.period-lock','settings.visibility','settings.activity','settings.deleted',
             'settings.backup','settings.export',
         ];
 
