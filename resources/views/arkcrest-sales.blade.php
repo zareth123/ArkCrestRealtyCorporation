@@ -274,11 +274,11 @@ var FILTERABLE_COLUMNS = [
     { key: 'project',           label: 'Project',            type: 'text',   data: 'project' },
     { key: 'agent',              label: 'Agent',               type: 'text',   data: 'agent' },
     { key: 'units',              label: 'Units',               type: 'number', data: 'units' },
-    { key: 'net-tcp',            label: 'Net TCP',            type: 'number', data: 'netTcp' },
+    { key: 'net-tcp',            label: 'Net TCP',            type: 'numrange', data: 'netTcp' },
     { key: 'commission-terms',  label: 'Commission Terms',   type: 'select', data: 'commissionTerms',
         options: ['Full Payment', '2 Months Commission', '3 Months Commission'] },
     { key: 'arc-percent',       label: 'ARC %',               type: 'number', data: 'arcPercent' },
-    { key: 'arc-commission',    label: 'ARC Commission',     type: 'number', data: 'arcCommission' }
+    { key: 'arc-commission',    label: 'ARC Commission',     type: 'numrange', data: 'arcCommission' }
 ];
 
 var activeArcFilters = {}; // key -> current value
@@ -307,7 +307,8 @@ function toggleArcFilterColumn(key) {
     if (activeArcFilters.hasOwnProperty(key)) {
         delete activeArcFilters[key];
     } else {
-        activeArcFilters[key] = '';
+        var col = FILTERABLE_COLUMNS.find(function (c) { return c.key === key; });
+        activeArcFilters[key] = (col && (col.type === 'daterange' || col.type === 'numrange')) ? { from: '', to: '' } : '';
     }
     renderColumnFilterMenu();
     renderActiveFilterChips();
@@ -377,6 +378,40 @@ function renderActiveFilterChips() {
             input.appendChild(fromInput);
             input.appendChild(toLabel);
             input.appendChild(toInput);
+        } else if (col.type === 'numrange') {
+            if (!activeArcFilters[key] || typeof activeArcFilters[key] !== 'object') {
+                activeArcFilters[key] = { from: '', to: '' };
+            }
+            var numRange = activeArcFilters[key];
+
+            input = document.createElement('span');
+            input.style.display = 'flex';
+            input.style.alignItems = 'center';
+            input.style.gap = '6px';
+
+            var numFromInput = document.createElement('input');
+            numFromInput.type = 'number';
+            numFromInput.step = 'any';
+            numFromInput.placeholder = 'Min';
+            numFromInput.style.width = '100px';
+            numFromInput.value = numRange.from || '';
+            numFromInput.oninput = numFromInput.onchange = function () { numRange.from = this.value; applyArcFilters(); };
+
+            var numToLabel = document.createElement('span');
+            numToLabel.textContent = 'to';
+            numToLabel.style.cssText = 'color:#8a9bad;font-size:12px;';
+
+            var numToInput = document.createElement('input');
+            numToInput.type = 'number';
+            numToInput.step = 'any';
+            numToInput.placeholder = 'Max';
+            numToInput.style.width = '100px';
+            numToInput.value = numRange.to || '';
+            numToInput.oninput = numToInput.onchange = function () { numRange.to = this.value; applyArcFilters(); };
+
+            input.appendChild(numFromInput);
+            input.appendChild(numToLabel);
+            input.appendChild(numToInput);
         } else if (col.type === 'select') {
             input = document.createElement('select');
             var optAll = document.createElement('option');
@@ -447,6 +482,17 @@ function applyArcFilters() {
                 if (!cellDate) { visible = false; break; }
                 if (range.from && cellDate < range.from) { visible = false; break; }
                 if (range.to && cellDate > range.to) { visible = false; break; }
+                continue;
+            }
+
+            if (col.type === 'numrange') {
+                var numRangeVal = activeArcFilters[key];
+                if (!numRangeVal || (numRangeVal.from === '' && numRangeVal.to === '')) continue;
+                var rawCell = (row.dataset[col.data] || '').toString().replace(/[^0-9.\-]/g, '');
+                var cellNum = rawCell === '' ? NaN : parseFloat(rawCell);
+                if (isNaN(cellNum)) { visible = false; break; }
+                if (numRangeVal.from !== '' && cellNum < parseFloat(numRangeVal.from)) { visible = false; break; }
+                if (numRangeVal.to !== '' && cellNum > parseFloat(numRangeVal.to)) { visible = false; break; }
                 continue;
             }
 

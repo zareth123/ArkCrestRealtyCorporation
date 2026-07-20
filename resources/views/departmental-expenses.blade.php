@@ -2060,10 +2060,10 @@ const FILTERABLE_FIELDS = [
     { key: 'date_requested',           label: 'Date Requested',           dataAttr: 'data-date-requested',   type: 'daterange' },
     { key: 'date_released',            label: 'Date Released',            dataAttr: 'data-date-released',    type: 'daterange' },
     { key: 'date_of_amount_returned',  label: 'Date of Amount Returned',  dataAttr: 'data-date-returned',    type: 'daterange' },
-    { key: 'requested_amount',         label: 'Requested Amount',         dataAttr: 'data-requested-amount', type: 'text'  },
+    { key: 'requested_amount',         label: 'Requested Amount',         dataAttr: 'data-requested-amount', type: 'numrange'  },
     { key: 'status',                   label: 'Status',                   dataAttr: 'data-status',           type: 'select', options: ['PENDING', 'NOT LIQUIDATED', 'LIQUIDATED', 'REJECTED'] },
-    { key: 'total_expenses',           label: 'Total Expenses',           dataAttr: 'data-total-expenses',   type: 'text'  },
-    { key: 'amount_returned',          label: 'Amount Returned',          dataAttr: 'data-amount-returned',  type: 'text'  },
+    { key: 'total_expenses',           label: 'Total Expenses',           dataAttr: 'data-total-expenses',   type: 'numrange'  },
+    { key: 'amount_returned',          label: 'Amount Returned',          dataAttr: 'data-amount-returned',  type: 'numrange'  },
 ];
 
 // Active per-column filters: { fieldKey: currentValue }
@@ -2111,7 +2111,7 @@ function toggleColumnFilter(key) {
         removeColumnFilter(key);
     } else {
         const f = fieldConfig(key);
-        columnFilters[key] = (f && f.type === 'daterange') ? { from: '', to: '' } : '';
+        columnFilters[key] = (f && (f.type === 'daterange' || f.type === 'numrange')) ? { from: '', to: '' } : '';
         renderColumnFilterMenu();
         renderActiveColumnFilters();
         closeColumnFilterMenu();
@@ -2180,6 +2180,11 @@ function renderActiveColumnFilters() {
             inputHtml = `<input type="date" id="colFilterInput_${key}_from" value="${range.from || ''}" onchange="updateDateRangeFilterValue('${key}', 'from', this.value)">
                          <span style="color:#8a9bad;font-size:12px;">to</span>
                          <input type="date" id="colFilterInput_${key}_to" value="${range.to || ''}" onchange="updateDateRangeFilterValue('${key}', 'to', this.value)">`;
+        } else if (f.type === 'numrange') {
+            const range = (columnFilters[key] && typeof columnFilters[key] === 'object') ? columnFilters[key] : { from: '', to: '' };
+            inputHtml = `<input type="number" step="any" id="colFilterInput_${key}_from" placeholder="Min" value="${range.from || ''}" style="width:100px;" onchange="updateDateRangeFilterValue('${key}', 'from', this.value)">
+                         <span style="color:#8a9bad;font-size:12px;">to</span>
+                         <input type="number" step="any" id="colFilterInput_${key}_to" placeholder="Max" value="${range.to || ''}" style="width:100px;" onchange="updateDateRangeFilterValue('${key}', 'to', this.value)">`;
         } else if (f.type === 'date') {
             const val = columnFilters[key] || '';
             inputHtml = `<input type="date" id="colFilterInput_${key}" value="${val}" oninput="updateColumnFilterValue('${key}', this.value)">`;
@@ -2207,6 +2212,17 @@ function matchesColumnFilters(row) {
             if (!rowVal) return false;
             if (range.from && rowVal < range.from) return false;
             if (range.to && rowVal > range.to) return false;
+            continue;
+        }
+
+        if (f.type === 'numrange') {
+            const range = columnFilters[key];
+            if (!range || (range.from === '' && range.to === '')) continue;
+            const rawVal = (row.getAttribute(f.dataAttr) || '').toString().replace(/[^0-9.\-]/g, '');
+            const rowNum = rawVal === '' ? NaN : parseFloat(rawVal);
+            if (isNaN(rowNum)) return false;
+            if (range.from !== '' && rowNum < parseFloat(range.from)) return false;
+            if (range.to !== '' && rowNum > parseFloat(range.to)) return false;
             continue;
         }
 

@@ -1312,12 +1312,12 @@ var CD_FILTERABLE_FIELDS = [
     { key: 'project',            label: 'Project',            dataAttr: 'data-project',           type: 'text'   },
     { key: 'block-lot',          label: 'Block & Lot',        dataAttr: 'data-block-lot',         type: 'text'   },
     { key: 'client',             label: 'Client',             dataAttr: 'data-client',            type: 'text'   },
-    { key: 'lot-area',           label: 'Lot Area',           dataAttr: 'data-lot-area',          type: 'text'   },
-    { key: 'price-sqm',          label: 'Price/SQM',          dataAttr: 'data-price-sqm',         type: 'text'   },
-    { key: 'tcp',                label: 'TCP',                dataAttr: 'data-tcp',               type: 'text'   },
+    { key: 'lot-area',           label: 'Lot Area',           dataAttr: 'data-lot-area',          type: 'numrange'   },
+    { key: 'price-sqm',          label: 'Price/SQM',          dataAttr: 'data-price-sqm',         type: 'numrange'   },
+    { key: 'tcp',                label: 'TCP',                dataAttr: 'data-tcp',               type: 'numrange'   },
     { key: 'discount',           label: 'Discount',           dataAttr: 'data-discount',          type: 'text'   },
-    { key: 'discount-value',     label: 'Discount Value',     dataAttr: 'data-discount-value',    type: 'text'   },
-    { key: 'net-tcp',            label: 'Net TCP',            dataAttr: 'data-net-tcp',           type: 'text'   },
+    { key: 'discount-value',     label: 'Discount Value',     dataAttr: 'data-discount-value',    type: 'numrange'   },
+    { key: 'net-tcp',            label: 'Net TCP',            dataAttr: 'data-net-tcp',           type: 'numrange'   },
     { key: 'terms',              label: 'Terms',              dataAttr: 'data-terms',             type: 'select', options: ['30% DP - 70% BAL 5 YRS','50% DP - 50% BAL 5 YRS','30% DP (6 MOS) - 70% BAL 54 MOS','30% DP (3 MOS) - 70% BAL 57 MOS','30% DP (9 MOS) - 70% BAL 36 MOS','30% DP (2 MOS) - 70% BAL 57 MOS','30% DP (2 MOS) - 70% BAL 5 YRS','STRAIGHT PAYMENT','30% DP - 70% BAL 3 YRS'] },
     { key: 'reservation-date',   label: 'Reservation Date',   dataAttr: 'data-reservation-date',  type: 'daterange' },
     { key: 'units',              label: 'Units',              dataAttr: 'data-units',             type: 'text'   },
@@ -1358,7 +1358,8 @@ function cdToggleColumnFilter(key) {
     if (cdColumnFilters.hasOwnProperty(key)) {
         delete cdColumnFilters[key];
     } else {
-        cdColumnFilters[key] = '';
+        var f = cdFieldConfig(key);
+        cdColumnFilters[key] = (f && (f.type === 'daterange' || f.type === 'numrange')) ? { from: '', to: '' } : '';
     }
     renderCdColumnFilterMenu();
     renderCdActiveColumnFilters();
@@ -1426,6 +1427,40 @@ function renderCdActiveColumnFilters() {
             input.appendChild(fromInput);
             input.appendChild(toLabel);
             input.appendChild(toInput);
+        } else if (f.type === 'numrange') {
+            if (!cdColumnFilters[key] || typeof cdColumnFilters[key] !== 'object') {
+                cdColumnFilters[key] = { from: '', to: '' };
+            }
+            var numRange = cdColumnFilters[key];
+
+            input = document.createElement('span');
+            input.style.display = 'flex';
+            input.style.alignItems = 'center';
+            input.style.gap = '6px';
+
+            var numFromInput = document.createElement('input');
+            numFromInput.type = 'number';
+            numFromInput.step = 'any';
+            numFromInput.placeholder = 'Min';
+            numFromInput.style.width = '100px';
+            numFromInput.value = numRange.from || '';
+            numFromInput.oninput = numFromInput.onchange = function () { numRange.from = this.value; cdFilter(); };
+
+            var numToLabel = document.createElement('span');
+            numToLabel.textContent = 'to';
+            numToLabel.style.cssText = 'color:#8a9bad;font-size:12px;';
+
+            var numToInput = document.createElement('input');
+            numToInput.type = 'number';
+            numToInput.step = 'any';
+            numToInput.placeholder = 'Max';
+            numToInput.style.width = '100px';
+            numToInput.value = numRange.to || '';
+            numToInput.oninput = numToInput.onchange = function () { numRange.to = this.value; cdFilter(); };
+
+            input.appendChild(numFromInput);
+            input.appendChild(numToLabel);
+            input.appendChild(numToInput);
         } else if (f.type === 'select') {
             input = document.createElement('select');
             var optAll = document.createElement('option');
@@ -1482,6 +1517,17 @@ function cdMatchesColumnFilters(row) {
             if (!rowDate) return false;
             if (range.from && rowDate < range.from) return false;
             if (range.to && rowDate > range.to) return false;
+            continue;
+        }
+
+        if (f.type === 'numrange') {
+            var numRangeVal = cdColumnFilters[key];
+            if (!numRangeVal || (numRangeVal.from === '' && numRangeVal.to === '')) continue;
+            var rawVal = (row.getAttribute(f.dataAttr) || '').toString().replace(/[^0-9.\-]/g, '');
+            var rowNum = rawVal === '' ? NaN : parseFloat(rawVal);
+            if (isNaN(rowNum)) return false;
+            if (numRangeVal.from !== '' && rowNum < parseFloat(numRangeVal.from)) return false;
+            if (numRangeVal.to !== '' && rowNum > parseFloat(numRangeVal.to)) return false;
             continue;
         }
 

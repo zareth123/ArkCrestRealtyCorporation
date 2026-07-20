@@ -98,7 +98,19 @@
         <div class="ca-card ca-records-card">
             <div class="ca-records-header">
                 <h3 class="ca-card-title">Records</h3>
-                <span class="ca-records-count">{{ $totalRecords }} total</span>
+                <span class="ca-records-count" id="caRecordsCount">{{ $totalRecords }} total</span>
+            </div>
+
+            <div class="ca-filter-row" id="caFilterRow">
+                <label class="ca-filter-label">Filter by Amount</label>
+                <div class="ca-filter-inputs">
+                    <span class="ca-filter-currency">₱</span>
+                    <input type="number" step="any" id="caAmountFrom" placeholder="Min" class="ca-filter-input">
+                    <span class="ca-filter-to">to</span>
+                    <span class="ca-filter-currency">₱</span>
+                    <input type="number" step="any" id="caAmountTo" placeholder="Max" class="ca-filter-input">
+                    <button type="button" class="ca-filter-clear" id="caFilterClearBtn" onclick="caClearAmountFilter()" style="display:none;">Clear</button>
+                </div>
             </div>
 
             <div class="ca-table-wrap">
@@ -116,7 +128,7 @@
                     </thead>
                     <tbody>
                         @forelse($records as $r)
-                        <tr id="ca-row-{{ $r->id }}">
+                        <tr id="ca-row-{{ $r->id }}" data-amount="{{ $r->amount }}">
                             <td class="ca-id">{{ $r->control_number }}</td>
                             <td>
                                 <div class="ca-employee-name">{{ $r->employee_name }}</div>
@@ -145,6 +157,9 @@
                             <td colspan="7" class="ca-empty">No cash advance records yet.</td>
                         </tr>
                         @endforelse
+                        <tr id="caNoMatchRow" style="display:none;">
+                            <td colspan="6" class="ca-empty">No records match this amount range.</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -238,6 +253,31 @@
 
 .ca-records-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
 .ca-records-count { font-size: 12px; color: #8A9BAD; font-weight: 600; }
+
+.ca-filter-row {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+    padding: 10px 14px; margin-bottom: 14px; background: #f8fafc;
+    border: 1px solid #eef1f5; border-radius: 10px;
+}
+.ca-filter-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1e4575; white-space: nowrap; }
+.ca-filter-inputs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ca-filter-currency { font-size: 12.5px; color: #8A9BAD; font-weight: 600; }
+.ca-filter-to { font-size: 12px; color: #8a9bad; }
+.ca-filter-input {
+    width: 100px; padding: 7px 10px; border: 1.5px solid #d0d5dd; border-radius: 7px;
+    font-size: 13px; font-family: inherit; color: #1e2a3a; background: #fff; transition: border-color .15s;
+}
+.ca-filter-input:focus { outline: none; border-color: #1e4575; }
+.ca-filter-clear {
+    padding: 6px 12px; border: 1.5px solid #d0d5dd; border-radius: 7px; background: #fff;
+    font-size: 11.5px; font-weight: 700; color: #6b7280; cursor: pointer; transition: all .15s;
+}
+.ca-filter-clear:hover { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+@media (max-width: 480px) {
+    .ca-filter-row { flex-direction: column; align-items: stretch; }
+    .ca-filter-inputs { justify-content: space-between; }
+    .ca-filter-input { flex: 1; min-width: 0; }
+}
 
 /* The layout's global auto-scrollbar script tags this wrapper with .tbl-scroll,
    which pulls in an extra overflow-y:auto + max-height rule from optimized-global.css
@@ -456,5 +496,54 @@ function caDelete(id, controlNumber) {
         .catch(() => showToast('Network error. Please try again.', 'error', 'Error'));
     }, 'Delete Record');
 }
+
+// ---- Filter by Amount (range) ----
+(function() {
+    const fromInput = document.getElementById('caAmountFrom');
+    const toInput = document.getElementById('caAmountTo');
+    const clearBtn = document.getElementById('caFilterClearBtn');
+    if (!fromInput || !toInput) return;
+
+    function caApplyAmountFilter() {
+        const fromVal = fromInput.value;
+        const toVal = toInput.value;
+        const from = fromVal === '' ? null : parseFloat(fromVal);
+        const to = toVal === '' ? null : parseFloat(toVal);
+
+        clearBtn.style.display = (fromVal !== '' || toVal !== '') ? 'inline-block' : 'none';
+
+        const rows = document.querySelectorAll('#caTable tbody tr[data-amount]');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const amount = parseFloat(row.getAttribute('data-amount'));
+            let show = true;
+            if (from !== null && amount < from) show = false;
+            if (to !== null && amount > to) show = false;
+            row.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+        });
+
+        const noMatchRow = document.getElementById('caNoMatchRow');
+        const hasFilter = (fromVal !== '' || toVal !== '');
+        if (noMatchRow) {
+            noMatchRow.style.display = (hasFilter && rows.length > 0 && visibleCount === 0) ? '' : 'none';
+        }
+
+        const countEl = document.getElementById('caRecordsCount');
+        if (countEl) {
+            countEl.textContent = hasFilter ? (visibleCount + ' of ' + rows.length + ' shown') : ({{ $totalRecords }} + ' total');
+        }
+    }
+
+    fromInput.addEventListener('input', caApplyAmountFilter);
+    toInput.addEventListener('input', caApplyAmountFilter);
+
+    window.caClearAmountFilter = function() {
+        fromInput.value = '';
+        toInput.value = '';
+        caApplyAmountFilter();
+    };
+})();
 </script>
 @endsection

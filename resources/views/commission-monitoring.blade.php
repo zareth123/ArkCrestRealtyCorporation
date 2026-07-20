@@ -1617,11 +1617,11 @@ const FILTERABLE_FIELDS = [
     { key: 'reservation_date',  label: 'Reservation Date',          dataAttr: 'data-reservation-date',      type: 'daterange' },
     { key: 'date_requested',    label: 'Date Requested',            dataAttr: 'data-date-requested',        type: 'daterange' },
     @if($isAdmin)
-    { key: 'price_sqm',         label: 'Price/SQM',                 dataAttr: 'data-price-sqm',              type: 'text'  },
-    { key: 'lot_area',          label: 'Lot Area',                  dataAttr: 'data-lot-area',                type: 'text'  },
-    { key: 'discount',          label: 'Discount',                  dataAttr: 'data-discount',                type: 'text'  },
+    { key: 'price_sqm',         label: 'Price/SQM',                 dataAttr: 'data-price-sqm',              type: 'numrange'  },
+    { key: 'lot_area',          label: 'Lot Area',                  dataAttr: 'data-lot-area',                type: 'numrange'  },
+    { key: 'discount',          label: 'Discount',                  dataAttr: 'data-discount',                type: 'numrange'  },
     @endif
-    { key: 'net_tcp',           label: 'Net TCP',                   dataAttr: 'data-net-tcp',                 type: 'text'  },
+    { key: 'net_tcp',           label: 'Net TCP',                   dataAttr: 'data-net-tcp',                 type: 'numrange'  },
     { key: 'terms_of_payment',  label: 'Terms of Payment',          dataAttr: 'data-terms',                   type: 'text'  },
     { key: 'mode_of_payment',   label: 'Mode of Payment',           dataAttr: 'data-mode',                    type: 'text'  },
     { key: 'remarks',           label: 'Remarks',                   dataAttr: 'data-remarks',                 type: 'text'  },
@@ -1629,10 +1629,10 @@ const FILTERABLE_FIELDS = [
     { key: 'date_released',     label: 'Date Released',             dataAttr: 'data-date-released',         type: 'daterange' },
     @if($isAdmin)
     { key: 'commission_percent',label: 'Commission %',              dataAttr: 'data-commission-percent',      type: 'text'  },
-    { key: 'commission',        label: 'Commission',                dataAttr: 'data-commission',              type: 'text'  },
+    { key: 'commission',        label: 'Commission',                dataAttr: 'data-commission',              type: 'numrange'  },
     @endif
     { key: 'commission_terms',  label: 'Commission Terms',          dataAttr: 'data-commission-terms',        type: 'text'  },
-    { key: 'value_commission_terms', label: 'Value of Commission Terms', dataAttr: 'data-value-commission-terms', type: 'text' },
+    { key: 'value_commission_terms', label: 'Value of Commission Terms', dataAttr: 'data-value-commission-terms', type: 'numrange' },
     { key: 'commission_stage',  label: 'DP Stage',          dataAttr: 'data-commission-stage',        type: 'text' },
     { key: 'status',            label: 'Status',                    dataAttr: 'data-status',                  type: 'select', options: ['Requested', 'Not Yet Released', 'Released'] },
 ];
@@ -1682,7 +1682,7 @@ function toggleColumnFilter(key) {
         removeColumnFilter(key);
     } else {
         const f = fieldConfig(key);
-        columnFilters[key] = (f && f.type === 'daterange') ? { from: '', to: '' } : '';
+        columnFilters[key] = (f && (f.type === 'daterange' || f.type === 'numrange')) ? { from: '', to: '' } : '';
         renderColumnFilterMenu();
         renderActiveColumnFilters();
         closeColumnFilterMenu();
@@ -1752,6 +1752,11 @@ function renderActiveColumnFilters() {
             inputHtml = `<input type="date" id="colFilterInput_${key}_from" value="${range.from || ''}" onchange="updateDateRangeFilterValue('${key}', 'from', this.value)">
                          <span style="color:#8a9bad;font-size:12px;">to</span>
                          <input type="date" id="colFilterInput_${key}_to" value="${range.to || ''}" onchange="updateDateRangeFilterValue('${key}', 'to', this.value)">`;
+        } else if (f.type === 'numrange') {
+            const range = (columnFilters[key] && typeof columnFilters[key] === 'object') ? columnFilters[key] : { from: '', to: '' };
+            inputHtml = `<input type="number" step="any" id="colFilterInput_${key}_from" placeholder="Min" value="${range.from || ''}" style="width:100px;" onchange="updateDateRangeFilterValue('${key}', 'from', this.value)">
+                         <span style="color:#8a9bad;font-size:12px;">to</span>
+                         <input type="number" step="any" id="colFilterInput_${key}_to" placeholder="Max" value="${range.to || ''}" style="width:100px;" onchange="updateDateRangeFilterValue('${key}', 'to', this.value)">`;
         } else if (f.type === 'date') {
             const val = columnFilters[key] || '';
             inputHtml = `<input type="date" id="colFilterInput_${key}" value="${val}" oninput="updateColumnFilterValue('${key}', this.value)">`;
@@ -1779,6 +1784,17 @@ function matchesColumnFilters(row) {
             if (!rowVal) return false;
             if (range.from && rowVal < range.from) return false;
             if (range.to && rowVal > range.to) return false;
+            continue;
+        }
+
+        if (f.type === 'numrange') {
+            const range = columnFilters[key];
+            if (!range || (range.from === '' && range.to === '')) continue;
+            const rawVal = (row.getAttribute(f.dataAttr) || '').toString().replace(/[^0-9.\-]/g, '');
+            const rowNum = rawVal === '' ? NaN : parseFloat(rawVal);
+            if (isNaN(rowNum)) return false;
+            if (range.from !== '' && rowNum < parseFloat(range.from)) return false;
+            if (range.to !== '' && rowNum > parseFloat(range.to)) return false;
             continue;
         }
 
