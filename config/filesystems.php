@@ -4,6 +4,22 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Profile Picture Disk
+    |--------------------------------------------------------------------------
+    |
+    | Keep avatar uploads on one consistent disk. When a Laravel Cloud object
+    | storage bucket is attached, AWS_BUCKET is provided and avatars are stored
+    | on the S3-compatible disk. Local development continues to use the public
+    | disk. AVATAR_FILESYSTEM_DISK may be set to override this behaviour.
+    |
+    */
+    'avatar_disk' => env(
+        'AVATAR_FILESYSTEM_DISK',
+        env('AWS_BUCKET') ? 's3' : 'public'
+    ),
+
     'disks' => [
 
         'local' => [
@@ -27,7 +43,7 @@ return [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
+            'region' => env('AWS_DEFAULT_REGION', 'auto'),
             'bucket' => env('AWS_BUCKET'),
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),

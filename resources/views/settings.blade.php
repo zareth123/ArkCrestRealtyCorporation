@@ -382,15 +382,28 @@
 
         <div class="avatar-wrap">
 
-          @if(auth()->user()->avatar_url)
+          <div id="avatarClickTarget" onclick="toggleAvatarMenu(event)" style="cursor:pointer;position:relative;flex-shrink:0;">
 
-            <img src="{{ auth()->user()->avatar_url }}" class="avatar-img" alt="Avatar">
+            @if(auth()->user()->avatar_url)
+              <img src="{{ auth()->user()->avatar_url }}" class="avatar-img" alt="Avatar" id="currentAvatarImg">
+            @else
+              <div class="avatar-initials" id="currentAvatarInitials">{{ strtoupper(substr(auth()->user()->name,0,1)) }}</div>
+            @endif
 
-          @else
+            <div id="avatarMenu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:white;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);border:1px solid #e2e8f0;min-width:200px;z-index:50;overflow:hidden;">
+              <button type="button" onclick="event.stopPropagation();openAvatarViewModal();"
+                style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 16px;background:none;border:none;border-bottom:1px solid #f1f5f9;text-align:left;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+                View profile picture
+              </button>
+              <button type="button" onclick="event.stopPropagation();openAvatarChooseModal();"
+                style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 16px;background:none;border:none;text-align:left;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
+                Choose profile picture
+              </button>
+            </div>
 
-            <div class="avatar-initials">{{ strtoupper(substr(auth()->user()->name,0,1)) }}</div>
-
-          @endif
+          </div>
 
           <div class="avatar-info">
 
@@ -404,8 +417,48 @@
 
         </div>
 
-        <form method="POST" action="{{ route('settings.profile') }}" enctype="multipart/form-data">
+        {{-- View Profile Picture Modal --}}
+        <div id="avatarViewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeAvatarViewModal()">
+          <div style="max-width:480px;width:100%;">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+              <button type="button" onclick="closeAvatarViewModal()" style="background:rgba(255,255,255,.15);border:none;color:white;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1;">&times;</button>
+            </div>
+            <img id="avatarViewImg" src="" alt="Profile picture" style="width:100%;border-radius:12px;display:block;box-shadow:0 10px 40px rgba(0,0,0,.4);">
+          </div>
+        </div>
 
+        {{-- Choose Profile Picture Modal --}}
+        <div id="avatarChooseModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeAvatarChooseModal()">
+          <div style="background:white;border-radius:14px;padding:22px 26px;width:380px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+            <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">Choose Profile Picture</div>
+
+            <form method="POST" action="{{ route('settings.profile') }}" enctype="multipart/form-data" id="avatarChooseForm">
+              @csrf
+              <input type="hidden" name="name" value="{{ auth()->user()->name }}">
+              <input type="hidden" name="preferred_address" value="{{ auth()->user()->preferred_address }}">
+
+              <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
+                <div id="avatarPreviewWrap" style="width:120px;height:120px;border-radius:50%;overflow:hidden;background:#f0f4ff;display:flex;align-items:center;justify-content:center;border:3px solid #e2e8f0;flex-shrink:0;">
+                  <img id="avatarPreviewImg" src="{{ auth()->user()->avatar_url ?: '' }}" style="width:100%;height:100%;object-fit:cover;{{ auth()->user()->avatar_url ? '' : 'display:none;' }}">
+                  <div id="avatarPreviewInitials" style="font-size:36px;font-weight:700;color:#1e4575;{{ auth()->user()->avatar_url ? 'display:none;' : '' }}">{{ strtoupper(substr(auth()->user()->name,0,1)) }}</div>
+                </div>
+                <label class="st-btn st-btn-sm" style="background:#eff6ff;color:#1e4575;border:1px solid #bfdbfe;cursor:pointer;">
+                  Select Photo
+                  <input type="file" name="avatar" id="avatarFileInput" accept=".jpg,.jpeg,.png,.gif" style="display:none;" onchange="previewAvatarFile(this)">
+                </label>
+                <span style="font-size:11px;color:#94a3b8;">JPG, PNG or GIF. Max 8MB.</span>
+                <div id="avatarChooseError" style="display:none;color:#dc2626;font-size:12px;margin-top:12px;text-align:center;"></div>
+              </div>
+
+              <div style="display:flex;gap:10px;margin-top:20px;">
+                <button type="submit" class="st-btn st-btn-primary" style="flex:1;" id="avatarSaveBtn" disabled>Save</button>
+                <button type="button" onclick="closeAvatarChooseModal()" style="flex:1;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#f1f5f9;color:#374151;border:none;">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <form method="POST" action="{{ route('settings.profile') }}">
           @csrf
 
           <div class="st-form-grid">
@@ -436,15 +489,7 @@
 
             </div>
 
-            <div class="st-form-group">
-
-              <label class="st-label">Profile Photo</label>
-
-              <input class="st-input" type="file" name="avatar" accept=".jpg,.jpeg,.png,.gif" style="padding:6px 12px;">
-
-              <span style="font-size:11px;color:#94a3b8;">JPG, PNG or GIF. Max 2MB.</span>
-
-            </div>
+            
 
           </div>
 
@@ -1247,9 +1292,10 @@
         </div>
       </div>
 
-      {{-- Search Teams --}}
-      <div style="margin-bottom:16px;">
+      {{-- Search Teams / Agents --}}
+      <div style="margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;">
         <input type="text" id="teamSearchInput" class="st-input" placeholder="Search for Team Name" oninput="filterTeams()" style="max-width:320px;">
+        <input type="text" id="agentSearchInput" class="st-input" placeholder="Search for agents" oninput="filterTeams()" style="max-width:320px;">
       </div>
 
       @foreach($salesTeams as $team)
@@ -1294,7 +1340,7 @@
               </tr></thead>
               <tbody>
                 @foreach($team->agents as $agent)
-                <tr style="border-bottom:1px solid #f1f5f9;" id="agent-row-{{ $agent->id }}">
+                <tr style="border-bottom:1px solid #f1f5f9;" id="agent-row-{{ $agent->id }}" data-agent-name="{{ strtolower($agent->name) }}">
                   <td style="padding:10px 12px;font-weight:600;color:#0f172a;">
                     <div style="display:flex;align-items:center;gap:8px;">
                       <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1e4575,#2563eb);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0;">{{ strtoupper(substr($agent->name,0,1)) }}</div>
@@ -1872,10 +1918,24 @@ function closeAddContactModal() { document.getElementById('contactAddModal').sty
 // Team Management JS
 var _editTeamId = null, _editAgentId = null;
 function filterTeams() {
-    var q = document.getElementById('teamSearchInput').value.trim().toLowerCase();
+    var teamQ = document.getElementById('teamSearchInput').value.trim().toLowerCase();
+    var agentQ = document.getElementById('agentSearchInput').value.trim().toLowerCase();
+
     document.querySelectorAll('.team-card').forEach(function(card) {
-        var name = card.getAttribute('data-team-name') || '';
-        card.style.display = name.includes(q) ? '' : 'none';
+        var teamName = card.getAttribute('data-team-name') || '';
+        var teamMatches = teamName.includes(teamQ);
+
+        var agentRows = card.querySelectorAll('[data-agent-name]');
+        var anyAgentMatches = agentQ === '';
+
+        agentRows.forEach(function(row) {
+            var agentName = row.getAttribute('data-agent-name') || '';
+            var rowMatches = agentQ === '' || agentName.includes(agentQ);
+            row.style.display = rowMatches ? '' : 'none';
+            if (rowMatches && agentQ !== '') anyAgentMatches = true;
+        });
+
+        card.style.display = (teamMatches && anyAgentMatches) ? '' : 'none';
     });
 }
 function validateAddTeamForm(form) {
@@ -2256,6 +2316,78 @@ async function bulkAction(kind) {
         if (window.showToast) { window.showToast('Something went wrong. Please try again.', 'error'); }
         else { alert('Something went wrong. Please try again.'); }
     }
+}
+function toggleAvatarMenu(e) {
+    e.stopPropagation();
+    var menu = document.getElementById('avatarMenu');
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+document.addEventListener('click', function(e) {
+    var menu = document.getElementById('avatarMenu');
+    if (menu && menu.style.display === 'block' && !e.target.closest('#avatarClickTarget')) {
+        menu.style.display = 'none';
+    }
+});
+
+function openAvatarViewModal() {
+    document.getElementById('avatarMenu').style.display = 'none';
+    var img = document.getElementById('currentAvatarImg');
+    if (!img) {
+        if (window.showToast) window.showToast('No profile picture uploaded yet.', 'error');
+        else alert('No profile picture uploaded yet.');
+        return;
+    }
+    document.getElementById('avatarViewImg').src = img.src;
+    document.getElementById('avatarViewModal').style.display = 'flex';
+}
+function closeAvatarViewModal() { document.getElementById('avatarViewModal').style.display = 'none'; }
+
+function openAvatarChooseModal() {
+    document.getElementById('avatarMenu').style.display = 'none';
+    document.getElementById('avatarChooseModal').style.display = 'flex';
+}
+function closeAvatarChooseModal() {
+    document.getElementById('avatarChooseModal').style.display = 'none';
+    document.getElementById('avatarFileInput').value = '';
+    document.getElementById('avatarSaveBtn').disabled = true;
+}
+function previewAvatarFile(input) {
+    var file = input.files && input.files[0];
+    if (!file) return;
+
+    var errorEl = document.getElementById('avatarChooseError');
+    var saveBtn = document.getElementById('avatarSaveBtn');
+
+    if (errorEl) {
+        errorEl.style.display = 'none';
+        errorEl.textContent = '';
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+    var msg = 'That photo is ' + (file.size / (1024*1024)).toFixed(1) + 'MB — please choose one under 8MB.';
+        if (errorEl) {
+            errorEl.textContent = msg;
+            errorEl.style.display = 'block';
+        } else {
+            alert(msg);
+        }
+        input.value = '';
+        if (saveBtn) saveBtn.disabled = true;
+        return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var img = document.getElementById('avatarPreviewImg');
+        var initials = document.getElementById('avatarPreviewInitials');
+        if (img) {
+            img.src = e.target.result;
+            img.style.display = 'block';
+        }
+        if (initials) initials.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+    if (saveBtn) saveBtn.disabled = false;
 }
 </script>
 @endsection

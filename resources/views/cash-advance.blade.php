@@ -108,6 +108,7 @@
                             <th>ID</th>
                             <th>Employee</th>
                             <th>Amount</th>
+                            <th>Date Requested</th>
                             <th>Repay By</th>
                             <th>Status</th>
                             <th style="text-align:center;">Actions</th>
@@ -122,6 +123,7 @@
                                 <div class="ca-employee-reason">{{ $r->reason }}</div>
                             </td>
                             <td>₱{{ number_format($r->amount, 2) }}</td>
+                            <td>{{ optional($r->created_at)->format('Y-m-d') }}</td>
                             <td>{{ optional($r->repayment_date)->format('Y-m-d') }}</td>
                             <td>
                                 <span class="ca-badge ca-badge-{{ strtolower($r->status) }}">{{ ucfirst(strtolower($r->status)) }}</span>
@@ -140,7 +142,7 @@
                         </tr>
                         @empty
                         <tr id="caEmptyRow">
-                            <td colspan="6" class="ca-empty">No cash advance records yet.</td>
+                            <td colspan="7" class="ca-empty">No cash advance records yet.</td>
                         </tr>
                         @endforelse
                     </tbody>
