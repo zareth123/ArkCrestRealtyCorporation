@@ -1292,9 +1292,10 @@
         </div>
       </div>
 
-      {{-- Search Teams --}}
-      <div style="margin-bottom:16px;">
+      {{-- Search Teams / Agents --}}
+      <div style="margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;">
         <input type="text" id="teamSearchInput" class="st-input" placeholder="Search for Team Name" oninput="filterTeams()" style="max-width:320px;">
+        <input type="text" id="agentSearchInput" class="st-input" placeholder="Search for agents" oninput="filterTeams()" style="max-width:320px;">
       </div>
 
       @foreach($salesTeams as $team)
@@ -1339,7 +1340,7 @@
               </tr></thead>
               <tbody>
                 @foreach($team->agents as $agent)
-                <tr style="border-bottom:1px solid #f1f5f9;" id="agent-row-{{ $agent->id }}">
+                <tr style="border-bottom:1px solid #f1f5f9;" id="agent-row-{{ $agent->id }}" data-agent-name="{{ strtolower($agent->name) }}">
                   <td style="padding:10px 12px;font-weight:600;color:#0f172a;">
                     <div style="display:flex;align-items:center;gap:8px;">
                       <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1e4575,#2563eb);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0;">{{ strtoupper(substr($agent->name,0,1)) }}</div>
@@ -1917,10 +1918,24 @@ function closeAddContactModal() { document.getElementById('contactAddModal').sty
 // Team Management JS
 var _editTeamId = null, _editAgentId = null;
 function filterTeams() {
-    var q = document.getElementById('teamSearchInput').value.trim().toLowerCase();
+    var teamQ = document.getElementById('teamSearchInput').value.trim().toLowerCase();
+    var agentQ = document.getElementById('agentSearchInput').value.trim().toLowerCase();
+
     document.querySelectorAll('.team-card').forEach(function(card) {
-        var name = card.getAttribute('data-team-name') || '';
-        card.style.display = name.includes(q) ? '' : 'none';
+        var teamName = card.getAttribute('data-team-name') || '';
+        var teamMatches = teamName.includes(teamQ);
+
+        var agentRows = card.querySelectorAll('[data-agent-name]');
+        var anyAgentMatches = agentQ === '';
+
+        agentRows.forEach(function(row) {
+            var agentName = row.getAttribute('data-agent-name') || '';
+            var rowMatches = agentQ === '' || agentName.includes(agentQ);
+            row.style.display = rowMatches ? '' : 'none';
+            if (rowMatches && agentQ !== '') anyAgentMatches = true;
+        });
+
+        card.style.display = (teamMatches && anyAgentMatches) ? '' : 'none';
     });
 }
 function validateAddTeamForm(form) {
