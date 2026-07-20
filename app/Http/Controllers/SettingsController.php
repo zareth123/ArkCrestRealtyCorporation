@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\ActivityLog;
 use App\Models\TeamMonthlyQuota;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class SettingsController extends Controller
 {
@@ -545,24 +546,53 @@ private function getDeletedExpenses()
     public function updateProfile(Request $request)
     {
         $user = auth()->user();
-        $request->validate([
-            'name'     => 'required|string|max:255',
-            'avatar'   => 'nullable|image|max:2048',
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'preferred_address' => ['nullable', 'string', 'max:255'],
+            'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
         ]);
 
-        $data = ['name' => $request->name];
+        $disk = config('filesystems.default');
+
+        $data = [
+            'name' => $validated['name'],
+            'preferred_address' => $validated['preferred_address'] ?? null,
+        ];
+
+        $oldAvatar = $user->avatar;
+        $newAvatar = null;
 
         if ($request->hasFile('avatar')) {
-            if ($user->avatar) {
-                \Storage::disk('public')->delete($user->avatar);
+            $newAvatar = $request->file('avatar')->store('avatars', $disk);
+
+            if (!$newAvatar) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Profile photo upload failed. Please try again.')
+                    ->with('open_section', 'profile');
             }
-            $file = $request->file('avatar');
-            $filename = $file->store('avatars', 'public');
-            $data['avatar'] = $filename;
+
+            $data['avatar'] = $newAvatar;
         }
 
         $user->update($data);
-        return redirect()->route('settings')->with('success', 'Profile updated successfully.')->with('open_section', 'profile');
+
+        // Delete the previous uploaded avatar only after the replacement
+        // was successfully stored and the user record was updated.
+        if (
+            $newAvatar &&
+            $oldAvatar &&
+            str_starts_with($oldAvatar, 'avatars/') &&
+            $oldAvatar !== $newAvatar
+        ) {
+            Storage::disk($disk)->delete($oldAvatar);
+        }
+
+        return redirect()
+            ->route('settings')
+            ->with('success', 'Profile updated successfully.')
+            ->with('open_section', 'profile');
     }
 
     public function updatePassword(Request $request)

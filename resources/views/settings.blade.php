@@ -382,9 +382,9 @@
 
         <div class="avatar-wrap">
 
-          @if(auth()->user()->avatar)
+          @if(auth()->user()->avatar_url)
 
-            <img src="{{ str_starts_with(auth()->user()->avatar, 'avatars/') ? \Storage::disk('public')->url(auth()->user()->avatar) : asset(auth()->user()->avatar) }}" class="avatar-img" alt="Avatar">
+            <img src="{{ auth()->user()->avatar_url }}" class="avatar-img" alt="Avatar">
 
           @else
 
@@ -440,7 +440,7 @@
 
               <label class="st-label">Profile Photo</label>
 
-              <input class="st-input" type="file" name="avatar" accept="image/*" style="padding:6px 12px;">
+              <input class="st-input" type="file" name="avatar" accept=".jpg,.jpeg,.png,.gif" style="padding:6px 12px;">
 
               <span style="font-size:11px;color:#94a3b8;">JPG, PNG or GIF. Max 2MB.</span>
 
@@ -953,8 +953,8 @@
               <button type="button" data-name="{{ strtolower($u->name) }}" data-department="{{ $resolveUserDept($u->position) }}" onclick="selectVisUser({{ $u->id }}, this, '{{ addslashes($u->name) }}')"
                 style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 18px;border-radius:12px;cursor:pointer;border:2px solid {{ $selectedUserId == $u->id ? '#1e4575' : '#e5e7eb' }};background:{{ $selectedUserId == $u->id ? '#1e4575' : '#fff' }};color:{{ $selectedUserId == $u->id ? '#fff' : '#374151' }};width:110px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
                 <div style="position:relative;">
-                @if($u->avatar)
-                  <img src="{{ str_starts_with($u->avatar, 'avatars/') ? \Storage::disk('public')->url($u->avatar) : asset($u->avatar) }}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid {{ $selectedUserId == $u->id ? 'rgba(255,255,255,0.4)' : '#e5e7eb' }};">
+                @if($u->avatar_url)
+                  <img src="{{ $u->avatar_url }}" alt="{{ $u->name }}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid {{ $selectedUserId == $u->id ? 'rgba(255,255,255,0.4)' : '#e5e7eb' }};">
                 @else
                   <div style="width:40px;height:40px;border-radius:50%;background:{{ $selectedUserId == $u->id ? 'rgba(255,255,255,0.25)' : '#e8edf5' }};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:{{ $selectedUserId == $u->id ? '#fff' : '#1e4575' }};">
                     {{ strtoupper(substr($u->name,0,1)) }}
