@@ -1,6 +1,7 @@
 @extends('layouts.dashboard')
 
 @section('content')
+{{-- analytics-zero-filter-v3: contributors only; permanent doughnut legend --}}
 <!-- Welcome Banner -->
 <div class="welcome-banner">
     <div class="welcome-content">
@@ -84,19 +85,55 @@
     .agent-name-modern { font-weight: 600; color: #374151; font-size: 14px; }
     .agent-units { font-size: 12px; color: #6b7280; }
     .agent-sales-modern { font-weight: 700; color: #111827; font-size: 15px; }
+    .analytics-card { background: white; border-radius: 14px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .analytics-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+    .analytics-title { margin: 0; color: #111827; font-size: 18px; font-weight: 700; }
+    .analytics-subtitle { margin: 5px 0 0; color: #64748b; font-size: 13px; line-height: 1.5; }
+    .analytics-period { flex-shrink: 0; padding: 7px 11px; border-radius: 8px; background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700; }
+    .analytics-control-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: end; margin-bottom: 16px; }
+    .analytics-control-label { display: block; margin-bottom: 8px; color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+    .team-filter { display: flex; flex-wrap: wrap; gap: 8px; }
+    .team-filter-btn { padding: 7px 15px; border: 1px solid #cbd5e1; border-radius: 999px; background: white; color: #334155; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s ease; }
+    .team-filter-btn:hover { border-color: #1e4575; color: #1e4575; }
+    .team-filter-btn.is-active { border-color: #1e4575; background: #1e4575; color: white; box-shadow: 0 3px 8px rgba(30,69,117,.2); }
+    .metric-toggle { display: inline-grid; grid-template-columns: repeat(4, auto); padding: 4px; border-radius: 10px; background: #f1f5f9; gap: 3px; }
+    .metric-toggle-btn { padding: 7px 11px; border: 0; border-radius: 7px; background: transparent; color: #64748b; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: all .2s ease; }
+    .metric-toggle-btn:hover { color: #1e4575; }
+    .metric-toggle-btn.is-active { background: white; color: #1e4575; box-shadow: 0 1px 4px rgba(15,23,42,.12); }
+    .metric-hint { min-height: 18px; margin: 0 0 16px; color: #64748b; font-size: 12px; }
+    .analytics-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .analytics-summary-item { min-width: 0; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; }
+    .analytics-summary-label { color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; }
+    .analytics-summary-value { margin-top: 5px; color: #0f172a; font-size: 18px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .analytics-summary-detail { margin-top: 3px; color: #94a3b8; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .team-charts-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); gap: 20px; align-items: stretch; }
+    .analytics-chart-panel { min-width: 0; padding: 18px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; }
+    .analytics-chart-title { margin: 0; color: #334155; font-size: 13px; font-weight: 700; }
+    .analytics-chart-subtitle { margin: 4px 0 12px; color: #94a3b8; font-size: 11px; }
+    .analytics-chart-wrap { position: relative; width: 100%; height: 320px; }
+    .analytics-chart-empty { display: none; height: 100%; align-items: center; justify-content: center; padding: 24px; color: #94a3b8; font-size: 12px; text-align: center; }
     @keyframes slideInLeft { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 1024px) {
+        .analytics-control-row { grid-template-columns: 1fr; align-items: start; }
+        .metric-toggle { width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .metric-toggle-btn { padding-left: 6px; padding-right: 6px; }
+        .team-charts-grid { grid-template-columns: 1fr; }
+        .analytics-chart-wrap { height: 300px; }
+    }
     @media (max-width: 768px) {
         .metrics-grid { grid-template-columns: 1fr; }
         .welcome-title { font-size: 24px; }
-        .team-charts-grid {
-            grid-template-columns: 1fr !important;
-        }
-        .team-charts-grid canvas {
-            max-width: 100% !important;
-            width: 100% !important;
-        }
+        .analytics-card { padding: 18px; }
+        .analytics-header { flex-direction: column; gap: 10px; }
+        .analytics-period { align-self: flex-start; }
+        .analytics-summary-grid { grid-template-columns: 1fr; }
+        .team-filter { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; }
+        .team-filter-btn { flex: 0 0 auto; }
+        .metric-toggle { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .analytics-chart-panel { padding: 14px; }
+        .analytics-chart-wrap { height: 270px; }
     }
 </style>
 
@@ -157,31 +194,82 @@
     </div>
     @endif
 
-    @if(!in_array('sales-marketing.charts', $hiddenSections) && $teamPerformance->isNotEmpty())
-    <div style="background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:20px;">
-
-        {{-- Team Buttons --}}
-        <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">View by Team</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;" id="teamBtns">
-            @foreach($teamPerformance as $i => $tp)
-            <button onclick="showTeam({{ $i }})"
-                id="tbtn-{{ $i }}"
-                style="padding:7px 16px;border-radius:20px;border:2px solid #1e4575;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;
-                {{ $i === 0 ? 'background:#1e4575;color:white;' : 'background:white;color:#1e4575;' }}">
-                {{ $tp['team']->team_name }}
-            </button>
-            @endforeach
+    @if(!in_array('sales-marketing.charts', $hiddenSections) && count($chartTeamData) > 0)
+    <div class="analytics-card">
+        <div class="analytics-header">
+            <div>
+                <h3 class="analytics-title">Team Performance Analytics</h3>
+                <p class="analytics-subtitle">Compare Net TCP, released ArkCrest share, units and deals by agent. The doughnut chart shows each agent's contribution to the selected metric.</p>
+            </div>
+            <div class="analytics-period">
+                {{ \Carbon\Carbon::parse($dateFrom)->format('M d') }} – {{ \Carbon\Carbon::parse($dateTo)->format('M d, Y') }}
+            </div>
         </div>
 
-        {{-- Member Charts --}}
-        <div class="team-charts-grid" style="display:grid;grid-template-columns:2fr 1fr;gap:24px;align-items:start;">
+        <div class="analytics-control-row">
             <div>
-                <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:10px;" id="memberBarLabel">Members</div>
-                <canvas id="memberBarChart" height="140"></canvas>
+                <span class="analytics-control-label">View by team</span>
+                <div class="team-filter" id="teamBtns" role="group" aria-label="Choose a sales team">
+                    @foreach($chartTeamData as $i => $teamChart)
+                    <button
+                        type="button"
+                        class="team-filter-btn {{ $i === 0 ? 'is-active' : '' }}"
+                        data-team-index="{{ $i }}"
+                        aria-pressed="{{ $i === 0 ? 'true' : 'false' }}">
+                        {{ $teamChart['team'] }}
+                    </button>
+                    @endforeach
+                </div>
             </div>
+
             <div>
-                <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:10px;" id="memberPieLabel">Share</div>
-                <canvas id="memberPieChart" height="140"></canvas>
+                <span class="analytics-control-label">Metric</span>
+                <div class="metric-toggle" id="metricToggle" role="group" aria-label="Choose an analytics metric">
+                    <button type="button" class="metric-toggle-btn is-active" data-metric="net_tcp" aria-pressed="true">Net TCP</button>
+                    <button type="button" class="metric-toggle-btn" data-metric="arkcrest_share" aria-pressed="false">ArkCrest Share</button>
+                    <button type="button" class="metric-toggle-btn" data-metric="units" aria-pressed="false">Units</button>
+                    <button type="button" class="metric-toggle-btn" data-metric="deals" aria-pressed="false">Deals</button>
+                </div>
+            </div>
+        </div>
+
+        <p class="metric-hint" id="metricHint"></p>
+
+        <div class="analytics-summary-grid">
+            <div class="analytics-summary-item">
+                <div class="analytics-summary-label" id="teamTotalLabel">Total Net TCP</div>
+                <div class="analytics-summary-value" id="teamTotalValue">₱0</div>
+                <div class="analytics-summary-detail" id="teamTotalDetail">All Agents</div>
+            </div>
+            <div class="analytics-summary-item">
+                <div class="analytics-summary-label">Members with activity</div>
+                <div class="analytics-summary-value" id="activeMembersValue">0</div>
+                <div class="analytics-summary-detail" id="activeMembersDetail">0 total members</div>
+            </div>
+            <div class="analytics-summary-item">
+                <div class="analytics-summary-label">Top contributor</div>
+                <div class="analytics-summary-value" id="topContributorValue">—</div>
+                <div class="analytics-summary-detail" id="topContributorDetail">No activity for this period</div>
+            </div>
+        </div>
+
+        <div class="team-charts-grid">
+            <div class="analytics-chart-panel">
+                <h4 class="analytics-chart-title" id="memberBarLabel">Agent comparison</h4>
+                <p class="analytics-chart-subtitle" id="memberBarSubtitle">Net TCP by agent</p>
+                <div class="analytics-chart-wrap">
+                    <canvas id="memberBarChart"></canvas>
+                    <div class="analytics-chart-empty" id="memberBarEmpty">No data is available for the selected team and metric.</div>
+                </div>
+            </div>
+
+            <div class="analytics-chart-panel">
+                <h4 class="analytics-chart-title" id="memberPieLabel">Contribution breakdown</h4>
+                <p class="analytics-chart-subtitle" id="memberPieSubtitle">Share of team Net TCP</p>
+                <div class="analytics-chart-wrap">
+                    <canvas id="memberPieChart"></canvas>
+                    <div class="analytics-chart-empty" id="memberPieEmpty">No contribution data is available for this metric.</div>
+                </div>
             </div>
         </div>
     </div>
@@ -189,59 +277,265 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
     (function() {
-        const teamData = {!! json_encode($chartTeamData) !!};
-        const palette = ['#1e4575','#A37929','#2563eb','#16a34a','#dc2626','#7c3aed','#0891b2','#d97706','#db2777','#059669'];
+        var teamData = @json($chartTeamData);
+        var palette = ['#1e4575','#A37929','#2563eb','#16a34a','#dc2626','#7c3aed','#0891b2','#d97706','#db2777','#059669'];
+        var metricConfig = {
+            net_tcp: {
+                label: 'Net TCP',
+                totalLabel: 'Total Net TCP',
+                hint: 'Net TCP is the total property selling price after discounts for non-cancelled records in the selected period.',
+                currency: true
+            },
+            arkcrest_share: {
+                label: 'ArkCrest Share',
+                totalLabel: 'Total ArkCrest Share',
+                hint: 'ArkCrest Share includes only released commission requests with a saved ArkCrest commission rate that are linked to these sales records.',
+                currency: true
+            },
+            units: {
+                label: 'Units Sold',
+                totalLabel: 'Total Units Sold',
+                hint: 'Units are based on the Number of Units field, with one unit counted when a block/lot is present and the field is blank.',
+                currency: false
+            },
+            deals: {
+                label: 'Deals',
+                totalLabel: 'Total Deals',
+                hint: 'Deals count non-cancelled client records with a downpayment date inside the selected period.',
+                currency: false
+            }
+        };
 
-        let memberBar = null, memberPie = null;
+        var activeTeamIndex = 0;
+        var activeMetric = 'net_tcp';
+        var memberBar = null;
+        var memberPie = null;
 
-        function showTeam(idx) {
-            document.querySelectorAll('[id^="tbtn-"]').forEach(function(b, i) {
-                b.style.background = i === idx ? '#1e4575' : 'white';
-                b.style.color      = i === idx ? 'white'   : '#1e4575';
+        function formatMetric(value, metric) {
+            var numericValue = Number(value || 0);
+            var config = metricConfig[metric];
+
+            if (config.currency) {
+                return '₱' + numericValue.toLocaleString('en-PH', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            return numericValue.toLocaleString('en-PH', {
+                maximumFractionDigits: 0
+            });
+        }
+
+        function formatAxisValue(value, metric) {
+            var numericValue = Number(value || 0);
+            var prefix = metricConfig[metric].currency ? '₱' : '';
+            var absoluteValue = Math.abs(numericValue);
+
+            if (absoluteValue >= 1000000000) return prefix + (numericValue / 1000000000).toFixed(1) + 'B';
+            if (absoluteValue >= 1000000) return prefix + (numericValue / 1000000).toFixed(1) + 'M';
+            if (absoluteValue >= 1000) return prefix + (numericValue / 1000).toFixed(1) + 'K';
+
+            return prefix + numericValue.toLocaleString('en-PH');
+        }
+
+        function setEmptyState(canvasId, emptyId, isEmpty) {
+            var canvas = document.getElementById(canvasId);
+            var empty = document.getElementById(emptyId);
+            canvas.style.display = isEmpty ? 'none' : 'block';
+            empty.style.display = isEmpty ? 'flex' : 'none';
+        }
+
+        function updateButtonStates() {
+            document.querySelectorAll('.team-filter-btn').forEach(function(button) {
+                var isActive = Number(button.getAttribute('data-team-index')) === activeTeamIndex;
+                button.classList.toggle('is-active', isActive);
+                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
             });
 
-            const team    = teamData[idx];
-            const members = team.members;
-            const labels  = members.map(function(m) { return m.name; });
-            const values  = members.map(function(m) { return m.sales; });
-            const colors  = members.map(function(_, i) { return palette[i % palette.length]; });
+            document.querySelectorAll('.metric-toggle-btn').forEach(function(button) {
+                var isActive = button.getAttribute('data-metric') === activeMetric;
+                button.classList.toggle('is-active', isActive);
+                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+        }
 
-            document.getElementById('memberBarLabel').textContent = team.team + ' — Members';
-            document.getElementById('memberPieLabel').textContent = team.team + ' — Share';
+        function normalizeMetricValue(rawValue, metric) {
+            var numericValue = Number(rawValue);
+
+            if (!Number.isFinite(numericValue) || numericValue <= 0) {
+                return 0;
+            }
+
+            // Currency contributions smaller than one cent are effectively zero.
+            if (metricConfig[metric].currency) {
+                return Math.round((numericValue + Number.EPSILON) * 100) / 100;
+            }
+
+            // Units and deals must be whole positive counts.
+            return Math.round(numericValue);
+        }
+
+        function hasContribution(value, metric) {
+            return metricConfig[metric].currency ? value >= 0.01 : value >= 1;
+        }
+
+        function renderAnalytics() {
+            var team = teamData[activeTeamIndex] || { team: 'All Agents', members: [], totals: {} };
+            var config = metricConfig[activeMetric];
+            var allMembers = (team.members || []).slice();
+
+            // Only contributors to the currently selected metric belong in either chart.
+            // This filtering happens before labels, values and legend items are created.
+            var members = allMembers.map(function(member) {
+                var normalizedMember = Object.assign({}, member);
+                normalizedMember._chartValue = normalizeMetricValue(member[activeMetric], activeMetric);
+                return normalizedMember;
+            }).filter(function(member) {
+                return hasContribution(member._chartValue, activeMetric);
+            }).sort(function(left, right) {
+                var valueDifference = right._chartValue - left._chartValue;
+                return valueDifference !== 0 ? valueDifference : String(left.name || '').localeCompare(String(right.name || ''));
+            });
+
+            var labels = members.map(function(member) { return member.name; });
+            var values = members.map(function(member) { return member._chartValue; });
+            var colors = members.map(function(_, index) { return palette[index % palette.length]; });
+            var total = values.reduce(function(sum, value) { return sum + value; }, 0);
+            // Activity follows the selected metric, so the count matches the charts.
+            var membersWithActivity = members.length;
+            var topContributor = members.length > 0 ? members[0] : null;
+            var noMetricData = members.length === 0;
+
+            updateButtonStates();
+
+            document.getElementById('metricHint').textContent = config.hint;
+            document.getElementById('teamTotalLabel').textContent = config.totalLabel;
+            document.getElementById('teamTotalValue').textContent = formatMetric(total, activeMetric);
+            document.getElementById('teamTotalDetail').textContent = team.team;
+            document.getElementById('activeMembersValue').textContent = membersWithActivity.toLocaleString('en-PH');
+            document.getElementById('activeMembersDetail').textContent = allMembers.length.toLocaleString('en-PH') + ' total member' + (allMembers.length === 1 ? '' : 's');
+            document.getElementById('topContributorValue').textContent = topContributor ? topContributor.name : '—';
+            document.getElementById('topContributorDetail').textContent = topContributor
+                ? formatMetric(topContributor._chartValue, activeMetric) + ' ' + config.label
+                : 'No activity for this period';
+            document.getElementById('memberBarLabel').textContent = team.team + ' — Agent comparison';
+            document.getElementById('memberBarSubtitle').textContent = config.label + ' by agent';
+            document.getElementById('memberPieLabel').textContent = team.team + ' — Contribution breakdown';
+            document.getElementById('memberPieSubtitle').textContent = 'Share of team ' + config.label;
 
             if (memberBar) memberBar.destroy();
             if (memberPie) memberPie.destroy();
 
+            setEmptyState('memberBarChart', 'memberBarEmpty', noMetricData);
+            setEmptyState('memberPieChart', 'memberPieEmpty', noMetricData);
+
+            if (noMetricData) {
+                return;
+            }
+
             memberBar = new Chart(document.getElementById('memberBarChart'), {
                 type: 'bar',
-                data: { labels: labels, datasets: [{ label: 'Net TCP', data: values, backgroundColor: colors, borderRadius: 6, maxBarThickness: 60 }] },
-                options: { responsive:true, plugins:{ legend:{display:false} },
-                    scales:{ y:{ ticks:{ callback: function(v) { return '₱'+Number(v).toLocaleString(); } } } } }
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: config.label,
+                        data: values,
+                        backgroundColor: colors,
+                        borderRadius: 7,
+                        maxBarThickness: 54
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + config.label + ': ' + formatMetric(context.raw, activeMetric);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { autoSkip: false, maxRotation: 35, minRotation: 0, font: { size: 11 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                callback: function(value) { return formatAxisValue(value, activeMetric); }
+                            },
+                            grid: { color: 'rgba(148,163,184,.18)' }
+                        }
+                    }
+                }
             });
-
-            // Limit canvas width so bars don't stretch when few members
-            var barCanvas = document.getElementById('memberBarChart');
-            var maxWidth = Math.max(labels.length * 100, 200);
-            barCanvas.style.maxWidth = maxWidth + 'px';
 
             memberPie = new Chart(document.getElementById('memberPieChart'), {
                 type: 'doughnut',
-                data: { labels: labels, datasets: [{ data: values, backgroundColor: colors }] },
-                options: { responsive:true,
-                    plugins:{
-                        legend:{ position:'bottom', labels:{ font:{ size:11 } } },
-                        tooltip:{ callbacks:{ label: function(ctx) {
-                            var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
-                            var pct = total > 0 ? ((ctx.raw/total)*100).toFixed(1) : 0;
-                            return ' ' + ctx.label + ': ' + pct + '%';
-                        }}}
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        hoverOffset: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '62%',
+                    // Do not register click events, so legend entries stay permanent.
+                    events: ['mousemove', 'mouseout'],
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            // Keep the legend informational only. Clicking a name must
+                            // never hide/cross out a contributor or change the chart.
+                            onClick: function() {},
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                padding: 12,
+                                font: { size: 10 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var percentage = total > 0 ? ((Number(context.raw) / total) * 100).toFixed(1) : '0.0';
+                                    return ' ' + context.label + ': ' + formatMetric(context.raw, activeMetric) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
                     }
                 }
             });
         }
 
-        window.showTeam = showTeam;
-        if (teamData.length > 0) showTeam(0);
+        document.querySelectorAll('.team-filter-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                activeTeamIndex = Number(button.getAttribute('data-team-index'));
+                renderAnalytics();
+            });
+        });
+
+        document.querySelectorAll('.metric-toggle-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                activeMetric = button.getAttribute('data-metric');
+                renderAnalytics();
+            });
+        });
+
+        renderAnalytics();
     })();
     </script>
     @endif
