@@ -2092,6 +2092,7 @@ function computeCommission() {
     const pct    = parseFloat(document.getElementById('cm_edit_commission_percent').value) || 0;
     const result = netTcp * (pct / 100);
     document.getElementById('cm_edit_commission').value = result > 0 ? Math.round(result) : '';
+    computeEditValueOfPaymentTerms();
 }
 
 function closeCmModal(id) {
@@ -2151,13 +2152,13 @@ function computeAddNetTCP() {
     computeValueOfPaymentTerms();
 }
 function computeValueOfPaymentTerms() {
-    const netTcp = parseFloat(document.getElementById('cm_add_net_tcp').value) || 0;
+    const commissionRaw = (document.getElementById('cm_add_commission')?.value || '').toString().replace(/,/g, '');
+    const commission = parseFloat(commissionRaw) || 0;
     const type   = document.getElementById('cm_add_payment_type')?.value || '';
-    const fullPayment = netTcp * 0.08;
     let result = 0;
-    if (type === 'Full Payment')         result = fullPayment;
-    if (type === '2 Months Commission')  result = fullPayment / 2;
-    if (type === '3 Months Commission')  result = fullPayment / 3;
+    if (type === 'Full Payment')         result = commission;
+    if (type === '2 Months Commission')  result = commission / 2;
+    if (type === '3 Months Commission')  result = commission / 3;
     document.getElementById('cm_add_value_of_payment_terms').value = result > 0 ? result.toFixed(2) : '';
     document.getElementById('cm_add_vopt_display').value = result > 0 ? fmtComma(result) : '';
 }
@@ -2202,13 +2203,13 @@ function computeEditNetTCP() {
 }
 
 function computeEditValueOfPaymentTerms() {
-    const netTcp = parseFloat(document.getElementById('cm_edit_net_tcp')?.value) || 0;
+    const commissionRaw = (document.getElementById('cm_edit_commission')?.value || '').toString().replace(/,/g, '');
+    const commission = parseFloat(commissionRaw) || 0;
     const type   = document.getElementById('cm_edit_payment_type')?.value || '';
-    const fullPayment = netTcp * 0.08;
     let result = 0;
-    if (type === 'Full Payment')         result = fullPayment;
-    if (type === '2 Months Commission')  result = fullPayment / 2;
-    if (type === '3 Months Commission')  result = fullPayment / 3;
+    if (type === 'Full Payment')         result = commission;
+    if (type === '2 Months Commission')  result = commission / 2;
+    if (type === '3 Months Commission')  result = commission / 3;
     const vEl = document.getElementById('cm_edit_value_of_payment_terms');
     const dEl = document.getElementById('cm_edit_vopt_display');
     if (vEl) vEl.value = result > 0 ? result.toFixed(2) : '';
@@ -2234,6 +2235,7 @@ function computeAddCommissionFromValue() {
     document.getElementById('cm_add_commission').value = val > 0 ? val.toFixed(2) : '';
     const pctEl = document.getElementById('cm_add_commission_percent');
     if (pctEl && pct > 0) pctEl.value = pct.toFixed(4).replace(/\.?0+$/, '');
+    computeValueOfPaymentTerms();
 }
 
 
