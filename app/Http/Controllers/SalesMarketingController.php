@@ -172,12 +172,9 @@ class SalesMarketingController extends Controller
         $totalClients = CommissionRequestSales::whereBetween('date_requested', [$dateFrom, $dateTo])->distinct('client_name')->count('client_name');
         $totalRecords = CommissionRequestSales::whereBetween('date_requested', [$dateFrom, $dateTo])->count();
 
-        // Units, Pending, Cancelled, Total Reservation for the date range (based on date_of_downpayment)
-        $units = CommissionRequestSales::whereNotNull('date_of_downpayment')
-            ->whereBetween('date_of_downpayment', [$dateFrom, $dateTo])
-            ->where('client_status', '!=', 'Cancelled')
-            ->whereNotNull('block_lot_number')
-            ->distinct('block_lot_number')->count('block_lot_number');
+        // Units are calculated together with the per-agent analytics below
+        // so the dashboard card and chart always use the same definition.
+        $units = 0;
 
         $grossSalesFromClient = CommissionRequestSales::whereNotNull('date_of_downpayment')
             ->whereBetween('date_of_downpayment', [$dateFrom, $dateTo])
@@ -301,40 +298,219 @@ class SalesMarketingController extends Controller
             $q->whereDate('reservation_date', $today)->orWhereDate('date_of_downpayment', $today);
         })->count();
 
-        // Chart data for team performance
-        $chartTeamData = $teamPerformance->map(function($t) use ($topPerformers) {
-            // Try to match members from topPerformers by name (loose match)
-            $memberSales = collect($t['agentSales']);
+        // Build the interactive analytics data from client records in the
+        // selected period. Net TCP, units and deals come from the client
+        // database. ArkCrest Share comes only from released commission
+        // requests that already have an ArkCrest commission rate.
+        $analyticsSalesRecords = CommissionRequestSales::query()
+            ->whereNotNull('date_of_downpayment')
+            ->whereBetween('date_of_downpayment', [$dateFrom, $dateTo])
+            ->where('client_status', '!=', 'Cancelled')
+            ->get([
+                'id',
+                'agent_name',
+                'net_tcp',
+                'number_of_units',
+                'block_lot_number',
+            ]);
 
-            // If no agent sales found via team membership, try matching from topPerformers
-            if ($memberSales->isEmpty() || $memberSales->sum('total_sales') == 0) {
-                $allMemberNames = $t['team']->agents->pluck('name')
-                    ->push($t['team']->leader_name)
-                    ->filter()
-                    ->map(fn($n) => strtolower(trim($n)))
-                    ->toArray();
+        $arkcrestShareBySource = collect();
+        $sourceRecordIds = $analyticsSalesRecords->pluck('id')->filter()->values();
 
-                $memberSales = $topPerformers->filter(function($p) use ($allMemberNames) {
-                    $normalized = strtolower(trim($p->agent_name));
-                    foreach ($allMemberNames as $m) {
-                        if ($normalized === $m || str_contains($normalized, $m) || str_contains($m, $normalized)) {
-                            return true;
-                        }
-                    }
-                    return false;
-                })->map(function($p) {
-                    return (object)['agent_name' => $p->agent_name, 'total_sales' => $p->total_sales];
-                })->values();
+        if (
+            $sourceRecordIds->isNotEmpty()
+            && Schema::hasTable('arkcrest_commission_rates')
+            && Schema::hasColumn('commission_requests', 'source_client_record_id')
+        ) {
+            $shareQuery = DB::table('commission_requests as commission_request')
+                ->join(
+                    'arkcrest_commission_rates as arkcrest_rate',
+                    'arkcrest_rate.commission_request_id',
+                    '=',
+                    'commission_request.id'
+                )
+                ->whereIn('commission_request.source_client_record_id', $sourceRecordIds)
+                ->where('commission_request.status', 'Released');
+
+            if (Schema::hasColumn('commission_requests', 'deleted_at')) {
+                $shareQuery->whereNull('commission_request.deleted_at');
             }
 
+            $arkcrestShareBySource = $shareQuery
+                ->selectRaw(
+                    'commission_request.source_client_record_id, '
+                    . 'SUM(COALESCE(arkcrest_rate.arkcrest_commission, 0)) as arkcrest_share'
+                )
+                ->groupBy('commission_request.source_client_record_id')
+                ->pluck('arkcrest_share', 'commission_request.source_client_record_id');
+        }
+
+        $normalizeAgentName = static function (?string $name): string {
+            $name = strtoupper(preg_replace('/\s+/', ' ', trim((string) $name)));
+
+            return preg_replace('/[^A-Z0-9]/', '', $name) ?? '';
+        };
+
+        $agentAnalytics = [];
+
+        foreach ($analyticsSalesRecords as $record) {
+            $displayName = trim((string) $record->agent_name);
+            if ($displayName === '') {
+                $displayName = 'Unassigned';
+            }
+
+            $normalizedName = $normalizeAgentName($displayName);
+
+            if (!isset($agentAnalytics[$normalizedName])) {
+                $agentAnalytics[$normalizedName] = [
+                    'name' => $displayName,
+                    'net_tcp' => 0.0,
+                    'arkcrest_share' => 0.0,
+                    'units' => 0,
+                    'deals' => 0,
+                ];
+            }
+
+            $unitsForRecord = (int) ($record->number_of_units ?? 0);
+            if ($unitsForRecord <= 0 && trim((string) $record->block_lot_number) !== '') {
+                $unitsForRecord = 1;
+            }
+
+            $agentAnalytics[$normalizedName]['net_tcp'] += (float) ($record->net_tcp ?? 0);
+            $agentAnalytics[$normalizedName]['arkcrest_share'] += (float) (
+                $arkcrestShareBySource[$record->id] ?? 0
+            );
+            $agentAnalytics[$normalizedName]['units'] += $unitsForRecord;
+            $agentAnalytics[$normalizedName]['deals']++;
+        }
+
+        // Keep the main Units card aligned with the chart's unit total.
+        $units = (int) collect($agentAnalytics)->sum('units');
+
+        $findAnalyticsKey = static function (
+            string $memberName,
+            array $analytics,
+            array $usedKeys = []
+        ) use ($normalizeAgentName): ?string {
+            $normalizedMember = $normalizeAgentName($memberName);
+
+            if ($normalizedMember === '') {
+                return null;
+            }
+
+            if (isset($analytics[$normalizedMember]) && !in_array($normalizedMember, $usedKeys, true)) {
+                return $normalizedMember;
+            }
+
+            foreach (array_keys($analytics) as $analyticsKey) {
+                if (in_array($analyticsKey, $usedKeys, true)) {
+                    continue;
+                }
+
+                if (
+                    str_contains($analyticsKey, $normalizedMember)
+                    || str_contains($normalizedMember, $analyticsKey)
+                ) {
+                    return $analyticsKey;
+                }
+            }
+
+            return null;
+        };
+
+        $buildChartMembers = static function (
+            array $configuredNames,
+            bool $includeUnassigned
+        ) use ($agentAnalytics, $normalizeAgentName, $findAnalyticsKey): array {
+            $members = [];
+            $usedAnalyticsKeys = [];
+            $usedConfiguredNames = [];
+
+            foreach ($configuredNames as $configuredName) {
+                $configuredName = trim((string) $configuredName);
+                $configuredKey = $normalizeAgentName($configuredName);
+
+                if ($configuredName === '' || $configuredKey === '' || isset($usedConfiguredNames[$configuredKey])) {
+                    continue;
+                }
+
+                $usedConfiguredNames[$configuredKey] = true;
+                $analyticsKey = $findAnalyticsKey($configuredName, $agentAnalytics, $usedAnalyticsKeys);
+
+                if ($analyticsKey !== null) {
+                    $members[] = $agentAnalytics[$analyticsKey];
+                    $usedAnalyticsKeys[] = $analyticsKey;
+                } else {
+                    $members[] = [
+                        'name' => $configuredName,
+                        'net_tcp' => 0.0,
+                        'arkcrest_share' => 0.0,
+                        'units' => 0,
+                        'deals' => 0,
+                    ];
+                }
+            }
+
+            if ($includeUnassigned) {
+                foreach ($agentAnalytics as $analyticsKey => $analytics) {
+                    if (!in_array($analyticsKey, $usedAnalyticsKeys, true)) {
+                        $members[] = $analytics;
+                    }
+                }
+            }
+
+            usort($members, static function (array $left, array $right): int {
+                $salesComparison = $right['net_tcp'] <=> $left['net_tcp'];
+
+                return $salesComparison !== 0
+                    ? $salesComparison
+                    : strcasecmp($left['name'], $right['name']);
+            });
+
+            return array_values($members);
+        };
+
+        $makeTeamChartData = static function (string $teamName, array $members): array {
             return [
-                'team'    => $t['team']->team_name,
-                'total'   => (float) $memberSales->sum('total_sales') ?: (float) $t['teamTotal'],
-                'members' => $memberSales->map(function($a) {
-                    return ['name' => $a->agent_name, 'sales' => (float) $a->total_sales];
-                })->values()->toArray(),
+                'team' => $teamName,
+                'members' => $members,
+                'totals' => [
+                    'net_tcp' => (float) collect($members)->sum('net_tcp'),
+                    'arkcrest_share' => (float) collect($members)->sum('arkcrest_share'),
+                    'units' => (int) collect($members)->sum('units'),
+                    'deals' => (int) collect($members)->sum('deals'),
+                ],
             ];
-        })->values()->toArray();
+        };
+
+        $allConfiguredAgentNames = $teams
+            ->flatMap(function ($team) {
+                return $team->agents->pluck('name')->push($team->leader_name);
+            })
+            ->filter()
+            ->values()
+            ->toArray();
+
+        $chartTeamData = [
+            $makeTeamChartData(
+                'All Agents',
+                $buildChartMembers($allConfiguredAgentNames, true)
+            ),
+        ];
+
+        foreach ($teams as $team) {
+            $configuredNames = $team->agents
+                ->pluck('name')
+                ->push($team->leader_name)
+                ->filter()
+                ->values()
+                ->toArray();
+
+            $chartTeamData[] = $makeTeamChartData(
+                $team->team_name,
+                $buildChartMembers($configuredNames, false)
+            );
+        }
 
         return view('sales-marketing', compact(
             'totalNetTcp', 'totalClients', 'totalRecords',
