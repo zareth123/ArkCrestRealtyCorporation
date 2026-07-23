@@ -286,7 +286,7 @@
 
         <div class="table-scroll-hint">⟵ Swipe left/right to see more columns ⟶</div>
         <div class="table-wrapper">
-            <table class="monitoring-table js-sort-table{{ $isAdmin ? '' : ' no-checkbox' }}">
+            <table class="monitoring-table js-sort-table js-sort-dropdown{{ $isAdmin ? '' : ' no-checkbox' }}">
                 <thead>
                     <tr>
                         @if($isAdmin)
@@ -354,7 +354,9 @@
                         data-units="{{ $request->number_of_units }}"
                         data-commission-terms="{{ $request->payment_type }}"
                         data-value-commission-terms="{{ $request->value_of_payment_terms }}"
-                        data-agent="{{ $request->agent_name }}">
+                        data-agent="{{ $request->agent_name }}"
+                        data-date-added="{{ $request->created_at?->timestamp }}"
+                        data-date-modified="{{ $request->updated_at?->timestamp }}">
                         @if($isAdmin)
                         <td class="col-sticky col-sticky-check"><input type="checkbox" class="cm-row-check" value="{{ $request->id }}" onchange="cmUpdateSelectedCount()"></td>
                         @endif
