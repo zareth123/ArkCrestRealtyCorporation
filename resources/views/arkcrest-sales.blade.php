@@ -128,7 +128,7 @@
         <div style="padding:40px;text-align:center;color:#94a3b8;font-size:14px;">No released commissions for this period.</div>
         @else
         <div class="arc-table-scroll" style="overflow-x:auto;">
-        <table class="arc-table js-sort-table">
+        <table class="arc-table js-sort-table js-sort-dropdown">
             <thead>
                 <tr>
                     <th>#</th>
@@ -155,7 +155,9 @@
                 data-net-tcp="{{ $r->net_tcp ?? 0 }}"
                 data-commission-terms="{{ $r->payment_type ?? '' }}"
                 data-arc-percent="{{ $rate ? $rate->arkcrest_percent : '' }}"
-                data-arc-commission="{{ $rate ? $rate->arkcrest_commission : '' }}">
+                data-arc-commission="{{ $rate ? $rate->arkcrest_commission : '' }}"
+                data-date-added="{{ $r->created_at?->timestamp }}"
+                data-date-modified="{{ $r->updated_at?->timestamp }}">
                 <td style="color:#cbd5e1;font-weight:600;">{{ $i + 1 }}</td>
                 <td style="white-space:nowrap;color:#059669;font-weight:600;">{{ $r->date_released ? $r->date_released->format('M d, Y') : '—' }}</td>
                 <td style="font-weight:600;color:#0f172a;">{{ $r->client_name ?? '—' }}</td>

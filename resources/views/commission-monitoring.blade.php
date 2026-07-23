@@ -136,12 +136,10 @@
                         <input type="text" id="cm_add_net_tcp_display" placeholder="0.00" readonly style="background:#f3f4f6;cursor:not-allowed;color:#374151;">
                         <input type="hidden" id="cm_add_net_tcp" name="net_tcp">
                     </div>
-                    @if($isAdmin)
                     <div class="form-group">
-                        <label>% OF COMMISSION <span class="required">*</span></label>
-                        <input type="number" id="cm_add_commission_percent" name="commission_percent" placeholder="e.g. 5" step="0.0001" min="0" max="100" oninput="computeAddCommission()" required>
+                    <label>% OF COMMISSION <span class="required">*</span></label>
+                    <input type="number" id="cm_add_commission_percent" name="commission_percent" placeholder="e.g. 5" step="0.0001" min="0" max="100" oninput="computeAddCommission()" required>
                     </div>
-                    @endif
                     <div class="form-group">
                         <label>VALUE OF COMMISSION <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
                         <input type="text" id="cm_add_commission_display" placeholder="0.00" oninput="computeAddCommissionFromValue()" style="color:#374151;">
@@ -288,7 +286,7 @@
 
         <div class="table-scroll-hint">⟵ Swipe left/right to see more columns ⟶</div>
         <div class="table-wrapper">
-            <table class="monitoring-table js-sort-table{{ $isAdmin ? '' : ' no-checkbox' }}">
+            <table class="monitoring-table js-sort-table js-sort-dropdown{{ $isAdmin ? '' : ' no-checkbox' }}">
                 <thead>
                     <tr>
                         @if($isAdmin)
@@ -356,7 +354,9 @@
                         data-units="{{ $request->number_of_units }}"
                         data-commission-terms="{{ $request->payment_type }}"
                         data-value-commission-terms="{{ $request->value_of_payment_terms }}"
-                        data-agent="{{ $request->agent_name }}">
+                        data-agent="{{ $request->agent_name }}"
+                        data-date-added="{{ $request->created_at?->timestamp }}"
+                        data-date-modified="{{ $request->updated_at?->timestamp }}">
                         @if($isAdmin)
                         <td class="col-sticky col-sticky-check"><input type="checkbox" class="cm-row-check" value="{{ $request->id }}" onchange="cmUpdateSelectedCount()"></td>
                         @endif

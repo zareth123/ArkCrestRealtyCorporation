@@ -294,7 +294,7 @@
             </div>
         </div>
         <div class="table-wrapper">
-            <table class="requests-table js-sort-table">
+            <table class="requests-table js-sort-table js-sort-dropdown">
                 <thead>
                     <tr>
                         <th style="width: 40px; min-width: 40px;">
@@ -316,7 +316,7 @@
                 </thead>
                 <tbody id="requestsTableBody">
                     @foreach($requests as $req)
-                    <tr id="expense-{{ $req->id }}" data-id="{{ $req->id }}" data-department="{{ $req->department }}" data-date-requested="{{ $req->date_requested ? $req->date_requested->format('Y-m-d') : '' }}" data-date-released="{{ $req->date_released ? $req->date_released->format('Y-m-d') : '' }}" data-control="{{ $req->control_number }}" data-requestor="{{ $req->requestor_name }}" data-category="{{ $req->category }}" data-status="{{ $req->status }}" data-requested-amount="{{ $req->requested_amount }}" data-total-expenses="{{ $req->total_expenses }}" data-amount-returned="{{ $req->amount_returned }}" data-date-returned="{{ $req->date_of_amount_returned ? $req->date_of_amount_returned->format('Y-m-d') : '' }}">
+                    <tr id="expense-{{ $req->id }}" data-id="{{ $req->id }}" data-department="{{ $req->department }}" data-date-requested="{{ $req->date_requested ? $req->date_requested->format('Y-m-d') : '' }}" data-date-released="{{ $req->date_released ? $req->date_released->format('Y-m-d') : '' }}" data-control="{{ $req->control_number }}" data-requestor="{{ $req->requestor_name }}" data-category="{{ $req->category }}" data-status="{{ $req->status }}" data-requested-amount="{{ $req->requested_amount }}" data-total-expenses="{{ $req->total_expenses }}" data-amount-returned="{{ $req->amount_returned }}" data-date-returned="{{ $req->date_of_amount_returned ? $req->date_of_amount_returned->format('Y-m-d') : '' }}" data-date-added="{{ $req->created_at?->timestamp }}" data-date-modified="{{ $req->updated_at?->timestamp }}">
                         <td><input type="checkbox" class="row-select-checkbox" value="{{ $req->id }}"></td>
                         <td>{{ $req->control_number }}</td>
                         <td>{{ $req->requestor_name }}</td>

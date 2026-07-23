@@ -349,7 +349,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
             <div id="cdActiveColumnFiltersRow" class="active-column-filters-row" style="display:none;"></div>
         </div>
         <div class="cd-table-wrap">
-            <table class="cd-records-table js-sort-table">
+            <table class="cd-records-table js-sort-table js-sort-dropdown">
                 <thead style="background:linear-gradient(135deg,#1e4575,#2563eb)">
                     <tr>
                         <th class="cd-sticky-col cd-sticky-checkbox" style="padding:14px 8px">
@@ -385,6 +385,8 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                         data-client-status="{{ strtolower($req->client_status ?? '') }}"
                         data-downpayment-stage="{{ ($req->downpayment_stage ?? 0).'/'.($req->downpayment_stage_total ?? 1) }}"
                         data-downpayment-status="{{ strtolower($req->downpayment_status ?? '') }}"
+                        data-date-added="{{ $req->created_at?->timestamp }}"
+                        data-date-modified="{{ $req->updated_at?->timestamp }}"
                         style="border-bottom:1px solid #e5e7eb">
                         <td class="cd-sticky-col cd-sticky-checkbox" style="padding:14px 8px">
                             <input type="checkbox" class="cd-row-checkbox" value="{{ $req->id }}" onchange="cdUpdateBulkBar()">
