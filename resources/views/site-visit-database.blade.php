@@ -246,7 +246,7 @@
         <div id="svdActiveFiltersRow_confirmed" class="active-column-filters-row" style="display:none;"></div>
     </div>
     <div class="tbl-wrap">
-    <table class="svd-table js-sort-table">
+    <table class="svd-table js-sort-table js-sort-dropdown">
         <thead><tr>
             <th style="width:40px;text-align:center">#</th>
             <th>Name of Client</th><th>Property</th><th>Company</th>
@@ -266,7 +266,9 @@
             data-tripping-date="{{ $r->tripping_date ? $r->tripping_date->format('Y-m-d') : '' }}"
             data-tripping-time="{{ $r->tripping_time ? \Carbon\Carbon::parse($r->tripping_time)->format('g:i A') : '' }}"
             data-mode="{{ $r->tripping_type }}"
-            data-date-submitted="{{ $r->created_at ? $r->created_at->format('Y-m-d') : '' }}">
+            data-date-submitted="{{ $r->created_at ? $r->created_at->format('Y-m-d') : '' }}"
+            data-date-added="{{ $r->created_at?->timestamp }}"
+            data-date-modified="{{ $r->updated_at?->timestamp }}">
             <td class="row-num">{{ $i + 1 }}</td>
             <td><div class="td-name">{{ $r->client_name }}</div></td>
             <td><div class="td-name" style="font-size:12px">{{ $r->property_name ?? '—' }}</div></td>
