@@ -165,29 +165,67 @@ class SalesMarketingController extends Controller
         $dateFrom = $request->input('date_from', date('Y-m-01'));
         $dateTo   = $request->input('date_to',   date('Y-m-t'));
 
-        $totalNetTcp  = CommissionRequestSales::whereNotNull('date_of_downpayment')
-            ->whereBetween('date_of_downpayment', [$dateFrom, $dateTo])
+        // "Total Net TCP" and "Total Units" are yearly totals — they must
+        // stay fixed no matter what the date range picker above is set to.
+        // They're scoped to the calendar year of the currently selected
+        // "date_from" so browsing into a different year updates them too.
+        $yearForTotals = Carbon::parse($dateFrom)->year;
+        $yearStart = Carbon::create($yearForTotals, 1, 1)->startOfYear()->toDateString();
+        $yearEnd   = Carbon::create($yearForTotals, 1, 1)->endOfYear()->toDateString();
+
+        $totalNetTcp = CommissionRequestSales::whereNotNull('date_of_downpayment')
+            ->whereBetween('date_of_downpayment', [$yearStart, $yearEnd])
             ->where('client_status', '!=', 'Cancelled')
             ->sum('net_tcp');
+
         $totalClients = CommissionRequestSales::whereBetween('date_requested', [$dateFrom, $dateTo])->distinct('client_name')->count('client_name');
-        $totalRecords = CommissionRequestSales::whereBetween('date_requested', [$dateFrom, $dateTo])->count();
+
+        // "Total Units" (previously mislabeled "Total Records") — the total
+        // number of units sold across the whole year, unaffected by the
+        // date range filter. Uses the same units-per-record fallback rule
+        // as the per-agent analytics below (number_of_units, or 1 unit when
+        // a block/lot is present but number_of_units wasn't filled in).
+        $totalUnits = (int) CommissionRequestSales::whereNotNull('date_of_downpayment')
+            ->whereBetween('date_of_downpayment', [$yearStart, $yearEnd])
+            ->where('client_status', '!=', 'Cancelled')
+            ->get(['number_of_units', 'block_lot_number'])
+            ->sum(function ($record) {
+                $unitCount = (int) ($record->number_of_units ?? 0);
+                if ($unitCount <= 0 && trim((string) $record->block_lot_number) !== '') {
+                    $unitCount = 1;
+                }
+                return $unitCount;
+            });
+        // Kept for backwards compatibility with the view variable name.
+        $totalRecords = $totalUnits;
 
         // Units are calculated together with the per-agent analytics below
         // so the dashboard card and chart always use the same definition.
+        // This one IS scoped to the selected date range.
         $units = 0;
 
+        // Gross Sales — scoped to the selected date range only.
         $grossSalesFromClient = CommissionRequestSales::whereNotNull('date_of_downpayment')
             ->whereBetween('date_of_downpayment', [$dateFrom, $dateTo])
             ->where('client_status', '!=', 'Cancelled')->sum('net_tcp');
 
+        // Pending Reservation — number of clients within the selected date
+        // range whose reservation is not cancelled and has not yet paid
+        // (or fully paid) its downpayment.
         $pendingReservation = CommissionRequestSales::whereBetween('reservation_date', [$dateFrom, $dateTo])
-            ->where(function($q) { $q->whereNull('downpayment_status')->orWhereNotIn('downpayment_status', ['Paid','Spot Paid']); })
-            ->where(function($q) { $q->whereNull('client_status')->orWhere('client_status','!=','Cancelled'); })->count();
+            ->where(function($q) { $q->whereNull('downpayment_status')->orWhereNotIn('downpayment_status', ['Paid','Spot Paid', 'Partial']); })
+            ->where(function($q) { $q->whereNull('client_status')->orWhere('client_status','!=','Cancelled'); })
+            ->distinct('client_name')
+            ->count('client_name');
 
+        // Cancelled Reservation — number of cancelled reservations within
+        // the selected date range.
         $cancelledReservation = CommissionRequestSales::whereBetween('reservation_date', [$dateFrom, $dateTo])
             ->where('client_status','Cancelled')->count();
 
-        $totalReservation = $units + $pendingReservation - $cancelledReservation;
+        // Total Reservation — total reservation records for the selected
+        // month/date range (independent of the Units/Pending/Cancelled math).
+        $totalReservation = CommissionRequestSales::whereBetween('reservation_date', [$dateFrom, $dateTo])->count();
 
         // Get all teams with agents and quotas
         $teams = SalesTeam::with(['agents', 'quotas'])->orderBy('leader_name')->get();
@@ -237,14 +275,14 @@ class SalesMarketingController extends Controller
         })->sortByDesc('teamTotal')->values();
 
         // Fallback flat list if no teams configured
-        // Fetch raw then normalize agent names in PHP to merge typo variants
-        $rawPerformers = CommissionRequestSales::selectRaw('agent_name, SUM(net_tcp) as total_sales, SUM(commission) as total_commission, COUNT(*) as deals')
+        // Fetch raw rows (not pre-aggregated) so we can apply the same
+        // units-per-record fallback rule used by the per-agent analytics
+        // below, then normalize agent names in PHP to merge typo variants.
+        $rawPerformers = CommissionRequestSales::select('agent_name', 'net_tcp', 'commission', 'number_of_units', 'block_lot_number')
             ->whereNotNull('agent_name')
             ->whereNotNull('date_of_downpayment')
             ->whereBetween('date_of_downpayment', [$dateFrom, $dateTo])
             ->where('client_status', '!=', 'Cancelled')
-            ->groupBy('agent_name')
-            ->orderByDesc('total_sales')
             ->get();
 
         // Normalize: uppercase + collapse spaces + normalize punctuation
@@ -252,11 +290,18 @@ class SalesMarketingController extends Controller
         foreach ($rawPerformers as $row) {
             $key = preg_replace('/[^A-Z0-9 ]/', '', strtoupper(preg_replace('/\s+/', ' ', trim($row->agent_name))));
             if (!isset($merged[$key])) {
-                $merged[$key] = ['agent_name' => trim($row->agent_name), 'total_sales' => 0, 'total_commission' => 0, 'deals' => 0, 'position' => null];
+                $merged[$key] = ['agent_name' => trim($row->agent_name), 'total_sales' => 0, 'total_commission' => 0, 'deals' => 0, 'units' => 0, 'position' => null];
             }
-            $merged[$key]['total_sales']       += $row->total_sales;
-            $merged[$key]['total_commission']   += $row->total_commission;
-            $merged[$key]['deals']              += $row->deals;
+
+            $unitsForRow = (int) ($row->number_of_units ?? 0);
+            if ($unitsForRow <= 0 && trim((string) $row->block_lot_number) !== '') {
+                $unitsForRow = 1;
+            }
+
+            $merged[$key]['total_sales']       += $row->net_tcp;
+            $merged[$key]['total_commission']   += $row->commission;
+            $merged[$key]['deals']              += 1;
+            $merged[$key]['units']              += $unitsForRow;
         }
 
         // Look up position from users table AND team management roles

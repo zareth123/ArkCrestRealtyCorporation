@@ -139,6 +139,7 @@
                     <th>Units</th>
                     <th>Net TCP</th>
                     <th>Commission Terms</th>
+                    <th>DP Stage</th>
                     <th>ARC % </th>
                     <th>ARC Commission</th>
                 </tr>
@@ -154,6 +155,7 @@
                 data-units="{{ $r->number_of_units ?? 0 }}"
                 data-net-tcp="{{ $r->net_tcp ?? 0 }}"
                 data-commission-terms="{{ $r->payment_type ?? '' }}"
+                data-dp-stage="{{ $r->commission_stage ? $r->commission_stage.'/'.($r->commission_stage_total ?: 1) : '' }}"
                 data-arc-percent="{{ $rate ? $rate->arkcrest_percent : '' }}"
                 data-arc-commission="{{ $rate ? $rate->arkcrest_commission : '' }}"
                 data-date-added="{{ $r->created_at?->timestamp }}"
@@ -174,6 +176,9 @@
                         <option value="3 Months Commission" {{ ($r->payment_type ?? '') == '3 Months Commission' ? 'selected' : '' }}>3 Months Commission</option>
                     </select>
                 </td>
+                <td style="font-weight:700;color:#1e4575;white-space:nowrap;">
+                    {{ $r->commission_stage ? $r->commission_stage.'/'.($r->commission_stage_total ?: 1) : '—' }}
+                </td>
                 <td>
                     <div style="display:flex;align-items:center;gap:6px;">
                         <input type="number" class="arc-pct-input" id="pct-{{ $r->id }}"
@@ -191,7 +196,7 @@
             </tbody>
             <tfoot>
                 <tr style="background:#f8fafc;border-top:2px solid #e2e8f0;">
-                    <td colspan="9" style="padding:12px 14px;font-size:13px;font-weight:700;color:#0f172a;text-align:right;">
+                    <td colspan="10" style="padding:12px 14px;font-size:13px;font-weight:700;color:#0f172a;text-align:right;">
                         Total Units Sold: <span id="arcUnitsFooterTotal" style="color:#A37929;">{{ number_format($totalUnits) }}</span>
                         &nbsp;&nbsp;·&nbsp;&nbsp; ARC Gross Sales Total:
                     </td>
@@ -279,6 +284,7 @@ var FILTERABLE_COLUMNS = [
     { key: 'net-tcp',            label: 'Net TCP',            type: 'numrange', data: 'netTcp' },
     { key: 'commission-terms',  label: 'Commission Terms',   type: 'select', data: 'commissionTerms',
         options: ['Full Payment', '2 Months Commission', '3 Months Commission'] },
+    { key: 'dp-stage',          label: 'DP Stage',            type: 'text',   data: 'dpStage' },
     { key: 'arc-percent',       label: 'ARC %',               type: 'number', data: 'arcPercent' },
     { key: 'arc-commission',    label: 'ARC Commission',     type: 'numrange', data: 'arcCommission' }
 ];

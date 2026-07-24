@@ -22,10 +22,21 @@ Route::middleware(['guest', 'no.cache'])->group(function () {
     Route::post('/forgot-password/send-email', [AuthController::class, 'sendPasswordResetEmail'])->name('forgot.email');
 });
 
-// Root redirect to login
+// Public landing page
 Route::get('/', function () {
-    return redirect()->route('login');
+    return view('welcome');
 });
+Route::get('/about', function () {
+    return view('about');
+})->name('about');
+ 
+Route::get('/services', function () {
+    return view('services');
+})->name('services');
+ 
+Route::get('/portfolio', function () {
+    return view('portfolio');
+})->name('portfolio');
 
 // Tripping Schedule Form (public — no login required)
 Route::get('/tripping', [App\Http\Controllers\TripScheduleController::class, 'show'])->name('tripping');

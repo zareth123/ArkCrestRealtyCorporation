@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ArkCrest Realty | The Standard of Luxury Acquisition</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -33,7 +32,6 @@
     background:var(--cream);
     line-height:1.6;
     -webkit-font-smoothing:antialiased;
-    overflow-x:hidden;
   }
 
   h1,h2,h3{
@@ -64,7 +62,7 @@
   .wrap{
     max-width:1240px;
     margin:0 auto;
-    padding:0 clamp(20px, 4vw, 40px);
+    padding:0 40px;
   }
 
   section{ position:relative; }
@@ -101,19 +99,12 @@
   }
   .ph.dark span{ background:rgba(10,20,32,0.65); color:#eaf0f5; }
 
-  /* hero background photo (real image, no dashed placeholder look) */
-  .hero-photo{
-    position:absolute;
-    inset:0;
-    background:var(--navy-900) center/cover no-repeat;
-  }
-
   /* -------- NAV -------- */
   .nav{
     position:absolute;
     top:0; left:0; right:0;
     z-index:50;
-    padding:clamp(18px, 3.5vw, 28px) 0;
+    padding:28px 0;
   }
   .nav .wrap{ display:flex; align-items:center; justify-content:space-between; }
   .brand{ display:flex; align-items:center; gap:12px; color:#fff; }
@@ -122,7 +113,7 @@
     background:#fff;
   }
   .brand .name{
-    font-size:14px; letter-spacing:3px; font-weight:700; text-transform:uppercase; white-space:nowrap;
+    font-size:14px; letter-spacing:3px; font-weight:700; text-transform:uppercase;
   }
   .nav-links{ display:flex; gap:44px; }
   .nav-links a{
@@ -133,14 +124,6 @@
     transition:.25s;
   }
   .nav-links a.active, .nav-links a:hover{ border-color:var(--orange); color:#fff; }
-  .nav-actions{ display:flex; align-items:center; gap:22px; }
-  .nav-links-mobile-actions{ display:none; }
-  .staff-login{
-    font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
-    color:rgba(255,255,255,0.65); font-weight:600;
-    transition:.2s;
-  }
-  .staff-login:hover{ color:#fff; }
   .btn{
     display:inline-block;
     padding:13px 26px;
@@ -153,23 +136,13 @@
   .btn-outline{ border:1px solid rgba(255,255,255,0.5); color:#fff; }
   .btn-outline:hover{ background:rgba(255,255,255,0.1); }
 
-  .mobile-toggle{
-    display:none; flex-direction:column; justify-content:center; gap:5px;
-    cursor:pointer; width:36px; height:36px; z-index:60; position:relative;
-  }
-  .mobile-toggle span{
-    width:24px; height:2px; background:#fff;
-    transition:transform .25s, opacity .25s; transform-origin:center;
-  }
-  .mobile-toggle.open span:nth-child(1){ transform:translateY(7px) rotate(45deg); }
-  .mobile-toggle.open span:nth-child(2){ opacity:0; }
-  .mobile-toggle.open span:nth-child(3){ transform:translateY(-7px) rotate(-45deg); }
+  .mobile-toggle{ display:none; flex-direction:column; gap:5px; cursor:pointer; }
+  .mobile-toggle span{ width:24px; height:2px; background:#fff; }
 
   /* -------- HERO -------- */
   .hero{
     height:100vh;
-    height:100svh;
-    min-height:560px;
+    min-height:640px;
     position:relative;
     display:flex;
     align-items:center;
@@ -177,6 +150,7 @@
     color:#fff;
     overflow:hidden;
   }
+  .hero .ph{ position:absolute; inset:0; }
   .hero::after{
     content:'';
     position:absolute; inset:0;
@@ -206,7 +180,7 @@
   .stats{
     background:var(--navy-950);
     color:#fff;
-    padding:clamp(64px, 12vw, 120px) 0;
+    padding:120px 0;
   }
   .section-head{ text-align:center; max-width:640px; margin:0 auto 60px; }
   .section-head .eyebrow{ justify-content:center; margin-bottom:18px; }
@@ -240,6 +214,7 @@
   .stat-card .desc{ font-size:14px; color:#a9b8c6; max-width:230px; margin:0 auto; }
 
   .carousel-arrow{
+    position:absolute; top:50%; transform:translateY(-50%);
     width:44px; height:44px; border-radius:50%;
     border:1px solid rgba(255,255,255,0.3);
     display:flex; align-items:center; justify-content:center;
@@ -248,17 +223,19 @@
     transition:.2s;
   }
   .carousel-arrow:hover{ background:rgba(255,255,255,0.12); }
-  .carousel-arrow[data-disabled="true"]{ opacity:.35; cursor:default; pointer-events:none; }
+  .carousel-arrow.left{ left:24px; }
+  .carousel-arrow.right{ right:24px; }
+  .carousel-arrow.on-light{ border-color:rgba(19,40,64,0.25); color:var(--navy-900); }
 
   /* -------- ABOUT / HERITAGE -------- */
-  .about{ padding:clamp(64px, 12vw, 130px) 0; background:var(--cream); }
+  .about{ padding:130px 0; background:var(--cream); }
   .about .grid{
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:clamp(32px, 6vw, 80px);
+    gap:80px;
     align-items:center;
   }
-  .about .ph{ aspect-ratio:3/4; border-radius:2px; }
+  .about .ph{ aspect-ratio:4/3; border-radius:2px; }
   .about h2{ font-size:clamp(28px,3.4vw,40px); color:var(--navy-900); margin:18px 0 22px; }
   .about p{ color:var(--ink-soft); font-size:15px; max-width:460px; margin-bottom:30px; }
   .text-link{
@@ -269,42 +246,30 @@
   .text-link .rule{ width:30px; height:1px; background:var(--orange); }
 
   /* -------- PORTFOLIO -------- */
-  .portfolio{ background:var(--navy-800); color:#fff; padding:clamp(64px, 12vw, 130px) 0; }
+  .portfolio{ background:var(--navy-800); color:#fff; padding:130px 0; }
   .portfolio-head{
     display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:56px;
   }
   .portfolio-head .eyebrow{ color:var(--orange); margin-bottom:14px; }
   .portfolio-head h2{ font-size:clamp(30px,3.8vw,46px); color:#fff; }
   .portfolio-nav{ display:flex; gap:12px; }
+  .portfolio-nav .carousel-arrow{ position:static; transform:none; }
 
-  .estate-track{
-    overflow-x:auto;
-    scroll-behavior:smooth;
-    scroll-snap-type:x mandatory;
-    -webkit-overflow-scrolling:touch;
-    scrollbar-width:none;
-    -ms-overflow-style:none;
-  }
-  .estate-track::-webkit-scrollbar{ display:none; }
   .estate-grid{
-    display:flex;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
     gap:36px;
-  }
-  .estate-card{
-    flex:0 0 calc((100% - 72px)/3);
-    min-width:260px;
-    scroll-snap-align:start;
   }
   .estate-card .ph{ aspect-ratio:4/3; margin-bottom:22px; }
   .estate-card h3{ font-style:italic; font-size:22px; color:#fff; margin-bottom:6px; }
   .estate-card .tag{ font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#9fb3c6; font-weight:600; }
 
   /* -------- PHILOSOPHY -------- */
-  .philosophy{ padding:clamp(64px, 13vw, 140px) 0; background:var(--cream); overflow:hidden; }
+  .philosophy{ padding:140px 0; background:var(--cream); overflow:hidden; }
   .philosophy .grid{
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:clamp(32px, 6vw, 70px);
+    gap:70px;
     align-items:center;
   }
   .philosophy h2{ font-size:clamp(28px,3.6vw,42px); color:var(--navy-900); margin:18px 0 24px; }
@@ -318,7 +283,7 @@
 
   /* -------- DISTINCTION BANNER -------- */
   .distinction{
-    padding:clamp(70px, 15vw, 150px) 0;
+    padding:150px 0;
     color:#fff;
     text-align:center;
     position:relative;
@@ -338,7 +303,7 @@
   .pill .dot{ width:7px; height:7px; background:var(--orange); transform:rotate(45deg); }
 
   /* -------- WHY CHOOSE -------- */
-  .why{ padding:clamp(64px, 13vw, 140px) 0; background:#fff; position:relative; }
+  .why{ padding:140px 0; background:#fff; position:relative; }
   .why-grid{
     display:grid;
     grid-template-columns:repeat(3,1fr);
@@ -346,17 +311,17 @@
     border-top:1px solid var(--line);
   }
   .why-item{
-    padding:clamp(28px, 5vw, 44px) clamp(20px, 4vw, 40px) clamp(28px, 5vw, 44px) 0;
+    padding:44px 40px 44px 0;
     border-bottom:1px solid var(--line);
   }
   .why-grid > .why-item:nth-child(3n+2),
-  .why-grid > .why-item:nth-child(3n+3){ padding-left:clamp(20px, 4vw, 40px); border-left:1px solid var(--line); }
+  .why-grid > .why-item:nth-child(3n+3){ padding-left:40px; border-left:1px solid var(--line); }
   .why-item .no{ font-size:12px; font-weight:700; color:var(--orange); letter-spacing:1px; margin-bottom:16px; display:block; }
   .why-item h3{ font-style:italic; font-size:20px; color:var(--navy-900); margin-bottom:12px; }
   .why-item p{ font-size:14px; color:var(--ink-soft); }
 
   /* -------- FOOTER CTA -------- */
-  .cta-band{ background:var(--navy-950); color:#fff; padding:clamp(56px, 10vw, 90px) 0; text-align:center; }
+  .cta-band{ background:var(--navy-950); color:#fff; padding:90px 0; text-align:center; }
   .cta-band h2{ color:#fff; font-size:clamp(26px,3.4vw,38px); margin-bottom:26px; }
   .cta-buttons{ display:flex; gap:18px; justify-content:center; flex-wrap:wrap; }
 
@@ -366,96 +331,42 @@
 
   /* -------- RESPONSIVE -------- */
   @media (max-width:900px){
+    .nav-links{ display:none; }
     .mobile-toggle{ display:flex; }
-
-    .nav-links{
-      display:none;
-      position:absolute;
-      top:100%; left:0; right:0;
-      flex-direction:column;
-      gap:0;
-      background:rgba(10,20,32,0.98);
-      padding:8px 24px 20px;
-      backdrop-filter:blur(6px);
-    }
-    .nav-links.open{ display:flex; }
-    .nav-links a{
-      width:100%; text-align:center; padding:14px 0;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-    }
-    .nav-links a:last-child{ border-bottom:none; }
-
-    .staff-login{ display:none; }
-    .nav-actions{ display:none; }
-    .nav-links-mobile-actions{
-      display:flex; flex-direction:column; gap:12px;
-      width:100%; margin-top:10px;
-    }
-    .nav-links-mobile-actions a{ padding:0; border-bottom:none; }
-    .nav-links-mobile-actions .staff-login-mobile{
-      text-align:center; padding:10px 0; font-size:12px; letter-spacing:1.5px;
-      text-transform:uppercase; color:rgba(255,255,255,0.65); font-weight:600;
-    }
-    .nav-links-mobile-actions .btn{ width:100%; text-align:center; }
-
     .about .grid, .philosophy .grid{ grid-template-columns:1fr; gap:40px; }
     .stat-row{ grid-template-columns:1fr; }
-    .estate-card{ flex-basis:85%; min-width:0; }
+    .estate-grid{ grid-template-columns:1fr; }
     .why-grid{ grid-template-columns:1fr; }
     .why-grid > .why-item{ padding-left:0 !important; border-left:none !important; }
     .portfolio-head{ flex-direction:column; align-items:flex-start; gap:20px; }
-    .pill-row{ gap:22px; row-gap:14px; }
+    .pill-row{ gap:22px; }
     footer .wrap{ flex-direction:column; text-align:center; }
-
-    .collage{ grid-template-columns:1fr; }
-    .collage .col:first-child{ margin-top:0; }
-    .collage .tall{ aspect-ratio:4/3; }
-
-    .hero-content p{ padding:0 8px; }
-  }
-
-  @media (max-width:520px){
-    .wrap{ padding:0 20px; }
-    .brand .name{ font-size:12px; letter-spacing:2px; }
-    .btn{ padding:11px 18px; font-size:11px; }
-    .hero-cta{ letter-spacing:2px; gap:10px; }
-    .cta-buttons{ flex-direction:column; width:100%; }
-    .cta-buttons .btn{ width:100%; text-align:center; }
-    .stat-card{ padding:40px 24px; }
-    .stat-card .num{ font-size:42px; }
   }
 </style>
 </head>
 <body>
 
-  {{-- NAV --}}
+  <!-- NAV -->
   <nav class="nav">
     <div class="wrap">
       <div class="brand">
-        <div class="mark "style="background-image: url('{{ asset('images/ArkCrest_Logo.png') }}');background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
+        <div class="mark"></div>
         <div class="name">ArkCrest Realty</div>
       </div>
       <div class="nav-links">
-        <a href="{{ url('/') }}" class="active">Home</a>
-        <a href="{{ route('about') }}">About</a>
-        <a href="{{ route('services') }}">Services</a>
-        <a href="{{ route('portfolio') }}">Portfolio</a>
-        <div class="nav-links-mobile-actions">
-          <a href="{{ route('login') }}" class="staff-login-mobile">Staff Login</a>
-          <a href="#inquire" class="btn btn-orange">Inquire Now</a>
-        </div>
+        <a href="#home" class="active">Home</a>
+        <a href="#about">About</a>
+        <a href="#services">Services</a>
+        <a href="#portfolio">Portfolio</a>
       </div>
-      <div class="nav-actions">
-        <a href="{{ route('login') }}" class="staff-login">Staff Login</a>
-        <a href="#inquire" class="btn btn-orange">Inquire Now</a>
-      </div>
+      <a href="#inquire" class="btn btn-orange">Inquire Now</a>
       <div class="mobile-toggle"><span></span><span></span><span></span></div>
     </div>
   </nav>
 
-  {{-- HERO --}}
+  <!-- HERO -->
   <section class="hero" id="home">
-    <div class="hero-photo" style="background-image: url('{{ asset('images/testing-image.jpg') }}');"></div>
+    <div class="ph"><span>Hero background — aerial estate photo, 1600×900+</span></div>
     <div class="hero-content">
       <h1><em>The Standard of</em><span class="line2">Luxury Acquisition.</span></h1>
       <p>Curating high-yield, premium properties across strategic locations. Build your legacy on a foundation of trust and prestige.</p>
@@ -463,9 +374,11 @@
     </div>
   </section>
 
-  {{-- STATS --}}
+  <!-- STATS -->
   <section class="stats">
     <div class="wrap" style="position:relative;">
+      <div class="carousel-arrow left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="carousel-arrow right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
       <div class="section-head">
         <span class="eyebrow on-dark"><span class="rule"></span>Market Authority</span>
         <h2><em>Trusted by</em> Visionary Investors</h2>
@@ -494,11 +407,13 @@
     </div>
   </section>
 
-  {{-- ABOUT / HERITAGE --}}
+  <!-- ABOUT / HERITAGE -->
   <section class="about" id="about">
     <div class="wrap" style="position:relative;">
+      <div class="carousel-arrow left on-light" style="left:-22px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="carousel-arrow right on-light" style="right:-22px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
       <div class="grid">
-        <div class="ph" style="background-image: url('{{ asset('images/Dp-101.png') }}'); background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
+        <div class="ph"><span>Portrait — team / founder photo, 900×675</span></div>
         <div>
           <span class="eyebrow"><span class="rule"></span>Our Heritage</span>
           <h2>Legacy is defined <em>by where you stand.</em></h2>
@@ -509,7 +424,7 @@
     </div>
   </section>
 
-  {{-- PORTFOLIO --}}
+  <!-- PORTFOLIO -->
   <section class="portfolio" id="portfolio">
     <div class="wrap">
       <div class="portfolio-head">
@@ -518,33 +433,31 @@
           <h2><em>Featured</em> Estates</h2>
         </div>
         <div class="portfolio-nav">
-          <div class="carousel-arrow" id="estate-prev" aria-label="Previous estate"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
-          <div class="carousel-arrow" id="estate-next" aria-label="Next estate"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+          <div class="carousel-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
+          <div class="carousel-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
         </div>
       </div>
-      <div class="estate-track">
-        <div class="estate-grid">
-          <div class="estate-card">
-            <div class="ph" style="background-image: url('{{ asset('images/testing-image.jpg') }}');background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
-            <h3>Manggas Estate</h3>
-            <div class="tag">Urban Heritage Reserve</div>
-          </div>
-          <div class="estate-card">
-            <div class="ph"style="background-image: url('{{ asset('images/testing-image.jpg') }}');background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
-            <h3>Mountain View Hills</h3>
-            <div class="tag">Skyline Sanctuary</div>
-          </div>
-          <div class="estate-card">
-            <div class="ph"style="background-image: url('{{ asset('images/testing-image.jpg') }}');background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
-            <h3>Lakeside Estates</h3>
-            <div class="tag">Waterfront Legacy</div>
-          </div>
+      <div class="estate-grid">
+        <div class="estate-card">
+          <div class="ph"><span>Manggas Estate photo, 700×525</span></div>
+          <h3>Manggas Estate</h3>
+          <div class="tag">Urban Heritage Reserve</div>
+        </div>
+        <div class="estate-card">
+          <div class="ph"><span>Mountain View Hills photo, 700×525</span></div>
+          <h3>Mountain View Hills</h3>
+          <div class="tag">Skyline Sanctuary</div>
+        </div>
+        <div class="estate-card">
+          <div class="ph"><span>Lakeside Estates photo, 700×525</span></div>
+          <h3>Lakeside Estates</h3>
+          <div class="tag">Waterfront Legacy</div>
         </div>
       </div>
     </div>
   </section>
 
-  {{-- PHILOSOPHY --}}
+  <!-- PHILOSOPHY -->
   <section class="philosophy">
     <div class="wrap">
       <div class="grid">
@@ -556,18 +469,18 @@
         </div>
         <div class="collage">
           <div class="col">
-            <div class="ph tall"style="background-image: url('{{ asset('images/test-image2.jpg') }}');background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
+            <div class="ph tall"><span>Land sign / property marker photo</span></div>
           </div>
           <div class="col">
-            <div class="ph short "style="background-image: url('{{ asset('images/testing-image3.jpg') }}');background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
-            <div class="ph short "style="background-image: url('{{ asset('images/testing-image.jpg') }}');background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
+            <div class="ph short"><span>Hillside field photo</span></div>
+            <div class="ph short"><span>City skyline photo</span></div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  {{-- DISTINCTION BANNER --}}
+  <!-- DISTINCTION BANNER -->
   <section class="distinction" id="services">
     <div class="ph dark"><span>Wide banner background — hillside estate photo, 1600×700</span></div>
     <div class="distinction-content">
@@ -582,7 +495,7 @@
     </div>
   </section>
 
-  {{-- WHY CHOOSE --}}
+  <!-- WHY CHOOSE -->
   <section class="why">
     <div class="wrap">
       <div class="section-head">
@@ -624,7 +537,7 @@
     </div>
   </section>
 
-  {{-- CTA --}}
+  <!-- CTA -->
   <section class="cta-band" id="inquire">
     <div class="wrap">
       <span class="eyebrow on-dark">Begin Your Legacy</span>
@@ -639,67 +552,27 @@
   <footer>
     <div class="wrap">
       <div class="brand" style="font-size:13px; letter-spacing:2px; text-transform:uppercase; font-weight:700;">ArkCrest Realty</div>
-      <div>&copy; {{ date('Y') }} ArkCrest Realty Corporation. All rights reserved.</div>
+      <div>&copy; 2026 ArkCrest Realty Corporation. All rights reserved.</div>
     </div>
   </footer>
 
   <script>
-    // Mobile nav toggle
+    // Mobile nav toggle (basic show/hide, restyle as needed)
     const toggle = document.querySelector('.mobile-toggle');
     const links = document.querySelector('.nav-links');
-
-    function setMenu(open){
-      links.classList.toggle('open', open);
-      toggle.classList.toggle('open', open);
-      toggle.setAttribute('aria-expanded', open);
-      document.body.style.overflow = open ? 'hidden' : '';
-    }
-
-    toggle.setAttribute('role', 'button');
-    toggle.setAttribute('aria-label', 'Toggle navigation menu');
-    toggle.setAttribute('aria-expanded', 'false');
-
     toggle.addEventListener('click', () => {
-      setMenu(!links.classList.contains('open'));
+      const isOpen = links.style.display === 'flex';
+      links.style.display = isOpen ? 'none' : 'flex';
+      links.style.flexDirection = 'column';
+      links.style.position = 'absolute';
+      links.style.top = '64px';
+      links.style.right = '40px';
+      links.style.background = 'rgba(13,26,43,0.97)';
+      links.style.padding = '20px 28px';
+      links.style.borderRadius = '4px';
+      links.style.gap = '18px';
     });
-
-    links.querySelectorAll('a').forEach(link => {
-      link.addEventListener('click', () => setMenu(false));
-    });
-
-    // Close the menu if the viewport is resized back to desktop width
-    window.addEventListener('resize', () => {
-      if (window.innerWidth > 900) setMenu(false);
-    });
-
-    // Portfolio estate carousel
-    const track = document.querySelector('.estate-track');
-    const prevBtn = document.getElementById('estate-prev');
-    const nextBtn = document.getElementById('estate-next');
-
-    if (track && prevBtn && nextBtn) {
-      const scrollByCard = (direction) => {
-        const card = track.querySelector('.estate-card');
-        const gap = 36;
-        const amount = card ? (card.getBoundingClientRect().width + gap) : track.clientWidth;
-        track.scrollBy({ left: direction * amount, behavior: 'smooth' });
-      };
-
-      const updateArrowState = () => {
-        const maxScroll = track.scrollWidth - track.clientWidth - 2;
-        prevBtn.setAttribute('data-disabled', track.scrollLeft <= 0);
-        nextBtn.setAttribute('data-disabled', track.scrollLeft >= maxScroll);
-      };
-
-      prevBtn.addEventListener('click', () => scrollByCard(-1));
-      nextBtn.addEventListener('click', () => scrollByCard(1));
-      track.addEventListener('scroll', updateArrowState);
-      window.addEventListener('resize', updateArrowState);
-      updateArrowState();
-    }
   </script>
-
-  <script src="{{ asset('js/landing-effects.js') }}"></script>
 
 </body>
 </html>

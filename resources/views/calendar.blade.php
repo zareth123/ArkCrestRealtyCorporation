@@ -122,7 +122,38 @@
     box-shadow:0 1px 3px rgba(0,0,0,.15);
     font-weight:600;background:#059669;color:white;
 }
+.cal-event.cal-event-expense { background:#dc2626; }
 .cal-event:hover { opacity:.85; }
+
+/* Expense status badges — matches departmental-expenses-enhanced.css */
+.status-badge {
+    padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.5px;display:inline-block;
+}
+.status-not-yet-liquidated, .status-not-liquidated {
+    background:linear-gradient(135deg,rgba(239,68,68,.2),rgba(239,68,68,.1));
+    color:#dc2626;border:2px solid #dc2626;
+}
+.status-liquidated {
+    background:linear-gradient(135deg,rgba(34,197,94,.2),rgba(34,197,94,.1));
+    color:#16a34a;border:2px solid #22c55e;
+}
+.status-pending {
+    background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(245,158,11,.1));
+    color:#92400e;border:2px solid #f59e0b;
+}
+.status-rejected {
+    background:linear-gradient(135deg,rgba(107,114,128,.2),rgba(107,114,128,.1));
+    color:#374151;border:2px solid #6b7280;
+}
+
+/* Commission/Sales status badges — matches commission-monitoring.blade.php */
+.cal-status-badge {
+    padding:4px 12px;border-radius:12px;font-size:11px;font-weight:600;
+    text-transform:uppercase;display:inline-block;
+}
+.cal-status-released { background:#dcfce7;color:#166534; }
+.cal-status-pending  { background:#fee2e2;color:#991b1b; }
 .cal-more {
     font-size:9px;color:#94a3b8;text-align:right;
     margin-top:1px;flex-shrink:0;font-weight:600;
@@ -176,36 +207,75 @@
 
     {{-- Calendar Grid / List --}}
     @if($view === 'list')
-    <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e8ecf0;overflow:hidden;flex:1;">
-        @if($releases->isEmpty())
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:#94a3b8;">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:40px;height:40px;margin-bottom:10px;opacity:.4;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            No releases for {{ $monthNames[$month] }} {{ $year }}
-        </div>
-        @else
-        <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-        <table style="width:100%;border-collapse:collapse;min-width:700px;">
-            <thead><tr style="background:linear-gradient(135deg,#0f2a4a,#1e4575);">
-                @foreach(['Date Released','Agent','Client','Project','Net TCP','Commission','Status'] as $h)
-                <th style="padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;">{{ $h }}</th>
+    @php
+        $commissionListRows = $releases->whereIn('_type', ['sales','commission']);
+        $expenseListRows    = $releases->where('_type', 'expense');
+    @endphp
+    <div style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;">
+
+        {{-- Commission Release section --}}
+        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e8ecf0;overflow:hidden;">
+            <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:12px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;">Commission Release</div>
+            @if($commissionListRows->isEmpty())
+            <div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No commission releases for {{ $monthNames[$month] }} {{ $year }}</div>
+            @else
+            <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table style="width:100%;border-collapse:collapse;min-width:700px;">
+                <thead><tr style="background:linear-gradient(135deg,#0f2a4a,#1e4575);">
+                    @foreach(['Date Released','Agent','Client','Project','Net TCP','Commission','Status'] as $h)
+                    <th style="padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;">{{ $h }}</th>
+                    @endforeach
+                </tr></thead>
+                <tbody>
+                @foreach($commissionListRows as $r)
+                <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;" onclick="showEventDetail('{{ $r->_type }}', {{ $r->id }})" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                    <td style="padding:11px 16px;font-size:13px;font-weight:600;color:#059669;white-space:nowrap;">{{ $r->date_released ? $r->date_released->format('M d, Y') : ' ' }}</td>
+                    <td style="padding:11px 16px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->agent_name ?? ' ' }}</td>
+                    <td style="padding:11px 16px;font-size:13px;color:#374151;">{{ $r->client_name ?? ' ' }}</td>
+                    <td style="padding:11px 16px;font-size:13px;color:#374151;">{{ $r->project_name ?? ' ' }}</td>
+                    <td style="padding:11px 16px;font-size:13px;color:#374151;">{{ $r->net_tcp ? '₱'.number_format($r->net_tcp,2) : ' ' }}</td>
+                <td style="padding:11px 16px;font-size:13px;font-weight:700;color:#059669;">{{ $r->commission ? '₱'.number_format($r->commission,2) : ' ' }}</td>
+                    <td style="padding:11px 16px;"><span class="cal-status-badge {{ $r->status === 'Released' ? 'cal-status-released' : 'cal-status-pending' }}">{{ $r->status === 'Not Released' ? 'Not Yet Released' : ($r->status ?? ' ') }}</span></td>
+                </tr>
                 @endforeach
-            </tr></thead>
-            <tbody>
-            @foreach($releases as $r)
-            <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;" onclick="showEventDetail('{{ $r->_type }}', {{ $r->id }})" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
-                <td style="padding:11px 16px;font-size:13px;font-weight:600;color:#059669;white-space:nowrap;">{{ $r->date_released ? $r->date_released->format('M d, Y') : ' ' }}</td>
-                <td style="padding:11px 16px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->agent_name ?? ' ' }}</td>
-                <td style="padding:11px 16px;font-size:13px;color:#374151;">{{ $r->client_name ?? ' ' }}</td>
-                <td style="padding:11px 16px;font-size:13px;color:#374151;">{{ $r->project_name ?? ' ' }}</td>
-                <td style="padding:11px 16px;font-size:13px;color:#374151;">{{ $r->net_tcp ? '?'.number_format($r->net_tcp,2) : ' ' }}</td>
-                <td style="padding:11px 16px;font-size:13px;font-weight:700;color:#059669;">{{ $r->commission ? '?'.number_format($r->commission,2) : ' ' }}</td>
-                <td style="padding:11px 16px;"><span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">{{ $r->status ?? ' ' }}</span></td>
-            </tr>
-            @endforeach
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+            </div>
+            @endif
         </div>
-        @endif
+
+        {{-- Expenses Release Date section --}}
+        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e8ecf0;overflow:hidden;">
+            <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:12px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;">Expenses Release Date</div>
+            @if($expenseListRows->isEmpty())
+            <div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No expense releases for {{ $monthNames[$month] }} {{ $year }}</div>
+            @else
+            <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table style="width:100%;border-collapse:collapse;min-width:700px;">
+                <thead><tr style="background:linear-gradient(135deg,#7f1d1d,#dc2626);">
+                    @foreach(['Date Released','Requestor Name','Department','Category','Requested Amount','Status'] as $h)
+                    <th style="padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;">{{ $h }}</th>
+                    @endforeach
+                </tr></thead>
+                <tbody>
+                @foreach($expenseListRows as $r)
+                <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;" onclick="showEventDetail('{{ $r->_type }}', {{ $r->id }})" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                    <td style="padding:11px 16px;font-size:13px;font-weight:600;color:#dc2626;white-space:nowrap;">{{ $r->date_released ? $r->date_released->format('M d, Y') : ' ' }}</td>
+                    <td style="padding:11px 16px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->requestor_name ?? ' ' }}</td>
+                    <td style="padding:11px 16px;font-size:13px;color:#374151;">{{ $r->department ?? ' ' }}</td>
+                    <td style="padding:11px 16px;font-size:13px;color:#374151;">{{ $r->category ?? ' ' }}</td>
+                    <td style="padding:11px 16px;font-size:13px;font-weight:700;color:#dc2626;">{{ $r->requested_amount ? '₱'.number_format($r->requested_amount,2) : ' ' }}</td>
+                    <td style="padding:11px 16px;"><span class="status-badge status-{{ strtolower(str_replace(' ', '-', $r->status ?? '')) }}">{{ $r->status ?? ' ' }}</span></td>
+                </tr>
+                @endforeach
+                </tbody>
+            </table>
+            </div>
+            @endif
+        </div>
+
+        {{-- Cash Advance section placeholder — added once Cash Advance data is wired in --}}
+
     </div>
     @else
     <div class="cal-grid-wrap">
@@ -231,8 +301,8 @@
             <div class="cal-cell {{ $cls }}">
                 <span class="cal-day-num">{{ $day }}</span>
                 @foreach($events->take(2) as $event)
-                <div class="cal-event" onclick="showEventDetail('{{ $event->_type }}', {{ $event->id }})" title="{{ $event->client_name }}">
-                    {{ $event->client_name }}
+                <div class="cal-event {{ $event->_type === 'expense' ? 'cal-event-expense' : '' }}" onclick="showEventDetail('{{ $event->_type }}', {{ $event->id }})" title="{{ $event->_type === 'expense' ? $event->requestor_name : $event->client_name }}">
+                    {{ $event->_type === 'expense' ? $event->requestor_name : $event->client_name }}
                 </div>
                 @endforeach
                 @if($events->count() > 2)
@@ -288,20 +358,31 @@ function showEventDetail(type, id) {
     if (!ev) return;
     const fmt = v => v ? '\u20B1' + parseFloat(v).toLocaleString('en-US',{minimumFractionDigits:2}) : ' ';
     const fmtDate = v => { if(!v) return ' '; try { return new Date(v).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}); } catch(e){ return v; } };
-    document.getElementById('calModalTitle').textContent = ev.client_name || ' ';
+
+    const isExpense = type === 'expense';
+    const rows = isExpense ? [
+        ['Date Released', fmtDate(ev.date_released), false],
+        ['Requestor Name', ev.requestor_name||' ', false],
+        ['Department', ev.department||' ', false],
+        ['Category', ev.category||' ', false],
+        ['Requested Amount', fmt(ev.requested_amount), true],
+        ['Status', ev.status||' ', false],
+    ] : [
+        ['Date Released', fmtDate(ev.date_released), false],
+        ['Agent', ev.agent_name||' ', false],
+        ['Project', ev.project_name||' ', false],
+        ['Net TCP', fmt(ev.net_tcp), false],
+        ['Commission', fmt(ev.commission), true],
+        ['Status', ev.status||' ', false],
+    ];
+
+    document.getElementById('calModalTitle').textContent = (isExpense ? ev.requestor_name : ev.client_name) || ' ';
     document.getElementById('calEventBody').innerHTML = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            ${[
-                ['Date Released', fmtDate(ev.date_released), false],
-                ['Agent', ev.agent_name||' ', false],
-                ['Project', ev.project_name||' ', false],
-                ['Net TCP', fmt(ev.net_tcp), false],
-                ['Commission', fmt(ev.commission), true],
-                ['Status', ev.status||' ', false],
-            ].map(([lbl,val,highlight]) => `
+            ${rows.map(([lbl,val,highlight]) => `
                 <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;border:1px solid #f1f5f9;">
                     <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${lbl}</div>
-                    <div style="font-size:13px;font-weight:${highlight?'700':'600'};color:${highlight?'#059669':'#1e293b'};">${val}</div>
+                    <div style="font-size:13px;font-weight:${highlight?'700':'600'};color:${highlight?(isExpense?'#dc2626':'#059669'):'#1e293b'};">${val}</div>
                 </div>
             `).join('')}
         </div>`;
@@ -313,16 +394,21 @@ function showDayEvents(dateStr) {
     const fmt = v => v ? '\u20B1' + parseFloat(v).toLocaleString('en-US',{minimumFractionDigits:2}) : ' ';
     const dt = new Date(dateStr + 'T00:00:00');
     document.getElementById('calDayModalTitle').textContent = dt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-    document.getElementById('calDayModalBody').innerHTML = dayEvents.map(ev => `
+    document.getElementById('calDayModalBody').innerHTML = dayEvents.map(ev => {
+        const isExpense = ev._type === 'expense';
+        const title = isExpense ? (ev.requestor_name || ' ') : (ev.client_name || ' ');
+        const subtitle = isExpense ? (ev.department || ' ') : (ev.agent_name || ' ');
+        const amount = isExpense ? fmt(ev.requested_amount) : fmt(ev.commission);
+        return `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px;cursor:pointer;"
              onclick="document.getElementById('calDayModal').style.display='none';showEventDetail('${ev._type}', ${ev.id})">
             <div>
-                <div style="font-size:13px;font-weight:700;color:#1e293b;">${ev.client_name || ' '}</div>
-                <div style="font-size:11px;color:#94a3b8;">${ev.agent_name || ' '}</div>
+                <div style="font-size:13px;font-weight:700;color:#1e293b;">${title}</div>
+                <div style="font-size:11px;color:#94a3b8;">${subtitle}</div>
             </div>
-            <div style="font-size:12px;font-weight:700;color:#059669;">${fmt(ev.commission)}</div>
-        </div>
-    `).join('') || '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:20px;">No releases found.</div>';
+            <div style="font-size:12px;font-weight:700;color:${isExpense ? '#dc2626' : '#059669'};">${amount}</div>
+        </div>`;
+    }).join('') || '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:20px;">No releases found.</div>';
     document.getElementById('calDayModal').style.display = 'flex';
 }
 </script>

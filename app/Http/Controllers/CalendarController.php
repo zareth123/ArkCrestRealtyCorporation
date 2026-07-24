@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\CommissionRequest;
 use App\Models\CommissionRequestSales;
+use App\Models\DepartmentalExpense;
 use App\Models\TripSchedule;
 
 class CalendarController extends Controller
@@ -115,7 +116,13 @@ class CalendarController extends Controller
             ->get()
             ->each(fn($r) => $r->_type = 'commission');
 
-        $releases = $clientReleases->merge($commissionReleases)->sortBy('date_released');
+        $expenseReleases = DepartmentalExpense::whereNotNull('date_released')
+            ->whereYear('date_released', $year)
+            ->whereMonth('date_released', $month)
+            ->get()
+            ->each(fn($r) => $r->_type = 'expense');
+
+        $releases = $clientReleases->merge($commissionReleases)->merge($expenseReleases)->sortBy('date_released');
 
         $releasesByDay = $releases->groupBy(fn($r) => $r->date_released->day);
 
@@ -129,7 +136,12 @@ class CalendarController extends Controller
             ->distinct()
             ->pluck('year');
 
-        $availableYears = $clientYears->merge($commissionYears)->unique()->sortDesc()->values();
+        $expenseYears = DepartmentalExpense::whereNotNull('date_released')
+            ->selectRaw('YEAR(date_released) as year')
+            ->distinct()
+            ->pluck('year');
+
+        $availableYears = $clientYears->merge($commissionYears)->merge($expenseYears)->unique()->sortDesc()->values();
 
         if (!$availableYears->contains((int)$year)) {
             $availableYears->prepend((int)$year);
