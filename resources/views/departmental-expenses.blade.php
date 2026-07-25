@@ -218,35 +218,43 @@
                 <h4 class="section-label">Release & Liquidation Details</h4>
                 <div class="form-row-inline">
                     <div class="form-group">
-                        <label>Status <span class="required">*</span></label>
-                            <select id="status" name="status" class="form-control" required>
-                            <option value="PENDING">PENDING</option>
-                            <option value="NOT YET LIQUIDATED">NOT YET LIQUIDATED</option>
-                            <option value="LIQUIDATED">LIQUIDATED</option>
+                        <label>Release Status <span class="required">*</span></label>
+                        <select id="release_status" name="release_status" class="form-control" required>
+                            <option value="NOT YET RELEASED">NOT YET RELEASED</option>
+                            <option value="RELEASED">RELEASED</option>
                             <option value="REJECTED">REJECTED</option>
                         </select>
                     </div>
 
                     <div class="form-group">
+                        <label>Liquidation Status <span class="required">*</span></label>
+                        <select id="status" name="status" class="form-control" required>
+                            <option value="NOT YET LIQUIDATED">NOT YET LIQUIDATED</option>
+                            <option value="LIQUIDATED">LIQUIDATED</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label>Date Released</label>
-                        <input type="date" id="date_released" name="date_released" class="form-control">
+                        <input type="date" id="date_released" name="date_released" class="form-control" disabled>
                     </div>
 
                     <div class="form-group">
                         <label>Total Expenses</label>
-                        <input type="text" id="total_expenses" name="total_expenses" class="form-control" placeholder="0.00" inputmode="decimal">
+                        <input type="text" id="total_expenses" name="total_expenses" class="form-control" placeholder="Complete liquidation form" inputmode="decimal" disabled>
                     </div>
 
                     <div class="form-group">
                         <label>Amount Returned</label>
-                        <input type="text" id="amount_returned" name="amount_returned" class="form-control" placeholder="0.00" inputmode="decimal" readonly style="background-color: #f4f6f8;">
+                        <input type="text" id="amount_returned" name="amount_returned" class="form-control" placeholder="0.00" inputmode="decimal" readonly disabled style="background-color: #f4f6f8;">
                     </div>
 
                     <div class="form-group">
                         <label>Date of Amount Returned</label>
-                        <input type="date" id="date_of_amount_returned" name="date_of_amount_returned" class="form-control">
+                        <input type="date" id="date_of_amount_returned" name="date_of_amount_returned" class="form-control" disabled>
                     </div>
                 </div>
+                <small style="display:block;color:#6b7280;margin-top:8px;">Release the request first. Selecting LIQUIDATED opens the required liquidation form.</small>
             </div>
 
             <div class="form-actions-right">
@@ -303,10 +311,11 @@
                         <th style="min-width: 150px;">Control Number</th>
                         <th style="min-width: 180px;">Requestor Name</th>
                         <th style="min-width: 180px;">Department</th>
+                        <th style="min-width: 180px;">Release Status</th>
+                        <th style="min-width: 190px;">Liquidation Status</th>
                         <th style="min-width: 200px;">Category</th>
                         <th style="min-width: 150px;">Date Requested</th>
                         <th style="min-width: 150px;">Requested Amount</th>
-                        <th style="min-width: 180px;">Status</th>
                         <th style="min-width: 150px;">Date Released</th>
                         <th style="min-width: 150px;">Total Expenses</th>
                         <th style="min-width: 150px;">Amount Returned</th>
@@ -316,15 +325,41 @@
                 </thead>
                 <tbody id="requestsTableBody">
                     @foreach($requests as $req)
-                    <tr id="expense-{{ $req->id }}" data-id="{{ $req->id }}" data-department="{{ $req->department }}" data-date-requested="{{ $req->date_requested ? $req->date_requested->format('Y-m-d') : '' }}" data-date-released="{{ $req->date_released ? $req->date_released->format('Y-m-d') : '' }}" data-control="{{ $req->control_number }}" data-requestor="{{ $req->requestor_name }}" data-category="{{ $req->category }}" data-status="{{ $req->status }}" data-requested-amount="{{ $req->requested_amount }}" data-total-expenses="{{ $req->total_expenses }}" data-amount-returned="{{ $req->amount_returned }}" data-date-returned="{{ $req->date_of_amount_returned ? $req->date_of_amount_returned->format('Y-m-d') : '' }}" data-date-added="{{ $req->created_at?->timestamp }}" data-date-modified="{{ $req->updated_at?->timestamp }}">
+                    <tr id="expense-{{ $req->id }}" data-id="{{ $req->id }}" data-finalized="0" data-department="{{ $req->department }}" data-date-requested="{{ $req->date_requested ? $req->date_requested->format('Y-m-d') : '' }}" data-date-released="{{ $req->date_released ? $req->date_released->format('Y-m-d') : '' }}" data-control="{{ $req->control_number }}" data-requestor="{{ $req->requestor_name }}" data-category="{{ $req->category }}" data-release-status="{{ $req->release_status }}" data-liquidation-status="{{ $req->status }}" data-status="{{ $req->status }}" data-requested-amount="{{ $req->requested_amount }}" data-total-expenses="{{ $req->total_expenses }}" data-amount-returned="{{ $req->amount_returned }}" data-date-returned="{{ $req->date_of_amount_returned ? $req->date_of_amount_returned->format('Y-m-d') : '' }}" data-date-added="{{ $req->created_at?->timestamp }}" data-date-modified="{{ $req->updated_at?->timestamp }}">
                         <td><input type="checkbox" class="row-select-checkbox" value="{{ $req->id }}"></td>
                         <td>{{ $req->control_number }}</td>
                         <td>{{ $req->requestor_name }}</td>
                         <td class="department-cell">{{ $req->department }}</td>
+                        <td class="inline-status-cell">
+                            <select
+                                id="releaseStatusSelect_{{ $req->id }}"
+                                class="inline-status-select inline-release-status"
+                                data-current="{{ $req->release_status }}"
+                                data-status="{{ $req->release_status }}"
+                                aria-label="Release status for {{ $req->control_number }}"
+                                title="Click to change release status"
+                                onchange="handleInlineReleaseStatusChange(this, {{ $req->id }})">
+                                <option value="NOT YET RELEASED" {{ $req->release_status === 'NOT YET RELEASED' ? 'selected' : '' }}>NOT YET RELEASED</option>
+                                <option value="RELEASED" {{ $req->release_status === 'RELEASED' ? 'selected' : '' }}>RELEASED</option>
+                                <option value="REJECTED" {{ $req->release_status === 'REJECTED' ? 'selected' : '' }}>REJECTED</option>
+                            </select>
+                        </td>
+                        <td class="inline-status-cell">
+                            <select
+                                id="liquidationStatusSelect_{{ $req->id }}"
+                                class="inline-status-select inline-liquidation-status"
+                                data-current="{{ $req->status }}"
+                                data-status="{{ $req->status }}"
+                                aria-label="Liquidation status for {{ $req->control_number }}"
+                                title="Click to change liquidation status"
+                                onchange="handleInlineLiquidationStatusChange(this, {{ $req->id }})">
+                                <option value="NOT YET LIQUIDATED" {{ $req->status === 'NOT YET LIQUIDATED' ? 'selected' : '' }}>NOT YET LIQUIDATED</option>
+                                <option value="LIQUIDATED" {{ $req->status === 'LIQUIDATED' ? 'selected' : '' }}>LIQUIDATED</option>
+                            </select>
+                        </td>
                         <td>{{ $req->category }}</td>
                         <td>{{ $req->date_requested ? $req->date_requested->format('m/d/Y') : '-' }}</td>
                         <td>₱ {{ number_format($req->requested_amount, 2) }}</td>
-                        <td><span class="status-badge status-{{ strtolower(str_replace(' ', '-', $req->status)) }}">{{ $req->status }}</span></td>
                         <td>{{ $req->date_released ? $req->date_released->format('m/d/Y') : '-' }}</td>
                         <td>{{ $req->total_expenses ? '₱ ' . number_format($req->total_expenses, 2) : '-' }}</td>
                         <td>{{ $req->amount_returned ? '₱ ' . number_format($req->amount_returned, 2) : '-' }}</td>
@@ -333,7 +368,7 @@
                             <div class="action-buttons">
                                 <button onclick="viewRequest({{ $req->id }})" class="btn-action btn-view">View</button>
                                 <a href="{{ route('departmental-expenses.view-form', $req->id) }}" target="_blank" class="btn-action btn-view" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;" title="View & print the original Budget Request Form">Form</a>
-                                <button onclick="editRequest({{ $req->id }})" class="btn-action btn-edit">Edit</button>
+                                <button type="button" onclick="editRequest({{ $req->id }})" class="btn-action btn-edit" data-edit-expense>Edit</button>
                                 <button onclick="deleteRequest({{ $req->id }})" class="btn-action btn-delete">Delete</button>
                             </div>
                         </td>
@@ -436,6 +471,90 @@
         justify-content: center !important;
     }
 
+}
+
+/* Separate Release Status badge colors */
+.status-not-yet-released {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+    color: #92400e;
+    border: 2px solid #f59e0b;
+}
+.status-released {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(37, 99, 235, 0.08));
+    color: #1d4ed8;
+    border: 2px solid #3b82f6;
+}
+.release-status-badge.status-rejected {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(239, 68, 68, 0.08));
+    color: #b91c1c;
+    border: 2px solid #ef4444;
+}
+
+/* One-click status controls inside the expenses table */
+.inline-status-cell {
+    text-align: center;
+    overflow: visible;
+}
+.inline-status-select {
+    width: 100%;
+    min-width: 150px;
+    max-width: 185px;
+    padding: 7px 28px 7px 12px;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    outline: none;
+    transition: box-shadow .15s ease, opacity .15s ease, transform .1s ease;
+}
+.inline-status-select:hover {
+    box-shadow: 0 3px 10px rgba(15, 23, 42, .14);
+}
+.inline-status-select:focus {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .18);
+}
+.inline-status-select.is-saving {
+    cursor: wait;
+    opacity: .65;
+}
+.inline-status-select:disabled {
+    opacity: .8;
+    cursor: not-allowed;
+    background-image: none;
+}
+.btn-finalized-lock,
+.btn-finalized-lock:disabled {
+    opacity: .72;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+.inline-release-status[data-status="NOT YET RELEASED"] {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #f59e0b;
+}
+.inline-release-status[data-status="RELEASED"] {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border-color: #3b82f6;
+}
+.inline-release-status[data-status="REJECTED"] {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #ef4444;
+}
+.inline-liquidation-status[data-status="NOT YET LIQUIDATED"] {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #ef4444;
+}
+.inline-liquidation-status[data-status="LIQUIDATED"] {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #22c55e;
 }
 
 /* Column Filter (per-field filter dropdown) */
@@ -799,12 +918,19 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Status <span class="required">*</span></label>
+                    <label>Release Status <span class="required">*</span></label>
+                    <select id="edit_release_status" name="release_status" class="form-control form-control-sm" required>
+                        <option value="NOT YET RELEASED">NOT YET RELEASED</option>
+                        <option value="RELEASED">RELEASED</option>
+                        <option value="REJECTED">REJECTED</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Liquidation Status <span class="required">*</span></label>
                     <select id="edit_status" name="status" class="form-control form-control-sm" required>
-                        <option value="PENDING">PENDING</option>
                         <option value="NOT YET LIQUIDATED">NOT YET LIQUIDATED</option>
                         <option value="LIQUIDATED">LIQUIDATED</option>
-                        <option value="REJECTED">REJECTED</option>
                     </select>
                 </div>
 
@@ -840,13 +966,14 @@
 <div id="liquidationUpdateModal" class="modal">
     <div class="modal-content modal-compact">
         <div class="modal-header">
-            <h3>UPDATE RECORD</h3>
+            <h3>Complete Liquidation Form</h3>
             <span class="close" onclick="cancelLiquidationModal()">&times;</span>
         </div>
         <form id="liquidationUpdateForm" class="request-form modal-form">
             <input type="hidden" id="liq_source">
             <input type="hidden" id="liq_id">
             <input type="hidden" id="liq_control_number">
+            <input type="hidden" id="liq_date_released">
 
             <!-- Request Information Section (auto-filled from the budget request form, read-only) -->
             <div class="form-section">
@@ -877,18 +1004,10 @@
                 </div>
             </div>
 
-            <!-- Release & Liquidation Section (left blank for the user to fill in now) -->
+            <!-- Required liquidation fields -->
             <div class="form-section">
-                <h4 class="section-label">Release & Liquidation Details</h4>
+                <h4 class="section-label">Liquidation Details</h4>
                 <div class="form-row-inline">
-                    <div class="form-group">
-                        <label>Status</label>
-                        <input type="text" id="liq_status_display" class="form-control" value="LIQUIDATED" readonly style="background-color: #f4f6f8;">
-                    </div>
-                    <div class="form-group">
-                        <label>Date Released <span class="required" style="color:#ef4444;">*</span></label>
-                        <input type="date" id="liq_date_released" class="form-control" required>
-                    </div>
                     <div class="form-group">
                         <label>Total Expenses <span class="required" style="color:#ef4444;">*</span></label>
                         <input type="text" id="liq_total_expenses" class="form-control" placeholder="0.00" inputmode="decimal" required>
@@ -898,15 +1017,16 @@
                         <input type="text" id="liq_amount_returned" class="form-control" placeholder="0.00" inputmode="decimal" readonly style="background-color: #f4f6f8;">
                     </div>
                     <div class="form-group">
-                        <label>Date of Amount Returned</label>
+                        <label>Date of Amount Returned <span id="liq_date_returned_required" class="required" style="color:#ef4444;display:none;">*</span></label>
                         <input type="date" id="liq_date_of_amount_returned" class="form-control">
+                        <small id="liq_date_returned_help" style="display:block;color:#6b7280;margin-top:5px;">Required only when there is an amount to return.</small>
                     </div>
                 </div>
             </div>
 
             <div class="form-actions-right" style="margin-top: 20px; gap: 10px; display: flex; justify-content: flex-end;">
                 <button type="button" onclick="cancelLiquidationModal()" style="padding: 10px 20px; background: #f4f6f8; color: #565651; border: 1px solid #dfe3e8; border-radius: 6px; font-weight: 600; cursor: pointer;">Cancel</button>
-                <button type="submit" class="btn-submit">Update</button>
+                <button type="submit" class="btn-submit">Save Liquidation</button>
             </div>
         </form>
     </div>
@@ -961,7 +1081,12 @@
                 </div>
 
                 <div class="de-modal-field">
-                    <label>Status</label>
+                    <label>Release Status</label>
+                    <div class="de-field-value" id="view_release_status">-</div>
+                </div>
+
+                <div class="de-modal-field">
+                    <label>Liquidation Status</label>
                     <div class="de-field-value" id="view_status">-</div>
                 </div>
 
@@ -1364,35 +1489,278 @@ function addCommaFormatting(inputId) {
  'edit_requested_amount','edit_total_expenses','edit_amount_returned',
  'liq_requested_amount','liq_total_expenses','liq_amount_returned'].forEach(addCommaFormatting);
 
-// ---- Liquidation "UPDATE RECORD" popup ----
-// Triggered whenever the Status field (on the Add New Expenses form, or the
-// Edit Request modal) is switched to LIQUIDATED. Shows a popup mirroring the
-// Add New Expenses "Request Information" fields (auto-filled and locked,
-// since they come from the original budget request form) plus the
-// Release & Liquidation fields, which are left blank for the user to fill
-// in now.
-// ---- Lock the Release & Liquidation fields (Date Released, Total Expenses,
-// Amount Returned, Date of Amount Returned) unless Status is LIQUIDATED.
-// These are only ever meant to be filled in through the "UPDATE RECORD"
-// popup, so outside of an already-liquidated record they stay blank and
-// non-editable here. ----
-function syncLiquidationFieldsState(prefix) {
-    const statusEl = document.getElementById(prefix + 'status');
-    const isLiquidated = !!statusEl && statusEl.value === 'LIQUIDATED';
-    ['date_released', 'total_expenses', 'amount_returned', 'date_of_amount_returned'].forEach(function(field) {
+// ---- Release and liquidation workflow ----
+// Release Status is handled independently from Liquidation Status. A request
+// must be RELEASED before LIQUIDATED can be selected. Selecting LIQUIDATED
+// opens the required liquidation form.
+function syncWorkflowFieldsState(prefix) {
+    const releaseEl = document.getElementById(prefix + 'release_status');
+    const liquidationEl = document.getElementById(prefix + 'status');
+    if (!releaseEl || !liquidationEl) return;
+
+    const isReleased = releaseEl.value === 'RELEASED';
+    const isRejected = releaseEl.value === 'REJECTED';
+    const dateReleasedEl = document.getElementById(prefix + 'date_released');
+
+    liquidationEl.disabled = !isReleased;
+    if (!isReleased) {
+        liquidationEl.value = 'NOT YET LIQUIDATED';
+    }
+
+    if (dateReleasedEl) {
+        dateReleasedEl.disabled = !isReleased;
+        if (!isReleased) dateReleasedEl.value = '';
+    }
+
+    const isLiquidated = isReleased && liquidationEl.value === 'LIQUIDATED';
+    ['total_expenses', 'amount_returned', 'date_of_amount_returned'].forEach(function(field) {
         const el = document.getElementById(prefix + field);
         if (!el) return;
-        if (isLiquidated) {
-            el.disabled = false;
-        } else {
-            el.value = '';
-            el.disabled = true;
+        el.disabled = !isLiquidated;
+        if (!isLiquidated) el.value = '';
+    });
+
+    if (isRejected) {
+        liquidationEl.title = 'Rejected requests cannot be liquidated.';
+    } else if (!isReleased) {
+        liquidationEl.title = 'Set Release Status to RELEASED first.';
+    } else {
+        liquidationEl.title = '';
+    }
+}
+
+let addStatusPrevValue = 'NOT YET LIQUIDATED';
+let editStatusPrevValue = 'NOT YET LIQUIDATED';
+
+function normalizeDateInput(value) {
+    if (!value) return '';
+    const text = String(value);
+    return text.length >= 10 ? text.substring(0, 10) : text;
+}
+
+function formatTableDate(value) {
+    const normalized = normalizeDateInput(value);
+    if (!normalized) return '-';
+    const parts = normalized.split('-');
+    if (parts.length !== 3) return normalized;
+    return `${parts[1]}/${parts[2]}/${parts[0]}`;
+}
+
+function formatTableMoney(value) {
+    if (value === null || value === undefined || value === '') return '-';
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '-';
+    return '₱ ' + number.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function isExpenseRowFinalized(row) {
+    // Released and liquidated records remain editable. Destructive reversals
+    // are protected by strict confirmation dialogs instead of a hard lock.
+    return false;
+}
+
+function syncFinalizedExpenseRow(row) {
+    if (!row) return;
+
+    row.dataset.finalized = '0';
+
+    const releaseSelect = row.querySelector('.inline-release-status');
+    const liquidationSelect = row.querySelector('.inline-liquidation-status');
+    if (releaseSelect) {
+        releaseSelect.disabled = false;
+        releaseSelect.title = 'Click to change release status';
+    }
+    if (liquidationSelect) {
+        liquidationSelect.disabled = false;
+        liquidationSelect.title = 'Click to change liquidation status';
+    }
+
+    const editButton = row.querySelector('[data-edit-expense]');
+    if (editButton) {
+        editButton.disabled = false;
+        editButton.textContent = 'Edit';
+        editButton.title = 'Edit this expense request';
+        editButton.classList.remove('btn-finalized-lock');
+        if (!editButton.getAttribute('onclick')) {
+            editButton.setAttribute('onclick', 'editRequest(' + row.dataset.id + ')');
         }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('#requestsTableBody tr[data-id]').forEach(function(row) {
+        syncFinalizedExpenseRow(row);
+    });
+});
+
+function setInlineStatusSelectStyle(select, status) {
+    if (!select) return;
+    select.value = status;
+    select.dataset.current = status;
+    select.dataset.status = status;
+}
+
+function createStatusBadge(status, kind) {
+    const badge = document.createElement('span');
+    badge.className = 'status-badge ' + (kind === 'release' ? 'release-status-badge ' : '')
+        + 'status-' + String(status || '').toLowerCase().replace(/\s+/g, '-');
+    badge.textContent = status || '-';
+    return badge;
+}
+
+function applyExpenseRowData(row, data) {
+    if (!row || !data) return;
+
+    const releaseStatus = data.release_status || row.dataset.releaseStatus || 'NOT YET RELEASED';
+    const liquidationStatus = data.status || row.dataset.liquidationStatus || 'NOT YET LIQUIDATED';
+    const dateReleased = normalizeDateInput(data.date_released);
+    const dateReturned = normalizeDateInput(data.date_of_amount_returned);
+
+    row.dataset.releaseStatus = releaseStatus;
+    row.dataset.liquidationStatus = liquidationStatus;
+    row.dataset.status = liquidationStatus;
+    row.dataset.dateReleased = dateReleased;
+    row.dataset.totalExpenses = data.total_expenses ?? '';
+    row.dataset.amountReturned = data.amount_returned ?? '';
+    row.dataset.dateReturned = dateReturned;
+    if (data.updated_at) {
+        row.dataset.dateModified = Math.floor(new Date(data.updated_at).getTime() / 1000) || row.dataset.dateModified;
+    }
+
+    setInlineStatusSelectStyle(row.querySelector('.inline-release-status'), releaseStatus);
+    setInlineStatusSelectStyle(row.querySelector('.inline-liquidation-status'), liquidationStatus);
+    syncFinalizedExpenseRow(row);
+
+    const cells = row.cells;
+    if (cells[9]) cells[9].textContent = formatTableDate(dateReleased);
+    if (cells[10]) cells[10].textContent = formatTableMoney(data.total_expenses);
+    if (cells[11]) cells[11].textContent = formatTableMoney(data.amount_returned);
+    if (cells[12]) cells[12].textContent = formatTableDate(dateReturned);
+
+    if (typeof applyFilters === 'function') applyFilters();
+}
+
+function requestInlineStatusUpdate(select, url, payload, successTitle) {
+    const previous = select.dataset.current;
+    select.dataset.status = select.value;
+    select.disabled = true;
+    select.classList.add('is-saving');
+
+    return fetch(url, {
+        method: 'PATCH',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(async response => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Unable to update the status.');
+        }
+        return result;
+    })
+    .then(result => {
+        const row = select.closest('tr');
+        applyExpenseRowData(row, result.data);
+        showToast('success', successTitle, result.message || 'Status updated successfully.');
+        return result;
+    })
+    .catch(error => {
+        setInlineStatusSelectStyle(select, previous);
+        showToast('error', 'Update Failed', error.message || 'Unable to update the status.');
+        throw error;
+    })
+    .finally(() => {
+        select.disabled = false;
+        select.classList.remove('is-saving');
     });
 }
 
-let addStatusPrevValue = document.getElementById('status') ? document.getElementById('status').value : 'PENDING';
-let editStatusPrevValue = 'PENDING';
+function handleInlineReleaseStatusChange(select, id) {
+    const row = select.closest('tr');
+    const previous = select.dataset.current || row.dataset.releaseStatus || 'NOT YET RELEASED';
+    const selected = select.value;
+
+    if (selected === previous) return;
+
+    // Keep the saved value visible until the user confirms the change.
+    setInlineStatusSelectStyle(select, previous);
+
+    const erasesLiquidation = row
+        && row.dataset.liquidationStatus === 'LIQUIDATED'
+        && selected !== 'RELEASED';
+
+    const message = erasesLiquidation
+        ? 'WARNING: Changing Release Status from RELEASED to ' + selected
+            + ' will also change Liquidation Status to NOT YET LIQUIDATED and permanently erase the saved Total Expenses, Amount Returned, and Date of Amount Returned. Continue?'
+        : 'Change Release Status from ' + previous + ' to ' + selected + '?';
+
+    const title = erasesLiquidation ? 'Erase Liquidation Data?' : 'Confirm Release Status';
+
+    showConfirm(message, function() {
+        select.value = selected;
+        requestInlineStatusUpdate(
+            select,
+            `/api/departmental-expenses/${id}/release-status`,
+            { release_status: selected },
+            'Release Status Updated'
+        ).catch(() => {});
+    }, title);
+}
+
+function handleInlineLiquidationStatusChange(select, id) {
+    const selected = select.value;
+    const previous = select.dataset.current || 'NOT YET LIQUIDATED';
+    const row = select.closest('tr');
+
+    if (selected === previous) return;
+
+    // Keep the saved value visible until the action is confirmed/completed.
+    setInlineStatusSelectStyle(select, previous);
+
+    if (selected === 'LIQUIDATED') {
+        if (!row || row.dataset.releaseStatus !== 'RELEASED' || !row.dataset.dateReleased) {
+            showToast('warning', 'Release Required', 'Set Release Status to RELEASED before completing liquidation.');
+            return;
+        }
+
+        // The status is only changed after the required form is completed and
+        // its final confirmation popup is accepted.
+        openLiquidationModal({
+            source: 'inline',
+            id: id,
+            control_number: row.dataset.control || '',
+            requestor_name: row.dataset.requestor || '',
+            department: row.dataset.department || '',
+            category: row.dataset.category || '',
+            date_requested: row.dataset.dateRequested || '',
+            requested_amount: row.dataset.requestedAmount || '',
+            date_released: row.dataset.dateReleased || '',
+            total_expenses: row.dataset.totalExpenses || '',
+            amount_returned: row.dataset.amountReturned || '',
+            date_of_amount_returned: row.dataset.dateReturned || ''
+        });
+        return;
+    }
+
+    const erasesLiquidation = previous === 'LIQUIDATED';
+    const message = erasesLiquidation
+        ? 'WARNING: Changing Liquidation Status to NOT YET LIQUIDATED will permanently erase the saved Total Expenses, Amount Returned, and Date of Amount Returned. Continue?'
+        : 'Change Liquidation Status from ' + previous + ' to NOT YET LIQUIDATED?';
+
+    showConfirm(message, function() {
+        select.value = 'NOT YET LIQUIDATED';
+        requestInlineStatusUpdate(
+            select,
+            `/api/departmental-expenses/${id}/liquidation-status`,
+            { status: 'NOT YET LIQUIDATED' },
+            'Liquidation Status Updated'
+        ).catch(() => {});
+    }, erasesLiquidation ? 'Erase Liquidation Data?' : 'Confirm Liquidation Status');
+}
 
 function openLiquidationModal(data) {
     document.getElementById('liq_source').value = data.source;
@@ -1401,14 +1769,13 @@ function openLiquidationModal(data) {
     document.getElementById('liq_requestor_name').value = data.requestor_name || '';
     document.getElementById('liq_department').value = data.department || '';
     document.getElementById('liq_category').value = data.category || '';
-    document.getElementById('liq_date_requested').value = data.date_requested || '';
+    document.getElementById('liq_date_requested').value = normalizeDateInput(data.date_requested);
     document.getElementById('liq_requested_amount').value = data.requested_amount || '';
-
-    // These are intentionally left blank so the user fills them in now.
-    document.getElementById('liq_date_released').value = '';
-    document.getElementById('liq_total_expenses').value = '';
-    document.getElementById('liq_amount_returned').value = '';
-    document.getElementById('liq_date_of_amount_returned').value = '';
+    document.getElementById('liq_date_released').value = normalizeDateInput(data.date_released);
+    document.getElementById('liq_total_expenses').value = data.total_expenses || '';
+    document.getElementById('liq_amount_returned').value = data.amount_returned || '';
+    document.getElementById('liq_date_of_amount_returned').value = normalizeDateInput(data.date_of_amount_returned);
+    calculateLiquidationAmountReturned();
 
     if (data.source === 'edit') {
         document.getElementById('editModal').style.display = 'none';
@@ -1419,70 +1786,176 @@ function openLiquidationModal(data) {
 
 function cancelLiquidationModal() {
     const source = document.getElementById('liq_source').value;
+    const id = document.getElementById('liq_id').value;
     document.getElementById('liquidationUpdateModal').style.display = 'none';
 
     if (source === 'edit') {
-        document.getElementById('edit_status').value = editStatusPrevValue;
-        syncLiquidationFieldsState('edit_');
+        const editStatus = document.getElementById('edit_status');
+        editStatus.value = editStatusPrevValue;
+        editStatus.dataset.current = editStatusPrevValue;
+        syncWorkflowFieldsState('edit_');
         document.getElementById('editModal').style.display = 'block';
     } else if (source === 'add') {
-        const statusEl = document.getElementById('status');
-        if (statusEl) statusEl.value = addStatusPrevValue;
-        syncLiquidationFieldsState('');
+        document.getElementById('status').value = addStatusPrevValue;
+        syncWorkflowFieldsState('');
+    } else if (source === 'inline' && id) {
+        const select = document.getElementById('liquidationStatusSelect_' + id);
+        if (select) setInlineStatusSelectStyle(select, select.dataset.current || 'NOT YET LIQUIDATED');
     }
 }
 
-const addStatusSelect = document.getElementById('status');
-if (addStatusSelect) {
-    syncLiquidationFieldsState('');
-    addStatusSelect.addEventListener('change', function() {
-        if (this.value === 'LIQUIDATED') {
-            openLiquidationModal({
-                source: 'add',
-                id: null,
-                control_number: '',
-                requestor_name: document.getElementById('requestor_name').value.trim(),
-                department: document.getElementById('department').value.trim(),
-                category: document.getElementById('category').value.trim(),
-                date_requested: document.getElementById('date_requested').value,
-                requested_amount: document.getElementById('requested_amount').value
-            });
-        } else {
-            addStatusPrevValue = this.value;
-        }
-        syncLiquidationFieldsState('');
+function handleLiquidationStatusChange(source) {
+    const prefix = source === 'edit' ? 'edit_' : '';
+    const releaseEl = document.getElementById(prefix + 'release_status');
+    const statusEl = document.getElementById(prefix + 'status');
+
+    if (statusEl.value !== 'LIQUIDATED') {
+        if (source === 'edit') editStatusPrevValue = statusEl.value;
+        else addStatusPrevValue = statusEl.value;
+        syncWorkflowFieldsState(prefix);
+        return;
+    }
+
+    if (!releaseEl || releaseEl.value !== 'RELEASED') {
+        statusEl.value = source === 'edit' ? editStatusPrevValue : addStatusPrevValue;
+        syncWorkflowFieldsState(prefix);
+        showToast('warning', 'Release Required', 'Set Release Status to RELEASED before starting liquidation.');
+        return;
+    }
+
+    openLiquidationModal({
+        source: source,
+        id: source === 'edit' ? document.getElementById('edit_id').value : null,
+        control_number: source === 'edit' ? document.getElementById('edit_control_number').value : '',
+        requestor_name: document.getElementById(prefix + 'requestor_name').value.trim(),
+        department: document.getElementById(prefix + 'department').value.trim(),
+        category: document.getElementById(prefix + 'category').value.trim(),
+        date_requested: document.getElementById(prefix + 'date_requested').value,
+        requested_amount: document.getElementById(prefix + 'requested_amount').value,
+        date_released: document.getElementById(prefix + 'date_released').value,
+        total_expenses: '',
+        amount_returned: '',
+        date_of_amount_returned: ''
     });
 }
 
-document.getElementById('edit_status').addEventListener('change', function() {
-    if (this.value === 'LIQUIDATED') {
-        openLiquidationModal({
-            source: 'edit',
-            id: document.getElementById('edit_id').value,
-            control_number: document.getElementById('edit_control_number').value,
-            requestor_name: document.getElementById('edit_requestor_name').value,
-            department: document.getElementById('edit_department').value,
-            category: document.getElementById('edit_category').value,
-            date_requested: document.getElementById('edit_date_requested').value,
-            requested_amount: document.getElementById('edit_requested_amount').value
-        });
-    } else {
-        editStatusPrevValue = this.value;
+const addReleaseStatusSelect = document.getElementById('release_status');
+const addStatusSelect = document.getElementById('status');
+if (addReleaseStatusSelect && addStatusSelect) {
+    syncWorkflowFieldsState('');
+    addReleaseStatusSelect.addEventListener('change', function() {
+        syncWorkflowFieldsState('');
+    });
+    addStatusSelect.addEventListener('change', function() {
+        handleLiquidationStatusChange('add');
+    });
+}
+
+const editReleaseStatusSelect = document.getElementById('edit_release_status');
+const editLiquidationStatusSelect = document.getElementById('edit_status');
+if (editReleaseStatusSelect) {
+    editReleaseStatusSelect.addEventListener('change', function() {
+        const previous = this.dataset.current || 'NOT YET RELEASED';
+        const selected = this.value;
+        if (selected === previous) return;
+
+        const row = document.querySelector(`tr[data-id="${document.getElementById('edit_id').value}"]`);
+        const erasesLiquidation = row
+            && row.dataset.liquidationStatus === 'LIQUIDATED'
+            && selected !== 'RELEASED';
+
+        this.value = previous;
+        const message = erasesLiquidation
+            ? 'WARNING: Changing Release Status to ' + selected
+                + ' will reset Liquidation Status and erase Total Expenses, Amount Returned, and Date of Amount Returned when the record is saved. Continue?'
+            : 'Change Release Status from ' + previous + ' to ' + selected + '?';
+
+        showConfirm(message, () => {
+            this.value = selected;
+            this.dataset.current = selected;
+            syncWorkflowFieldsState('edit_');
+            if (editLiquidationStatusSelect) {
+                editLiquidationStatusSelect.dataset.current = editLiquidationStatusSelect.value;
+                editStatusPrevValue = editLiquidationStatusSelect.value;
+            }
+        }, erasesLiquidation ? 'Erase Liquidation Data?' : 'Confirm Release Status');
+    });
+}
+if (editLiquidationStatusSelect) {
+    editLiquidationStatusSelect.addEventListener('change', function() {
+        const previous = this.dataset.current || editStatusPrevValue || 'NOT YET LIQUIDATED';
+        const selected = this.value;
+        if (selected === previous) return;
+
+        this.value = previous;
+
+        if (selected === 'NOT YET LIQUIDATED' && previous === 'LIQUIDATED') {
+            showConfirm(
+                'WARNING: Changing Liquidation Status to NOT YET LIQUIDATED will erase Total Expenses, Amount Returned, and Date of Amount Returned when the record is saved. Continue?',
+                () => {
+                    this.value = selected;
+                    this.dataset.current = selected;
+                    editStatusPrevValue = selected;
+                    syncWorkflowFieldsState('edit_');
+                },
+                'Erase Liquidation Data?'
+            );
+            return;
+        }
+
+        this.value = selected;
+        this.dataset.current = selected;
+        handleLiquidationStatusChange('edit');
+    });
+}
+
+function calculateLiquidationAmountReturned() {
+    const requestedRaw = (document.getElementById('liq_requested_amount').value || '').replace(/,/g, '');
+    const expensesRaw = (document.getElementById('liq_total_expenses').value || '').replace(/,/g, '').trim();
+    const amountReturnedEl = document.getElementById('liq_amount_returned');
+    const dateReturnedEl = document.getElementById('liq_date_of_amount_returned');
+    const requiredMarker = document.getElementById('liq_date_returned_required');
+
+    if (expensesRaw === '') {
+        amountReturnedEl.value = '';
+        dateReturnedEl.required = false;
+        dateReturnedEl.disabled = true;
+        dateReturnedEl.value = '';
+        if (requiredMarker) requiredMarker.style.display = 'none';
+        return;
     }
-    syncLiquidationFieldsState('edit_');
-});
+
+    const requested = parseFloat(requestedRaw) || 0;
+    const expenses = parseFloat(expensesRaw) || 0;
+    const returned = Math.max(0, requested - expenses);
+    amountReturnedEl.value = returned.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+    const requiresDate = returned > 0;
+    dateReturnedEl.required = requiresDate;
+    dateReturnedEl.disabled = !requiresDate;
+    if (!requiresDate) dateReturnedEl.value = '';
+    if (requiredMarker) requiredMarker.style.display = requiresDate ? 'inline' : 'none';
+}
+
+document.getElementById('liq_total_expenses').addEventListener('input', calculateLiquidationAmountReturned);
 
 document.getElementById('liquidationUpdateForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
     if (!document.getElementById('liq_date_released').value) {
-        showToast('error', 'Date Released Required', 'Please select a Date Released before marking this record as liquidated.');
-        document.getElementById('liq_date_released').focus();
+        showToast('error', 'Release Required', 'This request must have a Date Released before it can be liquidated.');
         return;
     }
     if (!validateAmountField('liq_total_expenses', 'Total Expenses', true)) return;
 
-    showConfirm('Are you sure you want to update this record?', function() {
+    const amountReturned = parseFloat((document.getElementById('liq_amount_returned').value || '0').replace(/,/g, '')) || 0;
+    if (amountReturned > 0 && !document.getElementById('liq_date_of_amount_returned').value) {
+        showToast('error', 'Date Required', 'Please enter the Date of Amount Returned.');
+        document.getElementById('liq_date_of_amount_returned').focus();
+        return;
+    }
+
+    showConfirm('Save the liquidation form and mark this record as LIQUIDATED?', function() {
         _submitLiquidationUpdate();
     });
 });
@@ -1490,77 +1963,79 @@ document.getElementById('liquidationUpdateForm').addEventListener('submit', func
 function _submitLiquidationUpdate() {
     const source = document.getElementById('liq_source').value;
     const id = document.getElementById('liq_id').value;
-
-    const payload = {
-        requestor_name: document.getElementById('liq_requestor_name').value.trim(),
-        department: reverseDepartmentName(document.getElementById('liq_department').value.trim()),
-        category: document.getElementById('liq_category').value.trim(),
-        date_requested: document.getElementById('liq_date_requested').value || null,
-        requested_amount: parseFloat(document.getElementById('liq_requested_amount').value.replace(/,/g,'')) || 0,
+    const liquidationFields = {
         status: 'LIQUIDATED',
-        date_released: document.getElementById('liq_date_released').value || null,
-        total_expenses: document.getElementById('liq_total_expenses').value ? parseFloat(document.getElementById('liq_total_expenses').value.replace(/,/g,'')) : null,
-        amount_returned: document.getElementById('liq_amount_returned').value ? parseFloat(document.getElementById('liq_amount_returned').value.replace(/,/g,'')) : null,
+        total_expenses: document.getElementById('liq_total_expenses').value
+            ? parseFloat(document.getElementById('liq_total_expenses').value.replace(/,/g, ''))
+            : null,
+        amount_returned: document.getElementById('liq_amount_returned').value
+            ? parseFloat(document.getElementById('liq_amount_returned').value.replace(/,/g, ''))
+            : null,
         date_of_amount_returned: document.getElementById('liq_date_of_amount_returned').value || null
     };
 
-    if (source === 'edit' && id) {
-        payload.control_number = document.getElementById('liq_control_number').value.trim();
+    let url;
+    let method;
+    let payload;
 
-        fetch(`/api/departmental-expenses/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify(payload)
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw new Error(err.message || 'Error updating request'); });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                showToast('success', 'Success', 'Record updated and marked as liquidated!');
-                setTimeout(() => location.reload(), 800);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('error', 'Error', error.message || 'Error updating request');
-            // Re-open the liquidation modal so the user can correct the amount
-            // instead of silently losing the entered data.
-            document.getElementById('liquidationUpdateModal').style.display = 'block';
-        });
+    if (source === 'inline' && id) {
+        url = `/api/departmental-expenses/${id}/liquidation-status`;
+        method = 'PATCH';
+        payload = liquidationFields;
     } else {
-        fetch('/api/departmental-expenses', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify(payload)
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw new Error(err.message || 'Error adding request'); });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                showToast('success', 'Success', 'Request added and marked as liquidated!');
-                setTimeout(() => location.reload(), 800);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('error', 'Error', error.message || 'Error adding request');
-            document.getElementById('liquidationUpdateModal').style.display = 'block';
-        });
+        payload = {
+            requestor_name: document.getElementById('liq_requestor_name').value.trim(),
+            department: reverseDepartmentName(document.getElementById('liq_department').value.trim()),
+            release_status: 'RELEASED',
+            status: 'LIQUIDATED',
+            category: document.getElementById('liq_category').value.trim(),
+            date_requested: document.getElementById('liq_date_requested').value || null,
+            requested_amount: parseFloat(document.getElementById('liq_requested_amount').value.replace(/,/g, '')) || 0,
+            date_released: document.getElementById('liq_date_released').value || null,
+            total_expenses: liquidationFields.total_expenses,
+            amount_returned: liquidationFields.amount_returned,
+            date_of_amount_returned: liquidationFields.date_of_amount_returned
+        };
+
+        const isEdit = source === 'edit' && id;
+        if (isEdit) payload.control_number = document.getElementById('liq_control_number').value.trim();
+        url = isEdit ? `/api/departmental-expenses/${id}` : '/api/departmental-expenses';
+        method = isEdit ? 'PUT' : 'POST';
     }
+
+    fetch(url, {
+        method: method,
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(async response => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Error saving liquidation.');
+        }
+        return result;
+    })
+    .then(result => {
+        document.getElementById('liquidationUpdateModal').style.display = 'none';
+
+        if (source === 'inline' && id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            applyExpenseRowData(row, result.data);
+            showToast('success', 'Liquidation Saved', result.message || 'Liquidation form saved successfully.');
+        } else {
+            showToast('success', 'Success', 'Liquidation form completed and record marked as liquidated.');
+            setTimeout(() => location.reload(), 800);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('error', 'Error', error.message || 'Error saving liquidation');
+        document.getElementById('liquidationUpdateModal').style.display = 'block';
+    });
 }
 
 // Highlight row from permission notification URL params
@@ -1692,20 +2167,34 @@ document.getElementById('addRequestForm')?.addEventListener('submit', function(e
 
     if (!validateNameField('requestor_name', 'Requestor Name')) return;
     if (!validateAmountField('requested_amount', 'Requested Amount', true)) return;
-    if (!validateAmountField('total_expenses', 'Total Expenses', false)) return;
+
+    const releaseStatus = document.getElementById('release_status').value;
+    const liquidationStatus = document.getElementById('status').value;
+
+    if (releaseStatus === 'RELEASED' && !document.getElementById('date_released').value) {
+        showToast('error', 'Date Released Required', 'Please select a Date Released when Release Status is RELEASED.');
+        document.getElementById('date_released').focus();
+        return;
+    }
+
+    if (liquidationStatus === 'LIQUIDATED') {
+        showToast('warning', 'Liquidation Form Required', 'Select LIQUIDATED again and complete the liquidation form before saving.');
+        return;
+    }
 
     showConfirm('Add this expense request?', function() {
         const formData = {
             requestor_name: document.getElementById('requestor_name').value.trim(),
             department: document.getElementById('department').value.trim(),
+            release_status: releaseStatus,
+            status: liquidationStatus,
             category: document.getElementById('category').value.trim(),
             date_requested: document.getElementById('date_requested').value || null,
             requested_amount: parseFloat(document.getElementById('requested_amount').value.replace(/,/g,'')) || 0,
-            status: document.getElementById('status').value,
             date_released: document.getElementById('date_released').value || null,
-            total_expenses: document.getElementById('total_expenses').value ? parseFloat(document.getElementById('total_expenses').value.replace(/,/g,'')) : null,
-            amount_returned: document.getElementById('amount_returned').value ? parseFloat(document.getElementById('amount_returned').value.replace(/,/g,'')) : null,
-            date_of_amount_returned: document.getElementById('date_of_amount_returned').value || null
+            total_expenses: null,
+            amount_returned: null,
+            date_of_amount_returned: null
         };
 
         fetch('/api/departmental-expenses', {
@@ -1718,16 +2207,14 @@ document.getElementById('addRequestForm')?.addEventListener('submit', function(e
         })
         .then(response => {
             if (!response.ok) {
-                return response.json().then(err => {
-                    throw new Error(err.message || 'Error adding request');
-                });
+                return response.json().then(err => { throw new Error(err.message || 'Error adding request'); });
             }
             return response.json();
         })
         .then(data => {
             if (data.success) {
                 showToast('success', 'Success', 'Request added successfully!');
-                setTimeout(() => location.reload(), 1500);
+                setTimeout(() => location.reload(), 1000);
             }
         })
         .catch(error => {
@@ -1744,64 +2231,33 @@ function editRequest(id) {
 
 function _doEditRequest(id) {
     const row = document.querySelector(`tr[data-id="${id}"]`);
-    const cells = row.cells;
-    
+    if (!row) return;
+
     document.getElementById('edit_id').value = id;
-    document.getElementById('edit_control_number').value = row.getAttribute('data-control') || cells[1].textContent.trim();
-    document.getElementById('edit_requestor_name').value = cells[2].textContent;
-    
-    // Department is now stored consistently as the real Department name,
-    // so it's used directly (no more short-code mapping).
-    const originalDepartment = row.getAttribute('data-department');
+    document.getElementById('edit_control_number').value = row.getAttribute('data-control') || '';
+    document.getElementById('edit_requestor_name').value = row.getAttribute('data-requestor') || '';
+
+    const originalDepartment = row.getAttribute('data-department') || '';
     document.getElementById('edit_department').value = originalDepartment;
-    
     updateEditCategoryDropdown(originalDepartment);
-    
     setTimeout(() => {
-        document.getElementById('edit_category').value = cells[4].textContent;
+        document.getElementById('edit_category').value = row.getAttribute('data-category') || '';
     }, 100);
-    
-    const dateRequested = cells[5].textContent.trim();
-    if (dateRequested !== '-') {
-        const [month, day, year] = dateRequested.split('/');
-        document.getElementById('edit_date_requested').value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    } else {
-        document.getElementById('edit_date_requested').value = '';
-    }
-    
-    document.getElementById('edit_requested_amount').value = cells[6].textContent.replace('₱ ', '').replace(/,/g, '');
-    document.getElementById('edit_status').value = cells[7].querySelector('.status-badge').textContent.trim();
+
+    document.getElementById('edit_date_requested').value = row.getAttribute('data-date-requested') || '';
+    document.getElementById('edit_requested_amount').value = row.getAttribute('data-requested-amount') || '';
+    document.getElementById('edit_release_status').value = row.getAttribute('data-release-status') || 'NOT YET RELEASED';
+    document.getElementById('edit_status').value = row.getAttribute('data-liquidation-status') || 'NOT YET LIQUIDATED';
+    document.getElementById('edit_release_status').dataset.current = document.getElementById('edit_release_status').value;
+    document.getElementById('edit_status').dataset.current = document.getElementById('edit_status').value;
     editStatusPrevValue = document.getElementById('edit_status').value;
-    syncLiquidationFieldsState('edit_');
-    
-    if (cells[8].textContent !== '-') {
-        const dateReleased = cells[8].textContent.trim();
-        const [month, day, year] = dateReleased.split('/');
-        document.getElementById('edit_date_released').value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    } else {
-        document.getElementById('edit_date_released').value = '';
-    }
-    
-    if (cells[9].textContent !== '-') {
-        document.getElementById('edit_total_expenses').value = cells[9].textContent.replace('₱ ', '').replace(/,/g, '');
-    } else {
-        document.getElementById('edit_total_expenses').value = '';
-    }
-    
-    if (cells[10].textContent !== '-') {
-        document.getElementById('edit_amount_returned').value = cells[10].textContent.replace('₱ ', '').replace(/,/g, '');
-    } else {
-        document.getElementById('edit_amount_returned').value = '';
-    }
-    
-    if (cells[11].textContent !== '-') {
-        const dateReturned = cells[11].textContent.trim();
-        const [month, day, year] = dateReturned.split('/');
-        document.getElementById('edit_date_of_amount_returned').value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    } else {
-        document.getElementById('edit_date_of_amount_returned').value = '';
-    }
-    
+
+    document.getElementById('edit_date_released').value = row.getAttribute('data-date-released') || '';
+    document.getElementById('edit_total_expenses').value = row.getAttribute('data-total-expenses') || '';
+    document.getElementById('edit_amount_returned').value = row.getAttribute('data-amount-returned') || '';
+    document.getElementById('edit_date_of_amount_returned').value = row.getAttribute('data-date-returned') || '';
+
+    syncWorkflowFieldsState('edit_');
     document.getElementById('editModal').style.display = 'block';
 }
 
@@ -1812,25 +2268,29 @@ function closeEditModal() {
 // View request
 function viewRequest(id) {
     const row = document.querySelector(`tr[data-id="${id}"]`);
+    if (!row) return;
     const cells = row.cells;
-    
+
     document.getElementById('view_control_number').textContent = cells[1].textContent;
     document.getElementById('view_requestor_name').textContent = cells[2].textContent;
     document.getElementById('view_department').textContent = cells[3].textContent;
-    document.getElementById('view_category').textContent = cells[4].textContent;
-    document.getElementById('view_date_requested').textContent = cells[5].textContent;
-    document.getElementById('view_requested_amount').textContent = cells[6].textContent;
-    
-    const statusBadge = cells[7].querySelector('.status-badge').cloneNode(true);
-    const statusContainer = document.getElementById('view_status');
-    statusContainer.innerHTML = '';
-    statusContainer.appendChild(statusBadge);
-    
-    document.getElementById('view_date_released').textContent = cells[8].textContent;
-    document.getElementById('view_total_expenses').textContent = cells[9].textContent;
-    document.getElementById('view_amount_returned').textContent = cells[10].textContent;
-    document.getElementById('view_date_of_amount_returned').textContent = cells[11].textContent;
-    
+
+    const releaseContainer = document.getElementById('view_release_status');
+    releaseContainer.innerHTML = '';
+    releaseContainer.appendChild(createStatusBadge(row.dataset.releaseStatus, 'release'));
+
+    const liquidationContainer = document.getElementById('view_status');
+    liquidationContainer.innerHTML = '';
+    liquidationContainer.appendChild(createStatusBadge(row.dataset.liquidationStatus, 'liquidation'));
+
+    document.getElementById('view_category').textContent = cells[6].textContent;
+    document.getElementById('view_date_requested').textContent = cells[7].textContent;
+    document.getElementById('view_requested_amount').textContent = cells[8].textContent;
+    document.getElementById('view_date_released').textContent = cells[9].textContent;
+    document.getElementById('view_total_expenses').textContent = cells[10].textContent;
+    document.getElementById('view_amount_returned').textContent = cells[11].textContent;
+    document.getElementById('view_date_of_amount_returned').textContent = cells[12].textContent;
+
     document.getElementById('viewModal').style.display = 'block';
 }
 
@@ -1954,59 +2414,72 @@ document.getElementById('budgetUpdateForm').addEventListener('submit', function(
         return;
     }
 
-    const isLiquidated = document.getElementById('edit_status').value === 'LIQUIDATED';
+    const releaseStatus = document.getElementById('edit_release_status').value;
+    const liquidationStatus = document.getElementById('edit_status').value;
 
-    if (isLiquidated) {
-        if (!document.getElementById('edit_date_released').value) {
-            showToast('error', 'Date Released Required', 'Please select a Date Released before saving a liquidated record.');
-            document.getElementById('edit_date_released').focus();
-            return;
-        }
-        if (!validateAmountField('edit_total_expenses', 'Total Expenses', true)) return;
-    } else {
-        if (!validateAmountField('edit_total_expenses', 'Total Expenses', false)) return;
+    if (releaseStatus === 'RELEASED' && !document.getElementById('edit_date_released').value) {
+        showToast('error', 'Date Released Required', 'Please select a Date Released when Release Status is RELEASED.');
+        document.getElementById('edit_date_released').focus();
+        return;
     }
+
+    if (liquidationStatus === 'LIQUIDATED' && !validateAmountField('edit_total_expenses', 'Total Expenses', true)) return;
 
     const id = document.getElementById('edit_id').value;
     const formData = {
         control_number: document.getElementById('edit_control_number').value.trim(),
         requestor_name: document.getElementById('edit_requestor_name').value.trim(),
         department: reverseDepartmentName(document.getElementById('edit_department').value.trim()),
+        release_status: releaseStatus,
+        status: liquidationStatus,
         category: document.getElementById('edit_category').value.trim(),
         date_requested: document.getElementById('edit_date_requested').value || null,
         requested_amount: parseFloat(document.getElementById('edit_requested_amount').value.replace(/,/g,'')) || 0,
-        status: document.getElementById('edit_status').value,
         date_released: document.getElementById('edit_date_released').value || null,
-        total_expenses: document.getElementById('edit_total_expenses').value ? parseFloat(document.getElementById('edit_total_expenses').value.replace(/,/g,'')) : null,
-        amount_returned: document.getElementById('edit_amount_returned').value ? parseFloat(document.getElementById('edit_amount_returned').value.replace(/,/g,'')) : null,
-        date_of_amount_returned: document.getElementById('edit_date_of_amount_returned').value || null
+        total_expenses: liquidationStatus === 'LIQUIDATED' && document.getElementById('edit_total_expenses').value
+            ? parseFloat(document.getElementById('edit_total_expenses').value.replace(/,/g,''))
+            : null,
+        amount_returned: liquidationStatus === 'LIQUIDATED' && document.getElementById('edit_amount_returned').value
+            ? parseFloat(document.getElementById('edit_amount_returned').value.replace(/,/g,''))
+            : null,
+        date_of_amount_returned: liquidationStatus === 'LIQUIDATED'
+            ? (document.getElementById('edit_date_of_amount_returned').value || null)
+            : null
     };
-    
-    fetch(`/api/departmental-expenses/${id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify(formData)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(err.message || 'Error updating request');
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            showToast('success', 'Success', 'Request updated successfully!');
-            setTimeout(() => location.reload(), 800);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('error', 'Error', error.message || 'Error updating request');
+
+    const originalRow = document.querySelector(`tr[data-id="${id}"]`);
+    const erasesSavedLiquidation = originalRow
+        && originalRow.dataset.liquidationStatus === 'LIQUIDATED'
+        && (releaseStatus !== 'RELEASED' || liquidationStatus !== 'LIQUIDATED');
+    const updateConfirmation = erasesSavedLiquidation
+        ? 'FINAL WARNING: Saving these changes will permanently erase the saved Total Expenses, Amount Returned, and Date of Amount Returned. Continue?'
+        : 'Update this expense request and its statuses?';
+
+    showConfirm(updateConfirmation, function() {
+        fetch(`/api/departmental-expenses/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.message || 'Error updating request'); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showToast('success', 'Success', 'Request updated successfully!');
+                setTimeout(() => location.reload(), 800);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('error', 'Error', error.message || 'Error updating request');
+        });
     });
 });
 
@@ -2049,21 +2522,20 @@ window.onclick = function(event) {
 // Table Search + Date Range filtering (combined) - Multiple words support
 const searchInput = document.getElementById('tableSearch');
 
-// ---- Per-column "Filter" dropdown (Control Number, Requestor Name, Department,
-// Category, Requested Amount, Status, Total Expenses, Amount Returned,
-// Date of Amount Returned) ----
+// ---- Per-column Filter dropdown ----
 const FILTERABLE_FIELDS = [
-    { key: 'control_number',           label: 'Control Number',           dataAttr: 'data-control',          type: 'text'  },
-    { key: 'requestor_name',           label: 'Requestor Name',           dataAttr: 'data-requestor',        type: 'text'  },
-    { key: 'department',               label: 'Department',               dataAttr: 'data-department',       type: 'text'  },
-    { key: 'category',                 label: 'Category',                 dataAttr: 'data-category',         type: 'text'  },
-    { key: 'date_requested',           label: 'Date Requested',           dataAttr: 'data-date-requested',   type: 'daterange' },
-    { key: 'date_released',            label: 'Date Released',            dataAttr: 'data-date-released',    type: 'daterange' },
-    { key: 'date_of_amount_returned',  label: 'Date of Amount Returned',  dataAttr: 'data-date-returned',    type: 'daterange' },
-    { key: 'requested_amount',         label: 'Requested Amount',         dataAttr: 'data-requested-amount', type: 'numrange'  },
-    { key: 'status',                   label: 'Status',                   dataAttr: 'data-status',           type: 'select', options: ['PENDING', 'NOT LIQUIDATED', 'LIQUIDATED', 'REJECTED'] },
-    { key: 'total_expenses',           label: 'Total Expenses',           dataAttr: 'data-total-expenses',   type: 'numrange'  },
-    { key: 'amount_returned',          label: 'Amount Returned',          dataAttr: 'data-amount-returned',  type: 'numrange'  },
+    { key: 'control_number',           label: 'Control Number',           dataAttr: 'data-control',             type: 'text'  },
+    { key: 'requestor_name',           label: 'Requestor Name',           dataAttr: 'data-requestor',           type: 'text'  },
+    { key: 'department',               label: 'Department',               dataAttr: 'data-department',          type: 'text'  },
+    { key: 'release_status',           label: 'Release Status',           dataAttr: 'data-release-status',      type: 'select', options: ['NOT YET RELEASED', 'RELEASED', 'REJECTED'] },
+    { key: 'liquidation_status',       label: 'Liquidation Status',       dataAttr: 'data-liquidation-status',  type: 'select', options: ['NOT YET LIQUIDATED', 'LIQUIDATED'] },
+    { key: 'category',                 label: 'Category',                 dataAttr: 'data-category',            type: 'text'  },
+    { key: 'date_requested',           label: 'Date Requested',           dataAttr: 'data-date-requested',      type: 'daterange' },
+    { key: 'date_released',            label: 'Date Released',            dataAttr: 'data-date-released',       type: 'daterange' },
+    { key: 'date_of_amount_returned',  label: 'Date of Amount Returned',  dataAttr: 'data-date-returned',       type: 'daterange' },
+    { key: 'requested_amount',         label: 'Requested Amount',         dataAttr: 'data-requested-amount',    type: 'numrange'  },
+    { key: 'total_expenses',           label: 'Total Expenses',           dataAttr: 'data-total-expenses',      type: 'numrange'  },
+    { key: 'amount_returned',          label: 'Amount Returned',          dataAttr: 'data-amount-returned',     type: 'numrange'  },
 ];
 
 // Active per-column filters: { fieldKey: currentValue }
@@ -2252,7 +2724,11 @@ function applyFilters() {
             return;
         }
 
-        const text = row.textContent.toLowerCase();
+        const searchableCellText = Array.from(row.cells)
+            .filter((cell, index) => index !== 4 && index !== 5 && index !== row.cells.length - 1)
+            .map(cell => cell.textContent)
+            .join(' ');
+        const text = `${searchableCellText} ${row.dataset.releaseStatus || ''} ${row.dataset.liquidationStatus || ''}`.toLowerCase();
         const allWordsFound = searchWords.length === 0 || searchWords.every(word => text.includes(word));
         const columnMatch = matchesColumnFilters(row);
 
@@ -2315,7 +2791,7 @@ function printSelectedRecords() {
         return;
     }
 
-    const headers = ['Control Number','Requestor Name','Department','Category','Date Requested','Requested Amount','Status','Date Released','Total Expenses','Amount Returned','Date of Amount Returned'];
+    const headers = ['Control Number','Requestor Name','Department','Release Status','Liquidation Status','Category','Date Requested','Requested Amount','Date Released','Total Expenses','Amount Returned','Date of Amount Returned'];
 
     let tableHtml = '<table class="print-table"><thead><tr>';
     headers.forEach(h => tableHtml += `<th>${h}</th>`);
@@ -2324,9 +2800,12 @@ function printSelectedRecords() {
     rows.forEach(row => {
         const cells = row.cells;
         tableHtml += '<tr>';
-        // cells[0] = checkbox column, cells[1..11] = data columns, skip Actions (last)
-        for (let i = 1; i <= 11; i++) {
-            tableHtml += `<td>${cells[i].textContent.trim()}</td>`;
+        // cells[0] = checkbox column, cells[1..12] = data columns, skip Actions (last)
+        for (let i = 1; i <= 12; i++) {
+            let value = cells[i].textContent.trim();
+            if (i === 4) value = row.dataset.releaseStatus || '-';
+            if (i === 5) value = row.dataset.liquidationStatus || '-';
+            tableHtml += `<td>${value}</td>`;
         }
         tableHtml += '</tr>';
     });

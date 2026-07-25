@@ -15,6 +15,7 @@ class CheckPageVisibility
         'departments.admin'            => 'departments',
         'commission-monitoring'        => 'commission-monitoring',
         'cash-advance'                  => 'cash-advance',
+        'agent-cash-advance'            => 'agent-cash-advance',
         'calendar'                     => 'calendar',
         'sales-marketing'              => 'sales-marketing',
         'forms'                        => 'forms',

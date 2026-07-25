@@ -23,20 +23,7 @@ Route::middleware(['guest', 'no.cache'])->group(function () {
 });
 
 // Public landing page
-Route::get('/', function () {
-    return view('welcome');
-});
-Route::get('/about', function () {
-    return view('about');
-})->name('about');
- 
-Route::get('/services', function () {
-    return view('services');
-})->name('services');
- 
-Route::get('/portfolio', function () {
-    return view('portfolio');
-})->name('portfolio');
+Route::view('/', 'landing')->name('landing');
 
 // Tripping Schedule Form (public — no login required)
 Route::get('/tripping', [App\Http\Controllers\TripScheduleController::class, 'show'])->name('tripping');
@@ -81,6 +68,8 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::get('/departmental-expenses/{id}/view-form', [App\Http\Controllers\DepartmentalExpensesController::class, 'viewForm'])->name('departmental-expenses.view-form');
     Route::post('/api/departmental-expenses', [App\Http\Controllers\DepartmentalExpensesController::class, 'store']);
     Route::put('/api/departmental-expenses/{id}', [App\Http\Controllers\DepartmentalExpensesController::class, 'update']);
+    Route::patch('/api/departmental-expenses/{id}/release-status', [App\Http\Controllers\DepartmentalExpensesController::class, 'updateReleaseStatus']);
+    Route::patch('/api/departmental-expenses/{id}/liquidation-status', [App\Http\Controllers\DepartmentalExpensesController::class, 'updateLiquidationStatus']);
     Route::delete('/api/departmental-expenses/{id}', [App\Http\Controllers\DepartmentalExpensesController::class, 'destroy']);
 
     // Autocomplete API Routes
@@ -258,9 +247,18 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::get('/cash-advance/{id}/repayments', [App\Http\Controllers\CashAdvanceController::class, 'repayments'])->name('cash-advance.repayments');
     Route::post('/cash-advance-repayments/{repaymentId}/pay', [App\Http\Controllers\CashAdvanceController::class, 'markRepaymentPaid'])->name('cash-advance-repayments.pay');
     Route::post('/cash-advance-repayments/{repaymentId}/unpay', [App\Http\Controllers\CashAdvanceController::class, 'unmarkRepaymentPaid'])->name('cash-advance-repayments.unpay');
-    Route::post('/cash-advance-repayments/{repaymentId}/unpay', [CashAdvanceController::class, 'unmarkRepaymentPaid']);
+    
     Route::delete('/cash-advance/{id}', [App\Http\Controllers\CashAdvanceController::class, 'destroy'])->name('cash-advance.destroy');
-
+    Route::get('/agent-cash-advance', [App\Http\Controllers\AgentCashAdvanceController::class, 'index'])->name('agent-cash-advance')->middleware('page.visible');
+     Route::post('/agent-cash-advance', [App\Http\Controllers\AgentCashAdvanceController::class, 'store'])->name('agent-cash-advance.store');
+     Route::get('/agent-cash-advance/{id}', [App\Http\Controllers\AgentCashAdvanceController::class, 'show'])->name('agent-cash-advance.show');
+     Route::post('/agent-cash-advance/{id}/approve', [App\Http\Controllers\AgentCashAdvanceController::class, 'approve'])->name('agent-cash-advance.approve');
+     Route::post('/agent-cash-advance/{id}/reject', [App\Http\Controllers\AgentCashAdvanceController::class, 'reject'])->name('agent-cash-advance.reject');
+     Route::get('/agent-cash-advance/{id}/repayments', [App\Http\Controllers\AgentCashAdvanceController::class, 'repayments'])->name('agent-cash-advance.repayments');
+     Route::post('/agent-cash-advance-repayments/{repaymentId}/pay', [App\Http\Controllers\AgentCashAdvanceController::class, 'markRepaymentPaid'])->name('agent-cash-advance-repayments.pay');
+     Route::post('/agent-cash-advance-repayments/{repaymentId}/unpay', [App\Http\Controllers\AgentCashAdvanceController::class, 'unmarkRepaymentPaid'])->name('agent-cash-advance-repayments.unpay');
+     Route::delete('/agent-cash-advance-repayments/{repaymentId}', [App\Http\Controllers\AgentCashAdvanceController::class, 'destroyRepayment'])->name('agent-cash-advance-repayments.destroy');
+     Route::delete('/agent-cash-advance/{id}', [App\Http\Controllers\AgentCashAdvanceController::class, 'destroy'])->name('agent-cash-advance.destroy');
     // Calendar
     Route::get('/calendar', [App\Http\Controllers\CalendarController::class, 'index'])->name('calendar')->middleware('page.visible');
     Route::get('/sales-calendar', [App\Http\Controllers\CalendarController::class, 'salesCalendar'])->name('sales-calendar');

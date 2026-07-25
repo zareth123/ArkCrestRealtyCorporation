@@ -12,9 +12,18 @@ class DepartmentalExpense extends Model
     protected $table = 'departmental_expenses';
 
     protected $fillable = [
-        'control_number', 'requestor_name', 'department', 'category',
-        'date_requested', 'requested_amount', 'status', 'date_released',
-        'total_expenses', 'amount_returned', 'date_of_amount_returned',
+        'control_number',
+        'requestor_name',
+        'department',
+        'release_status',
+        'status',
+        'category',
+        'date_requested',
+        'requested_amount',
+        'date_released',
+        'total_expenses',
+        'amount_returned',
+        'date_of_amount_returned',
     ];
 
     protected $casts = [
@@ -26,6 +35,20 @@ class DepartmentalExpense extends Model
         'amount_returned'         => 'decimal:2',
     ];
 
-    /** The allowed statuses for a departmental expense / budget request record. */
-    public const STATUSES = ['PENDING', 'NOT YET LIQUIDATED', 'LIQUIDATED', 'REJECTED'];
+    public const RELEASE_STATUSES = [
+        'NOT YET RELEASED',
+        'RELEASED',
+        'REJECTED',
+    ];
+
+    public const LIQUIDATION_STATUSES = [
+        'NOT YET LIQUIDATED',
+        'LIQUIDATED',
+    ];
+
+    /**
+     * Backward-compatible alias for older call sites. The existing `status`
+     * column now represents liquidation status only.
+     */
+    public const STATUSES = self::LIQUIDATION_STATUSES;
 }

@@ -67,7 +67,7 @@
 
   section{ position:relative; }
 
-  /* -------- placeholder blocks (swap these for real photos) -------- */
+  /* -------- image frames -------- */
   .ph{
     position:relative;
     display:flex;
@@ -90,6 +90,13 @@
     border-radius:3px;
     font-weight:600;
   }
+
+  .ph img{
+    width:100%;
+    height:100%;
+    display:block;
+    object-fit:cover;
+  }
   .ph.dark{
     background:
       repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 12px, rgba(255,255,255,0.01) 12px 24px),
@@ -109,8 +116,11 @@
   .nav .wrap{ display:flex; align-items:center; justify-content:space-between; }
   .brand{ display:flex; align-items:center; gap:12px; color:#fff; }
   .brand .mark{
-    width:34px; height:34px; border-radius:50%;
+    width:38px; height:38px; border-radius:50%;
     background:#fff;
+    object-fit:contain;
+    padding:2px;
+    flex-shrink:0;
   }
   .brand .name{
     font-size:14px; letter-spacing:3px; font-weight:700; text-transform:uppercase;
@@ -350,7 +360,11 @@
   <nav class="nav">
     <div class="wrap">
       <div class="brand">
-        <div class="mark"></div>
+        <img
+          class="mark"
+          src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/ArkCrest_Logo.png') }}"
+          alt="ArkCrest Realty logo"
+        >
         <div class="name">ArkCrest Realty</div>
       </div>
       <div class="nav-links">
@@ -366,7 +380,14 @@
 
   <!-- HERO -->
   <section class="hero" id="home">
-    <div class="ph"><span>Hero background — aerial estate photo, 1600×900+</span></div>
+    <div class="ph">
+      <img
+        src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/test-image2.jpg') }}"
+        alt="ArkCrest premium estate landscape"
+        loading="eager"
+        fetchpriority="high"
+      >
+    </div>
     <div class="hero-content">
       <h1><em>The Standard of</em><span class="line2">Luxury Acquisition.</span></h1>
       <p>Curating high-yield, premium properties across strategic locations. Build your legacy on a foundation of trust and prestige.</p>
@@ -413,7 +434,13 @@
       <div class="carousel-arrow left on-light" style="left:-22px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
       <div class="carousel-arrow right on-light" style="right:-22px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
       <div class="grid">
-        <div class="ph"><span>Portrait — team / founder photo, 900×675</span></div>
+        <div class="ph">
+          <img
+            src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/DSC_6783.jpg') }}"
+            alt="ArkCrest Realty team"
+            loading="lazy"
+          >
+        </div>
         <div>
           <span class="eyebrow"><span class="rule"></span>Our Heritage</span>
           <h2>Legacy is defined <em>by where you stand.</em></h2>
@@ -439,17 +466,35 @@
       </div>
       <div class="estate-grid">
         <div class="estate-card">
-          <div class="ph"><span>Manggas Estate photo, 700×525</span></div>
+          <div class="ph">
+            <img
+              src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/test-image2.jpg') }}"
+              alt="Manggas Estate"
+              loading="lazy"
+            >
+          </div>
           <h3>Manggas Estate</h3>
           <div class="tag">Urban Heritage Reserve</div>
         </div>
         <div class="estate-card">
-          <div class="ph"><span>Mountain View Hills photo, 700×525</span></div>
+          <div class="ph">
+            <img
+              src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/testing-image.jpg') }}"
+              alt="Mountain View Hills"
+              loading="lazy"
+            >
+          </div>
           <h3>Mountain View Hills</h3>
           <div class="tag">Skyline Sanctuary</div>
         </div>
         <div class="estate-card">
-          <div class="ph"><span>Lakeside Estates photo, 700×525</span></div>
+          <div class="ph">
+            <img
+              src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/testing-image3.jpg') }}"
+              alt="Lakeside Estates"
+              loading="lazy"
+            >
+          </div>
           <h3>Lakeside Estates</h3>
           <div class="tag">Waterfront Legacy</div>
         </div>
@@ -469,11 +514,29 @@
         </div>
         <div class="collage">
           <div class="col">
-            <div class="ph tall"><span>Land sign / property marker photo</span></div>
+            <div class="ph tall">
+              <img
+                src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/DSC_6935.jpg') }}"
+                alt="ArkCrest property presentation"
+                loading="lazy"
+              >
+            </div>
           </div>
           <div class="col">
-            <div class="ph short"><span>Hillside field photo</span></div>
-            <div class="ph short"><span>City skyline photo</span></div>
+            <div class="ph short">
+              <img
+                src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/DSC_6938.jpg') }}"
+                alt="ArkCrest realty event"
+                loading="lazy"
+              >
+            </div>
+            <div class="ph short">
+              <img
+                src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/DSC_6989.jpg') }}"
+                alt="ArkCrest client milestone"
+                loading="lazy"
+              >
+            </div>
           </div>
         </div>
       </div>
@@ -482,7 +545,13 @@
 
   <!-- DISTINCTION BANNER -->
   <section class="distinction" id="services">
-    <div class="ph dark"><span>Wide banner background — hillside estate photo, 1600×700</span></div>
+    <div class="ph dark">
+      <img
+        src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/DSC_7067.jpg') }}"
+        alt="ArkCrest Realty distinction"
+        loading="lazy"
+      >
+    </div>
     <div class="distinction-content">
       <span class="eyebrow on-dark">The ArkCrest Distinction</span>
       <h2><em>More Than Property —</em><br>A Lifestyle Investment</h2>

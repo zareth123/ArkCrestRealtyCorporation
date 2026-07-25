@@ -20,6 +20,8 @@
     $remarks       = $data['remarks'] ?? '';
 
     $amountRequested = $expense->requested_amount;
+    $releaseStatus = $data['release_status'] ?? $expense->release_status ?? 'NOT YET RELEASED';
+    $liquidationStatus = $data['liquidation_status'] ?? $expense->status ?? 'NOT YET LIQUIDATED';
 
     $fmtDate = function ($value) {
         if (empty($value)) return '';
@@ -60,7 +62,13 @@
             </div>
         </div>
     </div>
-    <div style="text-align:right;font-size:16px;font-weight:700;color:#dc2626;margin-bottom:4px;margin-top:10px;letter-spacing:.3px;">Control Number: {{ $expense->control_number }}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;margin-top:10px;">
+        <div style="display:flex;gap:6px;align-items:center;font-size:9px;">
+            <span class="status-chip">RELEASE: {{ $releaseStatus }}</span>
+            <span class="status-chip">LIQUIDATION: {{ $liquidationStatus }}</span>
+        </div>
+        <div style="text-align:right;font-size:16px;font-weight:700;color:#dc2626;letter-spacing:.3px;">Control Number: {{ $expense->control_number }}</div>
+    </div>
 
     <table class="info-tbl">
         <tr>
@@ -155,6 +163,7 @@
 .info-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:0}
 .info-tbl td{border:1px solid #000;padding:5px 7px}
 .info-tbl td.lbl{font-weight:700;white-space:nowrap;background:#fafafa;width:1%}
+.status-chip{display:inline-block;padding:2px 7px;border:1px solid #64748b;border-radius:999px;font-size:9px;font-weight:700;letter-spacing:.2px;}
 .frm-note{font-size:11px;color:#dc2626;margin:4px 0 4px;line-height:1.5}
 .liq-tbl{width:100%;border-collapse:collapse;font-size:11px}
 .liq-tbl th,.liq-tbl td{border:1px solid #000;padding:1px 4px;text-align:center;height:20px;}

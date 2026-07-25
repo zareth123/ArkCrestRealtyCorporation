@@ -123,12 +123,12 @@ class FormsController extends Controller
                 'date_requested'   => $validated['date_requested'],
                 'requested_amount' => $validated['requested_amount'] ?? null,
 
-                // A freshly submitted Budget Request Form always lands in
-                // the All Expenses table as "PENDING". The release /
-                // liquidation fields stay blank here — Finance fills them
-                // in later (via Edit) once the request is actually
-                // released and liquidated.
-                'status'                  => 'PENDING',
+                // A freshly submitted Budget Request Form starts in both
+                // pending workflow states. Finance updates Release Status
+                // first, then completes the liquidation form before changing
+                // Liquidation Status to LIQUIDATED.
+                'release_status'          => 'NOT YET RELEASED',
+                'status'                  => 'NOT YET LIQUIDATED',
                 'date_released'           => null,
                 'total_expenses'          => null,
                 'amount_returned'         => null,

@@ -78,6 +78,181 @@ class DepartmentalExpensesController extends Controller
         ];
     }
 
+
+    /**
+     * Accept legacy values from cached/older front-ends and normalize them
+     * into the new two-status workflow before validation.
+     */
+    private function prepareStatusInput(Request $request): void
+    {
+        $liquidationStatus = strtoupper(trim((string) $request->input('status', '')));
+        $releaseStatus = strtoupper(trim((string) $request->input('release_status', '')));
+
+        if (in_array($liquidationStatus, ['PENDING', 'NOT LIQUIDATED'], true)) {
+            $liquidationStatus = 'NOT YET LIQUIDATED';
+        }
+
+        // REJECTED used to live in the combined status column. It now belongs
+        // exclusively to Release Status.
+        if ($liquidationStatus === 'REJECTED') {
+            $releaseStatus = 'REJECTED';
+            $liquidationStatus = 'NOT YET LIQUIDATED';
+        }
+
+        if ($liquidationStatus === '') {
+            $liquidationStatus = 'NOT YET LIQUIDATED';
+        }
+
+        if ($releaseStatus === '') {
+            $releaseStatus = ($liquidationStatus === 'LIQUIDATED' || $request->filled('date_released'))
+                ? 'RELEASED'
+                : 'NOT YET RELEASED';
+        }
+
+        $request->merge([
+            'release_status' => $releaseStatus,
+            'status' => $liquidationStatus,
+        ]);
+    }
+
+    /**
+     * Enforce the release -> liquidation workflow and normalize fields that
+     * must stay blank until their workflow stage is reached.
+     */
+    private function normalizeWorkflow(array &$validated): void
+    {
+        $validated['release_status'] = strtoupper(trim($validated['release_status']));
+        $validated['status'] = strtoupper(trim($validated['status']));
+
+        if ($validated['release_status'] === 'REJECTED') {
+            $validated['status'] = 'NOT YET LIQUIDATED';
+            $validated['date_released'] = null;
+            $validated['total_expenses'] = null;
+            $validated['amount_returned'] = null;
+            $validated['date_of_amount_returned'] = null;
+            return;
+        }
+
+        if ($validated['release_status'] === 'NOT YET RELEASED') {
+            if ($validated['status'] === 'LIQUIDATED') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => 'The request must be released before it can be marked as liquidated.',
+                ]);
+            }
+
+            $validated['date_released'] = null;
+            $validated['total_expenses'] = null;
+            $validated['amount_returned'] = null;
+            $validated['date_of_amount_returned'] = null;
+            return;
+        }
+
+        if (empty($validated['date_released'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'date_released' => 'Date Released is required when Release Status is RELEASED.',
+            ]);
+        }
+
+        if ($validated['status'] === 'LIQUIDATED') {
+            if (!array_key_exists('total_expenses', $validated) || $validated['total_expenses'] === null || $validated['total_expenses'] === '') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'total_expenses' => 'Complete the liquidation form and enter Total Expenses before marking the record as liquidated.',
+                ]);
+            }
+
+            $requestedAmount = (float) ($validated['requested_amount'] ?? 0);
+            $totalExpenses = (float) $validated['total_expenses'];
+            $validated['amount_returned'] = max(0, $requestedAmount - $totalExpenses);
+        } else {
+            // A released request may wait for liquidation, but liquidation
+            // values must not be stored until the form is completed.
+            $validated['total_expenses'] = null;
+            $validated['amount_returned'] = null;
+            $validated['date_of_amount_returned'] = null;
+        }
+
+        if (!empty($validated['date_requested']) && !empty($validated['date_released'])) {
+            $dateRequested = Carbon::parse($validated['date_requested']);
+            $dateReleased = Carbon::parse($validated['date_released']);
+
+            if ($dateRequested->gt($dateReleased)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'date_released' => 'Date Released must be on or after Date Requested.',
+                ]);
+            }
+        }
+
+        if (!empty($validated['date_released']) && !empty($validated['date_of_amount_returned'])) {
+            $dateReleased = Carbon::parse($validated['date_released']);
+            $dateReturned = Carbon::parse($validated['date_of_amount_returned']);
+
+            if ($dateReleased->gt($dateReturned)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'date_of_amount_returned' => 'Date of Amount Returned must be on or after Date Released.',
+                ]);
+            }
+        }
+
+        if ($validated['status'] === 'LIQUIDATED'
+            && (float) ($validated['amount_returned'] ?? 0) > 0
+            && empty($validated['date_of_amount_returned'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'date_of_amount_returned' => 'Date of Amount Returned is required when there is an amount to return.',
+            ]);
+        }
+    }
+
+
+    private function ensurePeriodUnlocked(DepartmentalExpense $expense): void
+    {
+        if (!$expense->date_requested) {
+            return;
+        }
+
+        $date = Carbon::parse($expense->date_requested);
+        if (\App\Models\PeriodLock::isLocked((int) $date->month, (int) $date->year)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'date_requested' => date('F Y', mktime(0, 0, 0, $date->month, 1, $date->year))
+                    . ' is locked. No changes allowed for this period.',
+            ]);
+        }
+    }
+
+    private function syncBudgetFormSnapshot(DepartmentalExpense $expense): void
+    {
+        $snapshotKey = 'budget_form_snapshot_' . $expense->id;
+        $rawSnapshot = \DB::table('app_settings')->where('key', $snapshotKey)->value('value');
+
+        if ($rawSnapshot === null) {
+            return;
+        }
+
+        $snapshot = json_decode($rawSnapshot, true);
+        if (!is_array($snapshot)) {
+            $snapshot = [];
+        }
+
+        $snapshot['release_status'] = $expense->release_status;
+        $snapshot['liquidation_status'] = $expense->status;
+        $snapshot['actual_date_released'] = $expense->date_released
+            ? $expense->date_released->format('Y-m-d')
+            : null;
+        $snapshot['total_expenses'] = $expense->total_expenses !== null
+            ? (string) $expense->total_expenses
+            : '';
+        $snapshot['amount_returned'] = $expense->amount_returned !== null
+            ? (string) $expense->amount_returned
+            : '';
+        $snapshot['date_of_amount_returned'] = $expense->date_of_amount_returned
+            ? $expense->date_of_amount_returned->format('Y-m-d')
+            : null;
+
+        \DB::table('app_settings')->updateOrInsert(
+            ['key' => $snapshotKey],
+            ['value' => json_encode($snapshot), 'updated_at' => now()]
+        );
+    }
+
     public function index()
     {
         $requests = DepartmentalExpense::orderBy('control_number', 'asc')->orderBy('id', 'asc')->get();
@@ -128,293 +303,290 @@ class DepartmentalExpensesController extends Controller
 
     public function store(Request $request)
     {
+        $this->prepareStatusInput($request);
+
         try {
             $validated = $request->validate([
                 'requestor_name' => 'required|string',
                 'department' => 'required|string',
+                'release_status' => 'required|in:' . implode(',', DepartmentalExpense::RELEASE_STATUSES),
+                'status' => 'required|in:' . implode(',', DepartmentalExpense::LIQUIDATION_STATUSES),
                 'category' => 'required|string',
                 'date_requested' => 'required|date',
                 'requested_amount' => 'nullable|numeric|min:0',
-                'status' => 'required|in:' . implode(',', \App\Models\DepartmentalExpense::STATUSES),
-                'date_released' => 'required_if:status,LIQUIDATED|nullable|date',
-                'total_expenses' => 'nullable|numeric',
-                'amount_returned' => 'nullable|numeric',
-                'date_of_amount_returned' => 'nullable|date'
+                'date_released' => 'nullable|date',
+                'total_expenses' => 'nullable|numeric|min:0',
+                'amount_returned' => 'nullable|numeric|min:0',
+                'date_of_amount_returned' => 'nullable|date',
             ]);
+
+            $this->normalizeWorkflow($validated);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'message' => $e->validator->errors()->first()], 422);
+            return response()->json([
+                'success' => false,
+                'message' => $e->validator->errors()->first(),
+            ], 422);
         }
 
-        $lockDate = !empty($validated['date_released']) ? $validated['date_released'] : ($validated['date_requested'] ?? null);
+        $lockDate = $validated['date_released'] ?? $validated['date_requested'];
         if (!empty($lockDate)) {
             $d = Carbon::parse($lockDate);
-            if (\App\Models\PeriodLock::isLocked((int)$d->month, (int)$d->year)) {
-                return response()->json(['success' => false, 'message' => date('F Y', mktime(0,0,0,$d->month,1,$d->year)) . ' is locked. No changes allowed for this period.'], 422);
-            }
-        }
-
-        // TEMPORARILY DISABLED — budget amounts aren't set up on Departments yet,
-        // so this check blocks everything. Re-enable by uncommenting once
-        // budgets are configured. (Disabled: {{ today's date }})
-        /*
-        if ($validated['status'] === 'LIQUIDATED') {
-            $totalExpenses = (float) ($validated['total_expenses'] ?? 0);
-            $budget = $this->remainingBudget($validated['department']);
-            if ($totalExpenses > $budget['remaining']) {
+            if (\App\Models\PeriodLock::isLocked((int) $d->month, (int) $d->year)) {
                 return response()->json([
                     'success' => false,
-                    'message' => sprintf(
-                        'This exceeds %s\'s remaining budget. Remaining: ₱%s, Attempted: ₱%s.',
-                        $validated['department'],
-                        number_format($budget['remaining'], 2),
-                        number_format($totalExpenses, 2)
-                    ),
-                ], 422);
-            }
-        }
-        */
-
-        if (!empty($validated['date_requested']) && !empty($validated['date_released'])) {
-            $dateRequested = \Carbon\Carbon::parse($validated['date_requested']);
-            $dateReleased = \Carbon\Carbon::parse($validated['date_released']);
-            
-            if ($dateRequested->gt($dateReleased)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Date Released must be on or after Date Requested'
-                ], 422);
-            }
-        }
-        
-        if (!empty($validated['date_released']) && !empty($validated['date_of_amount_returned'])) {
-            $dateReleased = \Carbon\Carbon::parse($validated['date_released']);
-            $dateReturned = \Carbon\Carbon::parse($validated['date_of_amount_returned']);
-            
-            if ($dateReleased->gt($dateReturned)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Date of Amount Returned must be on or after Date Released'
-                ], 422);
-            }
-        }
-        
-        if (!empty($validated['date_requested']) && !empty($validated['date_of_amount_returned'])) {
-            $dateRequested = \Carbon\Carbon::parse($validated['date_requested']);
-            $dateReturned = \Carbon\Carbon::parse($validated['date_of_amount_returned']);
-            
-            if ($dateRequested->gt($dateReturned)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Date of Amount Returned must be on or after Date Requested'
+                    'message' => date('F Y', mktime(0, 0, 0, $d->month, 1, $d->year)) . ' is locked. No changes allowed for this period.',
                 ], 422);
             }
         }
 
-        $date = $validated['date_requested'] ? Carbon::parse($validated['date_requested']) : Carbon::now();
+        $date = Carbon::parse($validated['date_requested']);
         $month = $date->format('m');
-        $year  = $date->format('y');
+        $year = $date->format('y');
 
-        $controlNumber = \DB::transaction(function() use ($month, $year) {
+        $controlNumber = \DB::transaction(function () use ($month, $year) {
             $count = 1;
-            while (DepartmentalExpense::withTrashed()->where('control_number', sprintf('ARCS-%s-%03d-%s', $month, $count, $year))->exists()) {
+            while (DepartmentalExpense::withTrashed()
+                ->where('control_number', sprintf('ARCS-%s-%03d-%s', $month, $count, $year))
+                ->exists()) {
                 $count++;
             }
+
             return sprintf('ARCS-%s-%03d-%s', $month, $count, $year);
         });
 
         $validated['control_number'] = $controlNumber;
 
-        if (empty($validated['date_requested'])) {
-            $validated['date_requested'] = null;
-        }
-        if (empty($validated['date_released'])) {
-            $validated['date_released'] = null;
-        }
-        if (empty($validated['date_of_amount_returned'])) {
-            $validated['date_of_amount_returned'] = null;
-        }
-
-        if (empty($validated['total_expenses'])) {
-            $validated['total_expenses'] = null;
-        }
-        if (empty($validated['amount_returned'])) {
-            $validated['amount_returned'] = null;
-        }
-
-        if (isset($validated['total_expenses']) && $validated['total_expenses'] > 0) {
-            $validated['amount_returned'] = $validated['requested_amount'] - $validated['total_expenses'];
-        }
-
         try {
-            $DepartmentalExpense = DepartmentalExpense::create($validated);
+            $departmentalExpense = DepartmentalExpense::create($validated);
         } catch (\Exception $e) {
             \Log::error('DepartmentalExpense create error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Failed to save: ' . $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save: ' . $e->getMessage(),
+            ], 500);
         }
 
-        ActivityLog::log('create', 'Departmental Expenses', "Added expense '{$validated['category']}' for {$validated['department']} by {$validated['requestor_name']} (₱" . number_format($validated['requested_amount'] ?? 0, 2) . ")");
+        ActivityLog::log(
+            'create',
+            'Departmental Expenses',
+            "Added expense '{$validated['category']}' for {$validated['department']} by {$validated['requestor_name']} (₱" . number_format($validated['requested_amount'] ?? 0, 2) . ") [Release: {$validated['release_status']}; Liquidation: {$validated['status']}]"
+        );
+
         return response()->json([
             'success' => true,
-            'message' => 'Commission request created successfully',
-            'data' => $DepartmentalExpense
+            'message' => 'Expense request created successfully.',
+            'data' => $departmentalExpense,
         ]);
     }
 
     public function update(Request $request, $id)
     {
-        $DepartmentalExpense = DepartmentalExpense::findOrFail($id);
+        $departmentalExpense = DepartmentalExpense::findOrFail($id);
 
-        if ($DepartmentalExpense->date_requested) {
-            $d = Carbon::parse($DepartmentalExpense->date_requested);
-            if (\App\Models\PeriodLock::isLocked((int)$d->month, (int)$d->year)) {
-                return response()->json(['success' => false, 'message' => date('F Y', mktime(0,0,0,$d->month,1,$d->year)) . ' is locked. No changes allowed for this period.'], 422);
+        if ($departmentalExpense->date_requested) {
+            $d = Carbon::parse($departmentalExpense->date_requested);
+            if (\App\Models\PeriodLock::isLocked((int) $d->month, (int) $d->year)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => date('F Y', mktime(0, 0, 0, $d->month, 1, $d->year)) . ' is locked. No changes allowed for this period.',
+                ], 422);
             }
         }
-        
+
+        $this->prepareStatusInput($request);
+
         try {
             $validated = $request->validate([
                 'control_number' => 'required|string|unique:departmental_expenses,control_number,' . $id,
                 'requestor_name' => 'required|string',
                 'department' => 'required|string',
+                'release_status' => 'required|in:' . implode(',', DepartmentalExpense::RELEASE_STATUSES),
+                'status' => 'required|in:' . implode(',', DepartmentalExpense::LIQUIDATION_STATUSES),
                 'category' => 'required|string',
-                'date_requested' => 'nullable|date',
+                'date_requested' => 'required|date',
                 'requested_amount' => 'nullable|numeric|min:0',
-                'status' => 'required|in:' . implode(',', \App\Models\DepartmentalExpense::STATUSES),
                 'date_released' => 'nullable|date',
-                'total_expenses' => 'nullable|numeric',
-                'amount_returned' => 'nullable|numeric',
-                'date_of_amount_returned' => 'nullable|date'
+                'total_expenses' => 'nullable|numeric|min:0',
+                'amount_returned' => 'nullable|numeric|min:0',
+                'date_of_amount_returned' => 'nullable|date',
             ]);
+
+            $this->normalizeWorkflow($validated);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'message' => $e->validator->errors()->first()], 422);
+            return response()->json([
+                'success' => false,
+                'message' => $e->validator->errors()->first(),
+            ], 422);
         }
 
-        // TEMPORARILY DISABLED — see matching note in store() above.
-        /*
-        if ($validated['status'] === 'LIQUIDATED') {
-            $totalExpenses = (float) ($validated['total_expenses'] ?? 0);
-            $budget = $this->remainingBudget($validated['department'], (int) $id);
-            if ($totalExpenses > $budget['remaining']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => sprintf(
-                        'This exceeds %s\'s remaining budget. Remaining: ₱%s, Attempted: ₱%s.',
-                        $validated['department'],
-                        number_format($budget['remaining'], 2),
-                        number_format($totalExpenses, 2)
-                    ),
-                ], 422);
-            }
-        }
-        */
+        $departmentalExpense->update($validated);
 
-        if (!empty($validated['date_requested']) && !empty($validated['date_released'])) {
-            $dateRequested = \Carbon\Carbon::parse($validated['date_requested']);
-            $dateReleased = \Carbon\Carbon::parse($validated['date_released']);
-            
-            if ($dateRequested->gt($dateReleased)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Date Released must be on or after Date Requested'
-                ], 422);
-            }
-        }
-        
-        if (!empty($validated['date_released']) && !empty($validated['date_of_amount_returned'])) {
-            $dateReleased = \Carbon\Carbon::parse($validated['date_released']);
-            $dateReturned = \Carbon\Carbon::parse($validated['date_of_amount_returned']);
-            
-            if ($dateReleased->gt($dateReturned)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Date of Amount Returned must be on or after Date Released'
-                ], 422);
-            }
-        }
-        
-        if (!empty($validated['date_requested']) && !empty($validated['date_of_amount_returned'])) {
-            $dateRequested = \Carbon\Carbon::parse($validated['date_requested']);
-            $dateReturned = \Carbon\Carbon::parse($validated['date_of_amount_returned']);
-            
-            if ($dateRequested->gt($dateReturned)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Date of Amount Returned must be on or after Date Requested'
-                ], 422);
-            }
-        }
+        $this->syncBudgetFormSnapshot($departmentalExpense);
 
-        if ($validated['control_number'] !== $DepartmentalExpense->control_number) {
-            $existingRequest = DepartmentalExpense::where('control_number', $validated['control_number'])
-                ->where('id', '!=', $id)
-                ->first();
-            
-            if ($existingRequest) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Control number already exists. Please use a unique control number.'
-                ], 422);
-            }
-        }
+        ActivityLog::log(
+            'update',
+            'Departmental Expenses',
+            "Updated expense ID: {$id} ({$validated['department']} - {$validated['category']}) [Release: {$validated['release_status']}; Liquidation: {$validated['status']}]"
+        );
 
-        if (empty($validated['date_requested'])) {
-            $validated['date_requested'] = null;
-        }
-        if (empty($validated['date_released'])) {
-            $validated['date_released'] = null;
-        }
-        if (empty($validated['date_of_amount_returned'])) {
-            $validated['date_of_amount_returned'] = null;
-        }
-
-        if (empty($validated['total_expenses'])) {
-            $validated['total_expenses'] = null;
-        }
-        if (empty($validated['amount_returned'])) {
-            $validated['amount_returned'] = null;
-        }
-
-        if (isset($validated['total_expenses']) && $validated['total_expenses'] > 0) {
-            $validated['amount_returned'] = $validated['requested_amount'] - $validated['total_expenses'];
-        }
-        
-        $DepartmentalExpense->update($validated);
-
-        // Keep the "view & print" Budget Request Form (reachable from this
-        // page via the Form button) in sync with the latest release /
-        // liquidation details entered here — e.g. via the "UPDATE RECORD"
-        // popup shown when Status is switched to LIQUIDATED. The view
-        // already falls back to these columns when the snapshot doesn't
-        // have its own value, but we sync explicitly too so a snapshot
-        // that already has stale values gets overwritten as well.
-        $snapshotKey = 'budget_form_snapshot_' . $DepartmentalExpense->id;
-        $rawSnapshot = \DB::table('app_settings')->where('key', $snapshotKey)->value('value');
-        if ($rawSnapshot !== null) {
-            $snapshot = json_decode($rawSnapshot, true);
-            if (!is_array($snapshot)) {
-                $snapshot = [];
-            }
-            $snapshot['actual_date_released'] = $DepartmentalExpense->date_released
-                ? $DepartmentalExpense->date_released->format('Y-m-d')
-                : null;
-            $snapshot['total_expenses'] = $DepartmentalExpense->total_expenses !== null
-                ? (string) $DepartmentalExpense->total_expenses
-                : '';
-            $snapshot['amount_returned'] = $DepartmentalExpense->amount_returned !== null
-                ? (string) $DepartmentalExpense->amount_returned
-                : '';
-            \DB::table('app_settings')->updateOrInsert(
-                ['key' => $snapshotKey],
-                ['value' => json_encode($snapshot), 'updated_at' => now()]
-            );
-        }
-
-        ActivityLog::log('update', 'Departmental Expenses', "Updated expense ID: {$id} ({$validated['department']} - {$validated['category']})");
         return response()->json([
             'success' => true,
-            'message' => 'Commission request updated successfully',
-            'data' => $DepartmentalExpense
+            'message' => 'Expense request updated successfully.',
+            'data' => $departmentalExpense->fresh(),
         ]);
+    }
+
+    public function updateReleaseStatus(Request $request, $id)
+    {
+        $expense = DepartmentalExpense::findOrFail($id);
+
+        try {
+            $this->ensurePeriodUnlocked($expense);
+
+            $validated = $request->validate([
+                'release_status' => 'required|in:' . implode(',', DepartmentalExpense::RELEASE_STATUSES),
+                'date_released' => 'nullable|date',
+            ]);
+
+            $releaseStatus = strtoupper(trim($validated['release_status']));
+            $updates = ['release_status' => $releaseStatus];
+
+            if ($releaseStatus === 'RELEASED') {
+                $dateReleased = $validated['date_released'] ?? now()->toDateString();
+
+                if ($expense->date_requested && Carbon::parse($expense->date_requested)->gt(Carbon::parse($dateReleased))) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'date_released' => 'Date Released must be on or after Date Requested.',
+                    ]);
+                }
+
+                $updates['date_released'] = $dateReleased;
+
+                // A newly released request still waits for its liquidation form.
+                if ($expense->status !== 'LIQUIDATED') {
+                    $updates['status'] = 'NOT YET LIQUIDATED';
+                    $updates['total_expenses'] = null;
+                    $updates['amount_returned'] = null;
+                    $updates['date_of_amount_returned'] = null;
+                }
+            } else {
+                // Reverting or rejecting a release intentionally clears the saved liquidation form.
+                $updates['date_released'] = null;
+                $updates['status'] = 'NOT YET LIQUIDATED';
+                $updates['total_expenses'] = null;
+                $updates['amount_returned'] = null;
+                $updates['date_of_amount_returned'] = null;
+            }
+
+            $expense->update($updates);
+            $expense->refresh();
+            $this->syncBudgetFormSnapshot($expense);
+
+            ActivityLog::log(
+                'update',
+                'Departmental Expenses',
+                "Changed release status for {$expense->control_number} to {$expense->release_status}"
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Release status updated successfully.',
+                'data' => $expense,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->validator->errors()->first(),
+            ], 422);
+        }
+    }
+
+    public function updateLiquidationStatus(Request $request, $id)
+    {
+        $expense = DepartmentalExpense::findOrFail($id);
+
+        try {
+            $this->ensurePeriodUnlocked($expense);
+
+            $validated = $request->validate([
+                'status' => 'required|in:' . implode(',', DepartmentalExpense::LIQUIDATION_STATUSES),
+                'total_expenses' => 'nullable|numeric|min:0',
+                'amount_returned' => 'nullable|numeric|min:0',
+                'date_of_amount_returned' => 'nullable|date',
+            ]);
+
+            $liquidationStatus = strtoupper(trim($validated['status']));
+
+            if ($expense->release_status !== 'RELEASED' || !$expense->date_released) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => 'Set Release Status to RELEASED before changing the Liquidation Status.',
+                ]);
+            }
+
+            if ($liquidationStatus === 'NOT YET LIQUIDATED') {
+                $expense->update([
+                    'status' => 'NOT YET LIQUIDATED',
+                    'total_expenses' => null,
+                    'amount_returned' => null,
+                    'date_of_amount_returned' => null,
+                ]);
+            } else {
+                if (!array_key_exists('total_expenses', $validated)
+                    || $validated['total_expenses'] === null
+                    || $validated['total_expenses'] === '') {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'total_expenses' => 'Complete the liquidation form and enter Total Expenses.',
+                    ]);
+                }
+
+                $totalExpenses = (float) $validated['total_expenses'];
+                $requestedAmount = (float) ($expense->requested_amount ?? 0);
+                $amountReturned = max(0, $requestedAmount - $totalExpenses);
+                $dateReturned = $validated['date_of_amount_returned'] ?? null;
+
+                if ($amountReturned > 0 && empty($dateReturned)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'date_of_amount_returned' => 'Date of Amount Returned is required when there is an amount to return.',
+                    ]);
+                }
+
+                if (!empty($dateReturned)
+                    && Carbon::parse($expense->date_released)->gt(Carbon::parse($dateReturned))) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'date_of_amount_returned' => 'Date of Amount Returned must be on or after Date Released.',
+                    ]);
+                }
+
+                $expense->update([
+                    'status' => 'LIQUIDATED',
+                    'total_expenses' => $totalExpenses,
+                    'amount_returned' => $amountReturned,
+                    'date_of_amount_returned' => $amountReturned > 0 ? $dateReturned : null,
+                ]);
+            }
+
+            $expense->refresh();
+            $this->syncBudgetFormSnapshot($expense);
+
+            ActivityLog::log(
+                'update',
+                'Departmental Expenses',
+                "Changed liquidation status for {$expense->control_number} to {$expense->status}"
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => $expense->status === 'LIQUIDATED'
+                    ? 'Liquidation form saved successfully.'
+                    : 'Liquidation status updated successfully.',
+                'data' => $expense,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->validator->errors()->first(),
+            ], 422);
+        }
     }
 
     public function restore($id)
@@ -451,6 +623,7 @@ class DepartmentalExpensesController extends Controller
             'control_number'         => $DepartmentalExpense->control_number,
             'requestor_name'         => $DepartmentalExpense->requestor_name,
             'department'             => $DepartmentalExpense->department,
+            'release_status'         => $DepartmentalExpense->release_status,
             'category'               => $DepartmentalExpense->category,
             'date_requested'         => $DepartmentalExpense->date_requested,
             'requested_amount'       => $DepartmentalExpense->requested_amount,
