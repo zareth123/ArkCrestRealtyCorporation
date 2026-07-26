@@ -95,8 +95,10 @@
 .cal-cell {
     border-right:1px solid #d1d5db;border-bottom:1px solid #d1d5db;
     padding:6px 7px;display:flex;flex-direction:column;
-    overflow:hidden;transition:background .15s;
+    overflow-y:auto;overflow-x:hidden;transition:background .15s;
 }
+.cal-cell::-webkit-scrollbar { width:4px; }
+.cal-cell::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:2px; }
 .cal-cell:nth-child(7n) { border-right:none; }
 .cal-cell.empty { background:#fafbfc; }
 .cal-cell.weekend { background:#fafbfc; }

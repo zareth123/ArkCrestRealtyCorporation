@@ -46,6 +46,18 @@ class DepartmentalExpense extends Model
         'LIQUIDATED',
     ];
 
+    // Prevents date-only casts from being converted to UTC when serialized to
+    // JSON (Laravel's default). Without this, a date stored as "2026-07-25"
+    // gets serialized as "2026-07-24T16:00:00.000000Z" for any timezone ahead
+    // of UTC (like Asia/Manila), which the frontend then reads as one day
+    // earlier — silently corrupting date_released whenever the record is
+    // returned as JSON (e.g. after updating Release Status or Liquidation
+    // Status).
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d');
+    }
+
     /**
      * Backward-compatible alias for older call sites. The existing `status`
      * column now represents liquidation status only.

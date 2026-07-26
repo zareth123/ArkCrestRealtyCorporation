@@ -24,7 +24,7 @@ class CalendarController extends Controller
         })->get();
 
         $trips = TripSchedule::whereBetween('tripping_date', [$dateFrom, $dateTo])
-            ->whereIn('status', ['confirmed', 'pending'])
+            ->whereIn('status', ['confirmed', 'pending', 'reserved'])
             ->orderBy('tripping_date')
             ->get();
 
@@ -52,7 +52,7 @@ class CalendarController extends Controller
             $day = $t->tripping_date->day;
             if (!$eventsByDay->has($day)) $eventsByDay->put($day, collect());
             $eventsByDay->get($day)->push([
-                'type'   => 'trip',
+                'type'   => $t->status === 'reserved' ? 'reserved' : 'trip',
                 'label'  => $t->client_name,
                 'sub'    => $t->property_name,
                 'agent'  => $t->agent_name,
@@ -81,7 +81,7 @@ class CalendarController extends Controller
         $weekEnd   = now()->endOfWeek(\Carbon\Carbon::SUNDAY)->format('Y-m-d');
 
         $thisWeekTrips = TripSchedule::whereBetween('tripping_date', [$weekStart, $weekEnd])
-            ->whereIn('status', ['confirmed', 'pending'])
+            ->whereIn('status', ['confirmed', 'pending', 'reserved'])
             ->orderBy('tripping_date')->orderBy('tripping_time')
             ->get();
 

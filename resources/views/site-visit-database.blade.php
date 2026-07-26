@@ -21,15 +21,19 @@
 .stat-card.pending .stat-icon{background:linear-gradient(135deg,#A37929,#d4a03a)}
 .stat-card.confirmed .stat-icon{background:linear-gradient(135deg,#1e4575,#2563eb)}
 .stat-card.cancelled .stat-icon{background:linear-gradient(135deg,#dc2626,#ef4444)}
+.stat-card.reserved .stat-icon{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
+.stat-card.reserved .stat-icon{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
 .stat-val{font-size:28px;font-weight:800;color:#0f172a;line-height:1}
 .stat-lbl{font-size:11px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
 .stat-card.pending{border-left:none}
 .stat-card.confirmed{border-left:none}
 .stat-card.cancelled{border-left:none}
+.stat-card.reserved{border-left:none}
 .stat-card.stat-active{outline:2.5px solid transparent}
 .stat-card.pending.stat-active{box-shadow:0 0 0 2.5px #d4a03a,0 8px 28px rgba(163,121,41,.2);}
 .stat-card.confirmed.stat-active{box-shadow:0 0 0 2.5px #2563eb,0 8px 28px rgba(37,99,235,.2);}
 .stat-card.cancelled.stat-active{box-shadow:0 0 0 2.5px #ef4444,0 8px 28px rgba(239,68,68,.2);}
+.stat-card.reserved.stat-active{box-shadow:0 0 0 2.5px #7c3aed,0 8px 28px rgba(124,58,237,.2);}
 @keyframes svdFadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 /* Section */
 .section-block{background:white;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);overflow:hidden;margin-bottom:24px;border:1px solid #f1f5f9}
@@ -41,6 +45,7 @@
 .status-pill.confirmed{background:#dbeafe;color:#1e40af}
 .status-pill.done{background:#dcfce7;color:#166534}
 .status-pill.cancelled{background:#fee2e2;color:#991b1b}
+.status-pill.reserved{background:#ede9fe;color:#5b21b6}
 .search-wrap{position:relative}
 .search-wrap input{padding:8px 12px 8px 34px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;color:#111827;background:#f8fafc;width:220px;transition:all .2s}
 .search-wrap input:focus{outline:none;border-color:#1e4575;background:white;box-shadow:0 0 0 3px rgba(30,69,117,.08)}
@@ -191,6 +196,7 @@
     $done          = $records->where('status','done')->count();
     $cancelled     = $records->where('status','cancelled')->count();
     $cancelled_count = $records->where('status','cancelled')->count();
+    $reserved_count = $records->where('status','reserved')->count();
 @endphp
 <div class="svd-stats">
     <div class="stat-card confirmed" onclick="toggleSection('section-confirmed')" data-section="section-confirmed" style="cursor:pointer;">
@@ -210,6 +216,12 @@
             <svg fill="none" stroke="white" viewBox="0 0 24 24" style="width:26px;height:26px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         <div><div class="stat-val">{{ $cancelled_count }}</div><div class="stat-lbl">Cancelled Tripping</div></div>
+    </div>
+    <div class="stat-card reserved" onclick="toggleSection('section-reserved')" data-section="section-reserved" style="cursor:pointer;">
+        <div class="stat-icon">
+            <svg fill="none" stroke="white" viewBox="0 0 24 24" style="width:26px;height:26px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div><div class="stat-val">{{ $reserved_count }}</div><div class="stat-lbl">Reserved Clients</div></div>
     </div>
 </div>
 
@@ -331,6 +343,7 @@
 @foreach([
     'done'      => 'Done Tripping',
     'cancelled' => 'Cancelled Tripping',
+    'reserved'  => 'Reserved Clients',
 ] as $status => $label)
 @php $grp = $records->where('status', $status); @endphp
 @if($status === 'done' && $grp->isEmpty())
@@ -368,7 +381,7 @@
         <div id="svdActiveFiltersRow_{{ $status }}" class="active-column-filters-row" style="display:none;"></div>
     </div>
     <div class="tbl-wrap">
-    <table class="svd-table">
+    <table class="svd-table js-sort-table js-sort-dropdown">
         <thead><tr>
             <th style="width:40px;text-align:center">#</th>
             <th>Name of Client</th><th>Property</th><th>Company</th>
@@ -389,7 +402,9 @@
             data-tripping-date="{{ $r->tripping_date ? $r->tripping_date->format('Y-m-d') : '' }}"
             data-tripping-time="{{ $r->tripping_time ? \Carbon\Carbon::parse($r->tripping_time)->format('g:i A') : '' }}"
             data-mode="{{ $r->tripping_type }}"
-            data-date-submitted="{{ $r->created_at ? $r->created_at->format('Y-m-d') : '' }}">
+            data-date-submitted="{{ $r->created_at ? $r->created_at->format('Y-m-d') : '' }}"
+            data-date-added="{{ $r->created_at?->timestamp }}"
+            data-date-modified="{{ $r->updated_at?->timestamp }}">
             <td class="row-num">{{ $i + 1 }}</td>
             <td><div class="td-name">{{ $r->client_name }}</div></td>
             <td><div class="td-name" style="font-size:12px">{{ $r->property_name ?? '—' }}</div></td>
@@ -417,6 +432,13 @@
                         @csrf @method('PATCH')
                         <button type="submit" class="btn-reject">&#10005; Cancel</button>
                     </form>
+                    @endif
+                    @if($status === 'reserved')
+                    {{-- Process: same as clicking the "Ready to Reserve" notification —
+                         pulls trip data and redirects to Client Database with prefill params --}}
+                    <button type="button" class="btn-reserve" onclick="processReservedClient({{ $r->id }})">
+                        &#9998; Process
+                    </button>
                     @endif
                     {{-- Delete --}}
                     <form method="POST" action="{{ route('site-visit-database.destroy', $r->id) }}" onsubmit="return confirm('Delete this record?')">
@@ -467,6 +489,28 @@
 
 <script>
 var _svLogo = "{{ asset('images/ArkCrest_Logo.png') }}";
+
+// "Process" button on a Reserved Client row — same behavior as clicking the
+// "Ready to Reserve" notification: pull the trip's data, then redirect to
+// Client Database with everything prefilled so it can be encoded there.
+function processReservedClient(tripId) {
+    fetch('/api/trips/' + tripId + '/prefill')
+        .then(r => r.json())
+        .then(data => {
+            const params = new URLSearchParams({
+                prefill_client:    data.client_name    || '',
+                prefill_email:     data.client_email   || '',
+                prefill_phone:     data.client_phone   || '',
+                prefill_project:   data.project_name   || '',
+                prefill_agent:     data.agent_name     || '',
+                prefill_developer: data.developer_name || '',
+                prefill_trip:      tripId,
+                prefill_date:      data.date_requested || '',
+            });
+            window.location.href = '/client-database?' + params.toString();
+        })
+        .catch(() => { window.location.href = '/client-database'; });
+}
 
 function openReschedule(id, date, time) {
     document.getElementById('rescheduleForm').action = '/site-visit-database/' + id + '/reschedule';
@@ -527,10 +571,10 @@ const SVD_FILTERABLE_FIELDS = [
     { key: 'date_submitted',  label: 'Date Submitted', dataAttr: 'data-date-submitted',  type: 'daterange' },
 ];
 
-const SVD_STATUSES = ['confirmed', 'done', 'cancelled'];
+const SVD_STATUSES = ['confirmed', 'done', 'cancelled', 'reserved'];
 
 // One independent set of active filters per table/status.
-const svdColumnFiltersByStatus = { confirmed: {}, done: {}, cancelled: {} };
+const svdColumnFiltersByStatus = { confirmed: {}, done: {}, cancelled: {}, reserved: {} };
 
 function svdFieldConfig(key) {
     return SVD_FILTERABLE_FIELDS.find(f => f.key === key);

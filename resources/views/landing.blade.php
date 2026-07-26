@@ -361,9 +361,9 @@
     <div class="wrap">
       <div class="brand">
         <img
-          class="mark"
-          src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/ArkCrest_Logo.png') }}"
-          alt="ArkCrest Realty logo"
+            class="mark"
+            src="{{ asset('images/ArkCrest_Logo.png') }}"
+            alt="ArkCrest Realty logo"
         >
         <div class="name">ArkCrest Realty</div>
       </div>
@@ -382,7 +382,7 @@
   <section class="hero" id="home">
     <div class="ph">
       <img
-        src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/test-image2.jpg') }}"
+        src="{{ asset('images/test-image2.jpg') }}"
         alt="ArkCrest premium estate landscape"
         loading="eager"
         fetchpriority="high"
@@ -436,7 +436,7 @@
       <div class="grid">
         <div class="ph">
           <img
-            src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/DSC_6783.jpg') }}"
+            src="{{ asset('images/DSC_6783.jpg') }}"
             alt="ArkCrest Realty team"
             loading="lazy"
           >
@@ -468,7 +468,7 @@
         <div class="estate-card">
           <div class="ph">
             <img
-              src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/test-image2.jpg') }}"
+              src="{{ asset('images/test-image2.jpg') }}"
               alt="Manggas Estate"
               loading="lazy"
             >
@@ -479,7 +479,7 @@
         <div class="estate-card">
           <div class="ph">
             <img
-              src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/testing-image.jpg') }}"
+              src="{{ asset('images/testing-image.jpg') }}"
               alt="Mountain View Hills"
               loading="lazy"
             >
@@ -490,7 +490,7 @@
         <div class="estate-card">
           <div class="ph">
             <img
-              src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/testing-image3.jpg') }}"
+              src="{{ asset('images/testing-image3.jpg') }}"
               alt="Lakeside Estates"
               loading="lazy"
             >
@@ -516,7 +516,7 @@
           <div class="col">
             <div class="ph tall">
               <img
-                src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/DSC_6935.jpg') }}"
+                src="{{ asset('images/DSC_6935.jpg') }}"
                 alt="ArkCrest property presentation"
                 loading="lazy"
               >
@@ -525,14 +525,14 @@
           <div class="col">
             <div class="ph short">
               <img
-                src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/DSC_6938.jpg') }}"
+                src="{{ asset('images/DSC_6938.jpg') }}"
                 alt="ArkCrest realty event"
                 loading="lazy"
               >
             </div>
             <div class="ph short">
               <img
-                src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/DSC_6989.jpg') }}"
+                src="{{ asset('images/DSC_6989.jpg') }}"
                 alt="ArkCrest client milestone"
                 loading="lazy"
               >
@@ -547,7 +547,7 @@
   <section class="distinction" id="services">
     <div class="ph dark">
       <img
-        src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url('landing/DSC_7067.jpg') }}"
+        src="{{ asset('images/DSC_7067.jpg') }}"
         alt="ArkCrest Realty distinction"
         loading="lazy"
       >

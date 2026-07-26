@@ -19,6 +19,7 @@
         'release'     => ['color'=>'#059669','bg'=>'#ecfdf5','label'=>'Commission Release'],
         'trip'        => ['color'=>'#A37929','bg'=>'#fffbeb','label'=>'Site Visit'],
         'downpayment' => ['color'=>'#0891b2','bg'=>'#ecfeff','label'=>'Downpayment Date'],
+        'reserved'    => ['color'=>'#7c3aed','bg'=>'#f5f3ff','label'=>'Reserved Client'],
     ];
 @endphp
 
@@ -133,8 +134,10 @@
 .sc-cell {
     border-right:1px solid #d1d5db;border-bottom:1px solid #d1d5db;
     padding:5px 6px;display:flex;flex-direction:column;
-    overflow:hidden;transition:background .15s;cursor:default;
+    overflow-y:auto;overflow-x:hidden;transition:background .15s;cursor:default;
 }
+.sc-cell::-webkit-scrollbar { width:4px; }
+.sc-cell::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:2px; }
 .sc-cell:nth-child(7n) { border-right:none; }
 .sc-cell.empty { background:#fafbfc; }
 .sc-cell.weekend { background:#fafbfc; }
@@ -170,6 +173,7 @@
 .sc-event.type-release     { background:#059669;color:white; }
 .sc-event.type-trip        { background:linear-gradient(135deg,#A37929,#d4a03a);color:white; }
 .sc-event.type-downpayment { background:#0891b2;color:white; }
+.sc-event.type-reserved    { background:#7c3aed;color:white; }
 .sc-more {
     font-size:9px;color:#94a3b8;text-align:right;margin-top:1px;
     flex-shrink:0;font-weight:600;cursor:pointer;text-decoration:underline;
@@ -298,15 +302,15 @@
             @endphp
             <div class="sc-cell {{ $cls }}">
                 <span class="sc-day-num">{{ $day }}</span>
-                @foreach($events->take(5) as $ev)
+                @foreach($events->take(2) as $ev)
                 <div class="sc-event type-{{ $ev['type'] }}"
                      onclick="showScModal({{ json_encode($ev) }})"
                      title="{{ $ev['label'] }}{{ $ev['sub'] ? ' — '.$ev['sub'] : '' }}">
                     {{ $ev['label'] }}
                 </div>
                 @endforeach
-                @if($events->count() > 5)
-                <div class="sc-more" onclick="event.stopPropagation(); showScDayEvents('{{ $dateStr }}')">+{{ $events->count()-5 }} more</div>
+                @if($events->count() > 2)
+                <div class="sc-more" onclick="event.stopPropagation(); showScDayEvents('{{ $dateStr }}')">+{{ $events->count()-2 }} more</div>
                 @endif
             </div>
             @endfor
