@@ -91,6 +91,18 @@ class CashAdvance extends Model
             : $this->repayments()->where('status', 'PAID')->count();
     }
 
+    /**
+     * Total amount actually paid so far across all PAID repayment terms.
+     * Used to detect when the balance is fully settled even if it happened
+     * before the last scheduled term (e.g. paid off at term 2 of 6).
+     */
+    public function getTotalPaidAttribute(): float
+    {
+        return (float) ($this->relationLoaded('repayments')
+            ? $this->repayments->where('status', 'PAID')->sum('amount')
+            : $this->repayments()->where('status', 'PAID')->sum('amount'));
+    }
+
     /** "x/y" label used in the Records table's Payment Stage column. */
     public function getPaymentStageLabelAttribute(): string
     {
@@ -111,7 +123,15 @@ class CashAdvance extends Model
         }
 
         // APPROVED
-        if ($this->total_terms > 0 && $this->paid_terms >= $this->total_terms) {
+        // Completed as soon as either every scheduled term is marked PAID, or
+        // the full balance has been paid off early (e.g. settled at term 2 of
+        // 6) — whichever comes first. Checking the count alone missed the
+        // early-payoff case, since fewer terms than total_terms would still
+        // be marked PAID even though nothing is owed anymore.
+        $allTermsPaid = $this->total_terms > 0 && $this->paid_terms >= $this->total_terms;
+        $balanceSettled = ((float) $this->amount) > 0 && $this->total_paid >= ((float) $this->amount) - 0.01;
+
+        if ($allTermsPaid || $balanceSettled) {
             return 'Completed';
         }
 

@@ -12,11 +12,13 @@ class AgentCashAdvanceRepayment extends Model
         'agent_cash_advance_id',
         'term_number',
         'status',
+        'amount',
         'date_paid',
     ];
 
     protected $casts = [
         'term_number' => 'integer',
+        'amount'      => 'decimal:2',
         'date_paid'   => 'date',
     ];
 

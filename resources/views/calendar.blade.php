@@ -125,6 +125,7 @@
     font-weight:600;background:#059669;color:white;
 }
 .cal-event.cal-event-expense { background:#dc2626; }
+.cal-event.cal-event-cash-advance { background:#4f46e5; }
 .cal-event:hover { opacity:.85; }
 
 /* Expense status badges — matches departmental-expenses-enhanced.css */
@@ -156,6 +157,12 @@
 }
 .cal-status-released { background:#dcfce7;color:#166534; }
 .cal-status-pending  { background:#fee2e2;color:#991b1b; }
+
+/* Cash Advance status badges — matches cash-advance.blade.php */
+.ca-badge { display:inline-block;padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap; }
+.ca-badge-pending  { background:#eef2ff;color:#4338ca; }
+.ca-badge-approved { background:#dcfce7;color:#166534; }
+.ca-badge-rejected { background:#fee2e2;color:#991b1b; }
 .cal-more {
     font-size:9px;color:#94a3b8;text-align:right;
     margin-top:1px;flex-shrink:0;font-weight:600;
@@ -276,7 +283,34 @@
             @endif
         </div>
 
-        {{-- Cash Advance section placeholder — added once Cash Advance data is wired in --}}
+        {{-- Cash Advance section --}}
+        @php $cashAdvanceListRows = $releases->where('_type', 'cash_advance'); @endphp
+        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e8ecf0;overflow:hidden;">
+            <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:12px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.5px;">Cash Advance Repayment Date</div>
+            @if($cashAdvanceListRows->isEmpty())
+            <div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No cash advances for {{ $monthNames[$month] }} {{ $year }}</div>
+            @else
+            <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table style="width:100%;border-collapse:collapse;min-width:700px;">
+                <thead><tr style="background:linear-gradient(135deg,#312e81,#4f46e5);">
+                    @foreach(['Repayment Date','Employee Name','Amount','Status'] as $h)
+                    <th style="padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;">{{ $h }}</th>
+                    @endforeach
+                </tr></thead>
+                <tbody>
+                @foreach($cashAdvanceListRows as $r)
+                <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;" onclick="showEventDetail('{{ $r->_type }}', {{ $r->id }})" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                    <td style="padding:11px 16px;font-size:13px;font-weight:600;color:#4f46e5;white-space:nowrap;">{{ $r->repayment_date ? $r->repayment_date->format('M d, Y') : ' ' }}</td>
+                    <td style="padding:11px 16px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->employee_name ?? ' ' }}</td>
+                    <td style="padding:11px 16px;font-size:13px;font-weight:700;color:#4f46e5;">{{ $r->amount ? '₱'.number_format($r->amount,2) : ' ' }}</td>
+                    <td style="padding:11px 16px;"><span class="ca-badge ca-badge-{{ strtolower($r->status ?? '') }}">{{ ucfirst(strtolower($r->status ?? '')) }}</span></td>
+                </tr>
+                @endforeach
+                </tbody>
+            </table>
+            </div>
+            @endif
+        </div>
 
     </div>
     @else
@@ -302,9 +336,19 @@
             @endphp
             <div class="cal-cell {{ $cls }}">
                 <span class="cal-day-num">{{ $day }}</span>
+                @php
+                    $typeClass = ['expense' => 'cal-event-expense', 'cash_advance' => 'cal-event-cash-advance'];
+                @endphp
                 @foreach($events->take(2) as $event)
-                <div class="cal-event {{ $event->_type === 'expense' ? 'cal-event-expense' : '' }}" onclick="showEventDetail('{{ $event->_type }}', {{ $event->id }})" title="{{ $event->_type === 'expense' ? $event->requestor_name : $event->client_name }}">
-                    {{ $event->_type === 'expense' ? $event->requestor_name : $event->client_name }}
+                @php
+                    $label = match($event->_type) {
+                        'expense' => $event->requestor_name,
+                        'cash_advance' => $event->employee_name,
+                        default => $event->client_name,
+                    };
+                @endphp
+                <div class="cal-event {{ $typeClass[$event->_type] ?? '' }}" onclick="showEventDetail('{{ $event->_type }}', {{ $event->id }})" title="{{ $label }}">
+                    {{ $label }}
                 </div>
                 @endforeach
                 @if($events->count() > 2)
@@ -362,12 +406,18 @@ function showEventDetail(type, id) {
     const fmtDate = v => { if(!v) return ' '; try { return new Date(v).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}); } catch(e){ return v; } };
 
     const isExpense = type === 'expense';
+    const isCashAdvance = type === 'cash_advance';
     const rows = isExpense ? [
         ['Date Released', fmtDate(ev.date_released), false],
         ['Requestor Name', ev.requestor_name||' ', false],
         ['Department', ev.department||' ', false],
         ['Category', ev.category||' ', false],
         ['Requested Amount', fmt(ev.requested_amount), true],
+        ['Status', ev.status||' ', false],
+    ] : isCashAdvance ? [
+        ['Employee Name', ev.employee_name||' ', false],
+        ['Amount', fmt(ev.amount), true],
+        ['Repayment Date', fmtDate(ev.repayment_date), false],
         ['Status', ev.status||' ', false],
     ] : [
         ['Date Released', fmtDate(ev.date_released), false],
@@ -378,13 +428,14 @@ function showEventDetail(type, id) {
         ['Status', ev.status||' ', false],
     ];
 
-    document.getElementById('calModalTitle').textContent = (isExpense ? ev.requestor_name : ev.client_name) || ' ';
+    const highlightColor = isExpense ? '#dc2626' : isCashAdvance ? '#4f46e5' : '#059669';
+    document.getElementById('calModalTitle').textContent = (isExpense ? ev.requestor_name : isCashAdvance ? ev.employee_name : ev.client_name) || ' ';
     document.getElementById('calEventBody').innerHTML = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             ${rows.map(([lbl,val,highlight]) => `
                 <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;border:1px solid #f1f5f9;">
                     <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${lbl}</div>
-                    <div style="font-size:13px;font-weight:${highlight?'700':'600'};color:${highlight?(isExpense?'#dc2626':'#059669'):'#1e293b'};">${val}</div>
+                    <div style="font-size:13px;font-weight:${highlight?'700':'600'};color:${highlight?highlightColor:'#1e293b'};">${val}</div>
                 </div>
             `).join('')}
         </div>`;
@@ -392,15 +443,17 @@ function showEventDetail(type, id) {
 }
 
 function showDayEvents(dateStr) {
-    const dayEvents = calEvents.filter(e => e.date_released && e.date_released.slice(0,10) === dateStr);
+    const dayEvents = calEvents.filter(e => e._date_key === dateStr);
     const fmt = v => v ? '\u20B1' + parseFloat(v).toLocaleString('en-US',{minimumFractionDigits:2}) : ' ';
     const dt = new Date(dateStr + 'T00:00:00');
     document.getElementById('calDayModalTitle').textContent = dt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     document.getElementById('calDayModalBody').innerHTML = dayEvents.map(ev => {
         const isExpense = ev._type === 'expense';
-        const title = isExpense ? (ev.requestor_name || ' ') : (ev.client_name || ' ');
-        const subtitle = isExpense ? (ev.department || ' ') : (ev.agent_name || ' ');
-        const amount = isExpense ? fmt(ev.requested_amount) : fmt(ev.commission);
+        const isCashAdvance = ev._type === 'cash_advance';
+        const title = isExpense ? (ev.requestor_name || ' ') : isCashAdvance ? (ev.employee_name || ' ') : (ev.client_name || ' ');
+        const subtitle = isExpense ? (ev.department || ' ') : isCashAdvance ? (ev.control_number || ' ') : (ev.agent_name || ' ');
+        const amount = isExpense ? fmt(ev.requested_amount) : isCashAdvance ? fmt(ev.amount) : fmt(ev.commission);
+        const amountColor = isExpense ? '#dc2626' : isCashAdvance ? '#4f46e5' : '#059669';
         return `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px;cursor:pointer;"
              onclick="document.getElementById('calDayModal').style.display='none';showEventDetail('${ev._type}', ${ev.id})">
@@ -408,7 +461,7 @@ function showDayEvents(dateStr) {
                 <div style="font-size:13px;font-weight:700;color:#1e293b;">${title}</div>
                 <div style="font-size:11px;color:#94a3b8;">${subtitle}</div>
             </div>
-            <div style="font-size:12px;font-weight:700;color:${isExpense ? '#dc2626' : '#059669'};">${amount}</div>
+            <div style="font-size:12px;font-weight:700;color:${amountColor};">${amount}</div>
         </div>`;
     }).join('') || '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:20px;">No releases found.</div>';
     document.getElementById('calDayModal').style.display = 'flex';

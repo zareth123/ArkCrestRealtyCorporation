@@ -8,7 +8,7 @@
     <div class="ca-banner">
         <div class="ca-banner-content">
             <div class="ca-eyebrow">Finance</div>
-            <h1 class="ca-title">Cash Advance</h1>
+            <h1 class="ca-title">Employee Cash Advance</h1>
             <p class="ca-subtitle">
                 <svg class="ca-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -182,6 +182,10 @@
         </div>
 
         <div class="ca-filter-toolbar">
+            <div class="ca-search-wrap">
+                <svg class="ca-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="caGlobalSearch" class="ca-search-input" placeholder="Search all columns..." oninput="caFilter()">
+            </div>
             <div class="column-filter-dropdown" id="caColumnFilterDropdown">
                 <button type="button" class="column-filter-btn" onclick="toggleCaColumnFilterMenu(event)">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
@@ -196,7 +200,7 @@
         <div id="caActiveColumnFiltersRow" class="active-column-filters-row" style="display:none;"></div>
 
         <div class="ca-table-wrap">
-            <table class="ca-table" id="caTable">
+            <table class="ca-table js-sort-table js-sort-dropdown" id="caTable">
                 <thead>
                     <tr>
                         <th class="ca-sticky-col ca-sticky-checkbox">
@@ -231,14 +235,16 @@
                         data-date-requested="{{ optional($r->date_requested)->format('Y-m-d') ?? optional($r->created_at)->format('Y-m-d') }}"
                         data-date-needed="{{ optional($r->date_needed)->format('Y-m-d') ?? '' }}"
                         data-repayment-type="{{ strtolower($r->repayment_type ?? '') }}"
-                        data-status="{{ strtolower($r->display_status ?? '') }}">
+                        data-status="{{ strtolower($r->display_status ?? '') }}"
+                        data-date-added="{{ $r->created_at?->timestamp }}"
+                        data-date-modified="{{ $r->updated_at?->timestamp }}">
                         <td class="ca-sticky-col ca-sticky-checkbox">
                             <input type="checkbox" class="ca-row-checkbox" value="{{ $r->id }}" onchange="caUpdateBulkBar()">
                         </td>
                         <td class="ca-id ca-sticky-col ca-sticky-id">{{ $r->control_number }}</td>
                         <td>
                             <div class="ca-employee-name">{{ $r->employee_name }}</div>
-                            <div class="ca-employee-reason">{{ $r->purpose ?? $r->reason }}</div>
+                           
                         </td>
                         <td>{{ $r->department ?? '—' }}</td>
                         <td>₱{{ number_format($r->amount, 2) }}</td>
@@ -302,6 +308,10 @@
         </div>
 
         <div class="ca-filter-toolbar">
+            <div class="ca-search-wrap">
+                <svg class="ca-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="caRepayGlobalSearch" class="ca-search-input" placeholder="Search all columns..." oninput="caRepayFilter()">
+            </div>
             <div class="column-filter-dropdown" id="caRepayColumnFilterDropdown">
                 <button type="button" class="column-filter-btn" onclick="toggleCaRepayColumnFilterMenu(event)">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
@@ -316,7 +326,7 @@
         <div id="caRepayActiveColumnFiltersRow" class="active-column-filters-row" style="display:none;"></div>
 
         <div class="ca-table-wrap">
-            <table class="ca-table" id="caRepaymentsTable">
+            <table class="ca-table js-sort-table" id="caRepaymentsTable">
                 <thead>
                     <tr>
                         <th class="ca-sticky-col ca-sticky-checkbox">
@@ -335,7 +345,7 @@
                     @foreach($records as $r)
                         @foreach($r->repayments as $rep)
                         @php
-                            $repAmount = $r->repayment_type === 'OTHERS' ? $r->amount : ($r->amount_per_term ?? 0);
+                            $repAmount = $rep->amount;
                             $repTermLabel = $r->repayment_type === 'OTHERS' ? 'one-time payment' : ('term ' . $rep->term_number);
                             $repStatusLabel = $rep->status === 'PAID' ? 'paid' : 'partial';
                         @endphp
@@ -548,6 +558,10 @@
 
 /* ---- Column filter dropdown + chips (matches Client Database pattern) ---- */
 .ca-filter-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+.ca-search-wrap { position: relative; flex: 1 1 220px; min-width: 180px; max-width: 320px; }
+.ca-search-input { width: 100%; box-sizing: border-box; padding: 8px 12px 8px 34px; border: 1.5px solid #d0d5dd; border-radius: 8px; font-size: 12.5px; color: #344054; height: 36px; outline: none; transition: border-color .15s; }
+.ca-search-input:focus { border-color: #1e4575; }
+.ca-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: #94a3b8; pointer-events: none; }
 .column-filter-dropdown { position: relative; }
 .column-filter-btn { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12.5px; font-weight: 700; color: #1e4575; background: #fff; border: 1.5px solid #1e4575; border-radius: 8px; padding: 8px 13px; cursor: pointer; height: 36px; box-sizing: border-box; transition: all .2s ease; }
 .column-filter-btn:hover { background: #eef2f7; }
@@ -685,12 +699,24 @@
 .ca-term-row.is-paid { border-color: #bbf7d0; background: #f0fdf4; }
 .ca-term-label { font-size: 13px; font-weight: 700; color: #1e4575; padding: 10px 14px; white-space: nowrap; border-right: 1.5px solid #e2e8f0; }
 .ca-term-amount { flex: 1 1 auto; padding: 10px 12px; font-size: 13px; color: #374151; }
+.ca-term-amount-input {
+    width: 110px; padding: 8px 10px; border: none; border-left: 1.5px solid #e2e8f0;
+    outline: none; font-size: 12px; background: transparent; color: #374151; flex: 1 1 auto;
+}
+.ca-term-amount-input:focus { background: #fff; }
 .ca-term-date-input { padding: 8px 10px; border: none; border-left: 1.5px solid #e2e8f0; outline: none; font-size: 12px; background: transparent; color: #374151; }
 .ca-btn-mark-paid {
     padding: 10px 16px; border: none; font-size: 12px; font-weight: 700;
     text-transform: uppercase; letter-spacing: .3px; cursor: pointer; white-space: nowrap;
     background: linear-gradient(135deg,#A37929,#d4a03a); color: #fff;
 }
+.ca-btn-divide-equally {
+    display: block; width: 100%; margin-bottom: 10px; padding: 9px 14px;
+    border: 1.5px dashed #A37929; border-radius: 8px; background: #fff7ea;
+    color: #A37929; font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .3px; cursor: pointer; transition: all .15s;
+}
+.ca-btn-divide-equally:hover { background: #fdecc8; }
 .ca-btn-mark-paid:hover { opacity: .92; }
 .ca-btn-mark-paid:disabled { opacity: .5; cursor: not-allowed; }
 .ca-term-badge-paid {
@@ -761,8 +787,8 @@ var _caPendingData = null; // holds the validated request data between "Create C
     function validateForm(data) {
         let valid = true;
 
-        if (!data.employee_id) {
-            setError('ca_employee_search', 'Please select an employee.');
+        if (!data.employee_id && !(data.employee_name && data.employee_name.trim())) {
+            setError('ca_employee_search', 'Please enter or select an employee.');
             valid = false;
         }
 
@@ -833,46 +859,53 @@ var _caPendingData = null; // holds the validated request data between "Create C
         return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    function buildPreviewHtml(data) {
-        const employeeLabel = document.getElementById('ca_employee_search').value || '';
-        const amount = parseFloat(data.amount) || 0;
-
-        let repaymentRows;
-        if (data.repayment_type === 'INSTALLMENT') {
-            const terms = parseInt(data.installment_terms, 10) || 0;
-            const perTerm = terms > 0 ? (amount / terms) : 0;
-            repaymentRows =
-                '<tr><td style="padding:6px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:6px 0;">Installment</td></tr>' +
-                '<tr><td style="padding:6px 0;color:#555;">Number of Terms</td><td style="padding:6px 0;">' + terms + ' salary deduction' + (terms === 1 ? '' : 's') + '</td></tr>' +
-                '<tr><td style="padding:6px 0;color:#555;">Amount per Term</td><td style="padding:6px 0;">₱ ' + money(perTerm) + '</td></tr>';
-        } else {
-            repaymentRows =
-                '<tr><td style="padding:6px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:6px 0;">Others — One-time Payment</td></tr>' +
-                '<tr><td style="padding:6px 0;color:#555;">Repayment Date</td><td style="padding:6px 0;">' + fmtDate(data.repayment_date) + '</td></tr>';
-        }
-
-        return ''
-            + '<div style="display:flex;align-items:center;gap:12px;border-bottom:2px solid #111;padding-bottom:14px;margin-bottom:18px;">'
-            +   '<img src="{{ asset('images/ArkCrest_Logo.png') }}" style="width:44px;height:44px;object-fit:contain;">'
-            +   '<div>'
-            +     '<div style="font-size:16px;font-weight:700;letter-spacing:.5px;">ArkCrest — Cash Advance Request Form</div>'
-            +     '<div style="font-size:11px;color:#555;" data-control-number>Control No.: <em>To be assigned upon submission</em></div>'
-            +   '</div>'
-            + '</div>'
-            + '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
-            +   '<tr><td style="padding:6px 0;width:190px;color:#555;">Employee</td><td style="padding:6px 0;font-weight:600;">' + escapeHtml(employeeLabel) + '</td></tr>'
-            +   '<tr><td style="padding:6px 0;color:#555;">Department</td><td style="padding:6px 0;">' + escapeHtml(data.department) + '</td></tr>'
-            +   '<tr><td style="padding:6px 0;color:#555;">Amount Requested</td><td style="padding:6px 0;font-weight:700;">₱ ' + money(amount) + '</td></tr>'
-            +   '<tr><td style="padding:6px 0;color:#555;">Date Requested</td><td style="padding:6px 0;">' + fmtDate(data.date_requested) + '</td></tr>'
-            +   '<tr><td style="padding:6px 0;color:#555;">Date Needed</td><td style="padding:6px 0;">' + fmtDate(data.date_needed) + '</td></tr>'
-            +   '<tr><td style="padding:6px 0;vertical-align:top;color:#555;">Purpose</td><td style="padding:6px 0;">' + escapeHtml(data.purpose) + '</td></tr>'
-            +   repaymentRows
-            + '</table>'
-            + '<div style="margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:40px;">'
-            +   '<div><div style="border-top:1px solid #111;padding-top:6px;font-size:12px;">Employee Signature</div></div>'
-            +   '<div><div style="border-top:1px solid #111;padding-top:6px;font-size:12px;">Approved By</div></div>'
-            + '</div>';
+    function caCopyBlock(label, data, employeeLabel, controlHtml) {
+    const amount = parseFloat(data.amount) || 0;
+    let repaymentRows;
+    if (data.repayment_type === 'INSTALLMENT') {
+        const terms = parseInt(data.installment_terms, 10) || 0;
+        const perTerm = terms > 0 ? (amount / terms) : 0;
+        repaymentRows =
+            '<tr><td style="padding:4px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:4px 0;">Installment</td></tr>' +
+            '<tr><td style="padding:4px 0;color:#555;">Number of Terms</td><td style="padding:4px 0;">' + terms + ' salary deduction' + (terms === 1 ? '' : 's') + '</td></tr>' +
+            '<tr><td style="padding:4px 0;color:#555;">Amount per Term</td><td style="padding:4px 0;">₱ ' + money(perTerm) + '</td></tr>';
+    } else {
+        repaymentRows =
+            '<tr><td style="padding:4px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:4px 0;">Others — One-time Payment</td></tr>' +
+            '<tr><td style="padding:4px 0;color:#555;">Repayment Date</td><td style="padding:4px 0;">' + fmtDate(data.repayment_date) + '</td></tr>';
     }
+
+    return '<div style="page-break-inside:avoid;">'
+        + '<p style="font-style:italic;margin:0 0 4px;font-size:10px;">' + label + '</p>'
+        + '<div style="display:flex;align-items:center;gap:8px;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:10px;">'
++           '<img src="{{ asset('images/ArkCrest_Logo.png') }}" style="width:34px;height:34px;object-fit:contain;">'        +   '<div>'
+        +     '<div style="font-size:16px;font-weight:700;letter-spacing:.5px;">ArkCrest — Cash Advance Request Form</div>'
+        +     '<div style="font-size:11px;color:#555;">' + controlHtml + '</div>'
+        +   '</div>'
+        + '</div>'
+        + '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+        +   '<tr><td style="padding:4px 0;width:190px;color:#555;">Employee</td><td style="padding:4px 0;font-weight:600;">' + escapeHtml(employeeLabel) + '</td></tr>'
+        +   '<tr><td style="padding:4px 0;color:#555;">Department</td><td style="padding:4px 0;">' + escapeHtml(data.department) + '</td></tr>'
+        +   '<tr><td style="padding:4px 0;color:#555;">Amount Requested</td><td style="padding:4px 0;font-weight:700;">₱ ' + money(amount) + '</td></tr>'
+        +   '<tr><td style="padding:4px 0;color:#555;">Date Requested</td><td style="padding:4px 0;">' + fmtDate(data.date_requested) + '</td></tr>'
+        +   '<tr><td style="padding:4px 0;color:#555;">Date Needed</td><td style="padding:4px 0;">' + fmtDate(data.date_needed) + '</td></tr>'
+        +   '<tr><td style="padding:4px 0;vertical-align:top;color:#555;">Purpose</td><td style="padding:4px 0;">' + escapeHtml(data.purpose) + '</td></tr>'
+        +   repaymentRows
+        + '</table>'
+        + '<table class="nb" style="font-size:11px;margin-top:12px;width:100%;"><tr>'
+        +   '<td style="width:50%;padding-top:12px;border-top:1px solid #111;">Requested by</td>'
+        +   '<td style="padding-top:12px;border-top:1px solid #111;">Approved by</td>'
+        + '</tr></table>'
+        + '</div>';
+}
+
+function buildPreviewHtml(data) {
+    const employeeLabel = document.getElementById('ca_employee_search').value || '';
+    const controlHtml = 'Control No.: <em>To be assigned upon submission</em>';
+    return caCopyBlock('Company Copy', data, employeeLabel, controlHtml)
+        + '<hr style="margin:10px 0;border:none;border-top:1px dashed #999;">'
+        + caCopyBlock("Employee's Copy", data, employeeLabel, controlHtml);
+}
 
     function handleCaSubmit(e) {
         e.preventDefault();
@@ -880,6 +913,7 @@ var _caPendingData = null; // holds the validated request data between "Create C
 
         const data = {
             employee_id: document.getElementById('ca_employee_id').value,
+            employee_name: document.getElementById('ca_employee_search').value,
             department: document.getElementById('ca_department').value,
             amount: document.getElementById('ca_amount').value,
             purpose: document.getElementById('ca_purpose').value,
@@ -996,10 +1030,10 @@ function _caPrintPreview(controlNumber) {
     const source = document.getElementById('caPreviewContent');
     let html = source.innerHTML;
     if (controlNumber) {
-        html = html.replace('<em>To be assigned upon submission</em>', controlNumber);
+        html = html.split('<em>To be assigned upon submission</em>').join(controlNumber);
     }
     const win = window.open('', '_blank');
-    const printHtml = '<html><head><title>Cash Advance Form</title><style>@page{size:letter;margin:.75in}body{font-family:"Times New Roman",serif;font-size:13px;color:#111;margin:0}<' + '/style><' + 'head><body>'
+    const printHtml = '<html><head><title>Cash Advance Form</title><style>@page{size:letter;margin:.75in}body{font-family:"Times New Roman",serif;font-size:12px;color:#111;margin:0}<' + '/style><' + 'head><body>'
         + html + '</body></html>';
     win.document.write(printHtml);
     win.document.close();
@@ -1084,7 +1118,7 @@ function caEscapeHtml(s) {
     return (s || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function caBuildViewHtml(data) {
+function caCopyBlockView(label, data) {
     const amount = parseFloat(data.amount) || 0;
 
     let repaymentRows;
@@ -1092,39 +1126,46 @@ function caBuildViewHtml(data) {
         const terms = parseInt(data.installment_terms, 10) || 0;
         const perTerm = data.amount_per_term != null ? parseFloat(data.amount_per_term) : (terms > 0 ? amount / terms : 0);
         repaymentRows =
-            '<tr><td style="padding:6px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:6px 0;">Installment</td></tr>' +
-            '<tr><td style="padding:6px 0;color:#555;">Number of Terms</td><td style="padding:6px 0;">' + terms + ' salary deduction' + (terms === 1 ? '' : 's') + '</td></tr>' +
-            '<tr><td style="padding:6px 0;color:#555;">Amount per Term</td><td style="padding:6px 0;">₱ ' + caMoney(perTerm) + '</td></tr>' +
-            '<tr><td style="padding:6px 0;color:#555;">Payment Stage</td><td style="padding:6px 0;">' + caEscapeHtml(data.payment_stage_label) + '</td></tr>';
+            '<tr><td style="padding:4px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:4px 0;">Installment</td></tr>' +
+            '<tr><td style="padding:4px 0;color:#555;">Number of Terms</td><td style="padding:4px 0;">' + terms + ' salary deduction' + (terms === 1 ? '' : 's') + '</td></tr>' +
+            '<tr><td style="padding:4px 0;color:#555;">Amount per Term</td><td style="padding:4px 0;">₱ ' + caMoney(perTerm) + '</td></tr>' +
+            '<tr><td style="padding:4px 0;color:#555;">Payment Stage</td><td style="padding:4px 0;">' + caEscapeHtml(data.payment_stage_label) + '</td></tr>';
     } else {
         repaymentRows =
-            '<tr><td style="padding:6px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:6px 0;">Others — One-time Payment</td></tr>' +
-            '<tr><td style="padding:6px 0;color:#555;">Repayment Date</td><td style="padding:6px 0;">' + caFmtDate(data.repayment_date) + '</td></tr>' +
-            '<tr><td style="padding:6px 0;color:#555;">Payment Stage</td><td style="padding:6px 0;">' + caEscapeHtml(data.payment_stage_label) + '</td></tr>';
+            '<tr><td style="padding:4px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:4px 0;">Others — One-time Payment</td></tr>' +
+            '<tr><td style="padding:4px 0;color:#555;">Repayment Date</td><td style="padding:4px 0;">' + caFmtDate(data.repayment_date) + '</td></tr>' +
+            '<tr><td style="padding:4px 0;color:#555;">Payment Stage</td><td style="padding:4px 0;">' + caEscapeHtml(data.payment_stage_label) + '</td></tr>';
     }
 
-    return ''
-        + '<div style="display:flex;align-items:center;gap:12px;border-bottom:2px solid #111;padding-bottom:14px;margin-bottom:18px;">'
-        +   '<img src="{{ asset('images/ArkCrest_Logo.png') }}" style="width:44px;height:44px;object-fit:contain;">'
-        +   '<div>'
+    return '<div style="page-break-inside:avoid;">'
+        + '<p style="font-style:italic;margin:0 0 4px;font-size:10px;">' + label + '</p>'
+        + '<div style="display:flex;align-items:center;gap:8px;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:10px;">'
++           '<img src="{{ asset('images/ArkCrest_Logo.png') }}" style="width:34px;height:34px;object-fit:contain;">'        +   '<div>'
         +     '<div style="font-size:16px;font-weight:700;letter-spacing:.5px;">ArkCrest — Cash Advance Request Form</div>'
         +     '<div style="font-size:11px;color:#555;">Control No.: ' + caEscapeHtml(data.control_number) + '</div>'
         +   '</div>'
         + '</div>'
-        + '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
-        +   '<tr><td style="padding:6px 0;width:190px;color:#555;">Employee</td><td style="padding:6px 0;font-weight:600;">' + caEscapeHtml(data.employee_name) + '</td></tr>'
-        +   '<tr><td style="padding:6px 0;color:#555;">Department</td><td style="padding:6px 0;">' + caEscapeHtml(data.department) + '</td></tr>'
-        +   '<tr><td style="padding:6px 0;color:#555;">Amount Requested</td><td style="padding:6px 0;font-weight:700;">₱ ' + caMoney(amount) + '</td></tr>'
-        +   '<tr><td style="padding:6px 0;color:#555;">Date Requested</td><td style="padding:6px 0;">' + caFmtDate(data.date_requested) + '</td></tr>'
-        +   '<tr><td style="padding:6px 0;color:#555;">Date Needed</td><td style="padding:6px 0;">' + caFmtDate(data.date_needed) + '</td></tr>'
-        +   '<tr><td style="padding:6px 0;vertical-align:top;color:#555;">Purpose</td><td style="padding:6px 0;">' + caEscapeHtml(data.purpose) + '</td></tr>'
+        + '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+        +   '<tr><td style="padding:4px 0;width:190px;color:#555;">Employee</td><td style="padding:4px 0;font-weight:600;">' + caEscapeHtml(data.employee_name) + '</td></tr>'
+        +   '<tr><td style="padding:4px 0;color:#555;">Department</td><td style="padding:4px 0;">' + caEscapeHtml(data.department) + '</td></tr>'
+        +   '<tr><td style="padding:4px 0;color:#555;">Amount Requested</td><td style="padding:4px 0;font-weight:700;">₱ ' + caMoney(amount) + '</td></tr>'
+        +   '<tr><td style="padding:4px 0;color:#555;">Date Requested</td><td style="padding:4px 0;">' + caFmtDate(data.date_requested) + '</td></tr>'
+        +   '<tr><td style="padding:4px 0;color:#555;">Date Needed</td><td style="padding:4px 0;">' + caFmtDate(data.date_needed) + '</td></tr>'
+        +   '<tr><td style="padding:4px 0;vertical-align:top;color:#555;">Purpose</td><td style="padding:4px 0;">' + caEscapeHtml(data.purpose) + '</td></tr>'
         +   repaymentRows
-        +   '<tr><td style="padding:6px 0;color:#555;">Status</td><td style="padding:6px 0;">' + caEscapeHtml(data.display_status) + '</td></tr>'
+        +   '<tr><td style="padding:4px 0;color:#555;">Status</td><td style="padding:4px 0;">' + caEscapeHtml(data.display_status) + '</td></tr>'
         + '</table>'
-        + '<div style="margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:40px;">'
-        +   '<div><div style="border-top:1px solid #111;padding-top:6px;font-size:12px;">Employee Signature</div></div>'
-        +   '<div><div style="border-top:1px solid #111;padding-top:6px;font-size:12px;">Approved By</div></div>'
+        + '<table class="nb" style="font-size:11px;margin-top:12px;width:100%;"><tr>'
+        +   '<td style="width:50%;padding-top:12px;border-top:1px solid #111;">Requested by</td>'
+        +   '<td style="padding-top:12px;border-top:1px solid #111;">Approved by</td>'
+        + '</tr></table>'
         + '</div>';
+}
+
+function caBuildViewHtml(data) {
+    return caCopyBlockView('Company Copy', data)
+        + '<hr style="margin:10px 0;border:none;border-top:1px dashed #999;">'
+        + caCopyBlockView("Employee's Copy", data);
 }
 
 function caOpenView(id) {
@@ -1149,7 +1190,7 @@ function caCloseView() {
 function caPrintView() {
     const html = document.getElementById('caViewContent').innerHTML;
     const win = window.open('', '_blank');
-    const printHtml = '<html><head><title>Cash Advance Form</title><style>@page{size:letter;margin:.75in}body{font-family:"Times New Roman",serif;font-size:13px;color:#111;margin:0}<' + '/style><' + 'head><body>'
+    const printHtml = '<html><head><title>Cash Advance Form</title><style>@page{size:letter;margin:.75in}body{font-family:"Times New Roman",serif;font-size:12px;color:#111;margin:0}<' + '/style><' + 'head><body>'
         + html + '</body></html>';
     win.document.write(printHtml);
     win.document.close();
@@ -1160,36 +1201,70 @@ function caPrintView() {
 const CA_IS_ADMIN = {{ auth()->user()->isAdmin() ? 'true' : 'false' }};
 var _caEditHasPaidLockedByAdminRule = false; // reserved if you later gate unmark by an external event (e.g. payroll run)
 
+var _caEditData = null;
+
 function caRenderEditContent(id, data) {
+    _caEditData = data;
     const totalAmount = parseFloat(data.amount) || 0;
-    const paidAmount = data.terms.reduce((sum, t) => sum + (t.status === 'PAID' ? (data.repayment_type === 'OTHERS' ? totalAmount : (parseFloat(data.amount_per_term) || 0)) : 0), 0);
+    const paidAmount = data.terms.reduce((sum, t) => sum + (t.status === 'PAID' ? (parseFloat(t.amount) || 0) : 0), 0);
     const remaining = Math.max(0, totalAmount - paidAmount);
+    const unpaidTerms = data.terms.filter(function(t) { return t.status !== 'PAID'; });
 
     let rowsHtml = '';
+
+    function termAmountFallback(t) {
+        if (t.amount != null) return parseFloat(t.amount) || 0;
+        return data.repayment_type === 'OTHERS' ? totalAmount : (parseFloat(data.amount_per_term) || 0);
+    }
 
     if (data.repayment_type === 'OTHERS') {
         const t = data.terms[0] || {};
         const isPaid = t.status === 'PAID';
+        const amt = termAmountFallback(t);
         rowsHtml = '<div class="ca-term-row' + (isPaid ? ' is-paid' : '') + '">'
             + '<span class="ca-term-label">Repayment</span>'
-            + '<span class="ca-term-amount">₱' + caMoney(totalAmount) + '</span>'
             + (isPaid
-                ? '<span class="ca-term-badge-paid' + (CA_IS_ADMIN ? ' is-clickable' : '') + '"' + (CA_IS_ADMIN ? ' onclick="caUnmarkTermPaid(' + t.id + ')" title="Click to undo"' : '') + '>✓ Paid — ' + caFmtDate(t.date_paid) + '</span>'
-                : '<input type="date" id="ca_term_date_' + t.id + '" class="ca-term-date-input">'
-                  + '<button type="button" class="ca-btn-mark-paid" onclick="caMarkTermPaid(' + t.id + ')">Paid</button>');
+                ? '<span class="ca-term-amount">₱' + caMoney(amt) + '</span>'
+                  + '<span class="ca-term-badge-paid' + (CA_IS_ADMIN ? ' is-clickable' : '') + '"' + (CA_IS_ADMIN ? ' onclick="caUnmarkTermPaid(' + t.term_number + ')" title="Click to undo"' : '') + '>✓ Paid — ' + caFmtDate(t.date_paid) + '</span>'
+                : '<input type="number" step="0.01" min="0.01" id="ca_term_amount_' + t.term_number + '" class="ca-term-amount-input" placeholder="₱' + amt.toFixed(2) + '">'
+                  + '<input type="date" id="ca_term_date_' + t.term_number + '" class="ca-term-date-input">'
+                  + '<button type="button" class="ca-btn-mark-paid" onclick="caMarkTermPaid(' + t.term_number + ')">Paid</button>');
         rowsHtml += '</div>';
     } else {
         data.terms.forEach(function(t) {
             const isPaid = t.status === 'PAID';
-            rowsHtml += '<div class="ca-term-row' + (isPaid ? ' is-paid' : '') + '">'
+            const amt = termAmountFallback(t);
+            // If the balance already hit zero before this term's turn (e.g. the
+            // whole advance was paid off at term 2 of 6), there's nothing left
+            // to collect for it — show it as waived instead of still offering
+            // an amount/date input and a "Paid" button for it.
+            const isWaived = !isPaid && remaining <= 0;
+            rowsHtml += '<div class="ca-term-row' + (isPaid ? ' is-paid' : (isWaived ? ' is-waived' : '')) + '">'
                 + '<span class="ca-term-label">Term ' + t.term_number + '</span>'
-                + '<span class="ca-term-amount">₱' + caMoney(data.amount_per_term) + '</span>'
                 + (isPaid
-                    ? '<span class="ca-term-badge-paid' + (CA_IS_ADMIN ? ' is-clickable' : '') + '"' + (CA_IS_ADMIN ? ' onclick="caUnmarkTermPaid(' + t.id + ')" title="Click to undo"' : '') + '>✓ Paid — ' + caFmtDate(t.date_paid) + '</span>'
-                    : '<input type="date" id="ca_term_date_' + t.id + '" class="ca-term-date-input">'
-                      + '<button type="button" class="ca-btn-mark-paid" onclick="caMarkTermPaid(' + t.id + ')">Paid</button>')
+                    ? '<span class="ca-term-amount">₱' + caMoney(amt) + '</span>'
+                      + '<span class="ca-term-badge-paid' + (CA_IS_ADMIN ? ' is-clickable' : '') + '"' + (CA_IS_ADMIN ? ' onclick="caUnmarkTermPaid(' + t.term_number + ')" title="Click to undo"' : '') + '>✓ Paid — ' + caFmtDate(t.date_paid) + '</span>'
+                    : (isWaived
+                        ? '<span class="ca-term-badge-waived" style="display:inline-block;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;background:#e2e8f0;color:#475569;">Balance already fully paid — no payment needed</span>'
+                        : '<input type="number" step="0.01" min="0.01" id="ca_term_amount_' + t.term_number + '" class="ca-term-amount-input" placeholder="₱' + amt.toFixed(2) + '">'
+                          + '<input type="date" id="ca_term_date_' + t.term_number + '" class="ca-term-date-input">'
+                          + '<button type="button" class="ca-btn-mark-paid" onclick="caMarkTermPaid(' + t.term_number + ')">Paid</button>'))
                 + '</div>';
         });
+    }
+
+    var divideBtnHtml = '';
+    if (data.repayment_type === 'INSTALLMENT' && unpaidTerms.length > 1 && remaining > 0) {
+        divideBtnHtml = '<button type="button" class="ca-btn-divide-equally" onclick="caDivideEqually()">Divide Equally by '
+            + unpaidTerms.length + ' Term' + (unpaidTerms.length === 1 ? '' : 's') + '</button>';
+    }
+
+    // Flag when the advance was paid off ahead of its original term schedule
+    // so the still-"unpaid" terms don't look like an outstanding balance.
+    var fullyPaidEarlyNoteHtml = '';
+    if (remaining <= 0 && unpaidTerms.length > 0) {
+        fullyPaidEarlyNoteHtml = '<div class="ca-edit-fully-paid-note" style="margin-top:8px;padding:8px 12px;border-radius:8px;background:#dcfce7;color:#166534;font-size:12.5px;font-weight:600;">'
+            + '✓ Fully paid ahead of schedule — the remaining term' + (unpaidTerms.length === 1 ? '' : 's') + ' below no longer require payment.</div>';
     }
 
     document.getElementById('caEditContent').innerHTML =
@@ -1202,10 +1277,33 @@ function caRenderEditContent(id, data) {
         +   '</div>'
         +   '<div class="ca-edit-summary-remaining"><label>Remaining Balance</label><div>₱' + caMoney(remaining) + '</div></div>'
         +   '<div class="ca-edit-summary-stage"><label style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px">Payment Stage</label><div>' + caEscapeHtml(data.payment_stage_label) + '</div></div>'
+        +   fullyPaidEarlyNoteHtml
         + '</div>'
+        + divideBtnHtml
         + rowsHtml;
 }
 
+// Splits the *remaining* balance evenly across whatever terms are still
+// unpaid (not the original total ÷ total terms) so it stays correct even
+// after some terms were paid with custom, uneven amounts.
+function caDivideEqually() {
+    if (!_caEditData) return;
+    var data = _caEditData;
+    var totalAmount = parseFloat(data.amount) || 0;
+    var paidAmount = data.terms.reduce(function(sum, t) {
+        return sum + (t.status === 'PAID' ? (parseFloat(t.amount) || 0) : 0);
+    }, 0);
+    var remaining = Math.max(0, totalAmount - paidAmount);
+    var unpaidTerms = data.terms.filter(function(t) { return t.status !== 'PAID'; });
+    if (!unpaidTerms.length) return;
+    if (remaining <= 0) return; // already fully paid off early — nothing left to divide
+
+    var split = remaining / unpaidTerms.length;
+    unpaidTerms.forEach(function(t) {
+        var input = document.getElementById('ca_term_amount_' + t.term_number);
+        if (input) input.value = split.toFixed(2);
+    });
+}
 function caOpenEdit(id, controlNumber) {
     _caEditCashAdvanceId = id;
     document.getElementById('caEditTitle').textContent = 'Repayment Tracking — ' + controlNumber;
@@ -1228,19 +1326,46 @@ function caCloseEdit() {
     _caEditCashAdvanceId = null;
 }
 
-function caMarkTermPaid(termId) {
-    const dateInput = document.getElementById('ca_term_date_' + termId);
+function caMarkTermPaid(termNumber) {
+    const dateInput = document.getElementById('ca_term_date_' + termNumber);
+    const amountInput = document.getElementById('ca_term_amount_' + termNumber);
     const datePaid = dateInput ? dateInput.value : '';
+    const amount = amountInput ? parseFloat(amountInput.value) : NaN;
 
     if (!datePaid) {
         showToast('Please select the date paid.', 'error', 'Validation Failed');
         return;
     }
+    if (!amount || amount <= 0) {
+        showToast('Please enter a valid amount.', 'error', 'Validation Failed');
+        return;
+    }
 
-    fetch('/cash-advance-repayments/' + termId + '/pay', {
+    // Guard against paying a term that's no longer owed because the full
+    // balance was already settled early (e.g. paid off at term 2 of 6).
+    // Without this check, staff could keep "paying" terms with nothing left
+    // to collect, and could also overpay past what's actually remaining.
+    if (_caEditData) {
+        var totalAmount = parseFloat(_caEditData.amount) || 0;
+        var paidSoFar = _caEditData.terms.reduce(function(sum, t) {
+            return sum + (t.status === 'PAID' ? (parseFloat(t.amount) || 0) : 0);
+        }, 0);
+        var remainingBalance = Math.max(0, totalAmount - paidSoFar);
+
+        if (remainingBalance <= 0) {
+            showToast('This cash advance is already fully paid. No further payments are needed.', 'error', 'Already Fully Paid');
+            return;
+        }
+        if (amount > remainingBalance + 0.01) {
+            showToast('Amount exceeds the remaining balance of ₱' + caMoney(remainingBalance) + '.', 'error', 'Validation Failed');
+            return;
+        }
+    }
+
+    fetch('/cash-advance/' + _caEditCashAdvanceId + '/repayments/' + termNumber + '/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-        body: JSON.stringify({ date_paid: datePaid }),
+        body: JSON.stringify({ date_paid: datePaid, amount: amount }),
     })
     .then(r => r.json().then(json => ({ status: r.status, json })))
     .then(({ status, json }) => {
@@ -1261,10 +1386,10 @@ function caMarkTermPaid(termId) {
     .catch(() => showToast('Network error. Please try again.', 'error', 'Error'));
 }
 
-function caUnmarkTermPaid(termId) {
+function caUnmarkTermPaid(termNumber) {
     if (!CA_IS_ADMIN) return;
     showConfirm('Undo this payment? This will mark the term as unpaid.', function() {
-        fetch('/cash-advance-repayments/' + termId + '/unpay', {
+        fetch('/cash-advance/' + _caEditCashAdvanceId + '/repayments/' + termNumber + '/unpay', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
         })
@@ -1490,14 +1615,16 @@ function caMatchesColumnFilters(row) {
 function caFilter() {
     var rows = document.querySelectorAll('#caTable tbody tr[data-amount]');
     var visibleCount = 0;
+    var searchEl = document.getElementById('caGlobalSearch');
+    var searchQ = searchEl ? searchEl.value.trim().toLowerCase() : '';
 
     rows.forEach(function (row) {
-        var show = caMatchesColumnFilters(row);
+        var show = caMatchesColumnFilters(row) && (!searchQ || row.textContent.toLowerCase().includes(searchQ));
         row.style.display = show ? '' : 'none';
         if (show) visibleCount++;
     });
 
-    var hasFilter = Object.keys(caColumnFilters).length > 0;
+    var hasFilter = Object.keys(caColumnFilters).length > 0 || !!searchQ;
     var noMatchRow = document.getElementById('caNoMatchRow');
     if (noMatchRow) {
         noMatchRow.style.display = (hasFilter && rows.length > 0 && visibleCount === 0) ? '' : 'none';
@@ -1720,14 +1847,16 @@ function caRepayMatchesColumnFilters(row) {
 function caRepayFilter() {
     var rows = document.querySelectorAll('#caRepaymentsTable tbody tr[data-id]');
     var visibleCount = 0;
+    var searchEl = document.getElementById('caRepayGlobalSearch');
+    var searchQ = searchEl ? searchEl.value.trim().toLowerCase() : '';
 
     rows.forEach(function (row) {
-        var show = caRepayMatchesColumnFilters(row);
+        var show = caRepayMatchesColumnFilters(row) && (!searchQ || row.textContent.toLowerCase().includes(searchQ));
         row.style.display = show ? '' : 'none';
         if (show) visibleCount++;
     });
 
-    var hasFilter = Object.keys(caRepayColumnFilters).length > 0;
+    var hasFilter = Object.keys(caRepayColumnFilters).length > 0 || !!searchQ;
     var noMatchRow = document.getElementById('caRepayNoMatchRow');
     if (noMatchRow) {
         noMatchRow.style.display = (hasFilter && rows.length > 0 && visibleCount === 0) ? '' : 'none';

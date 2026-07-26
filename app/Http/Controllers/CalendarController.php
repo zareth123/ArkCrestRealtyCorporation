@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\CashAdvance;
 use App\Models\CommissionRequest;
 use App\Models\CommissionRequestSales;
 use App\Models\DepartmentalExpense;
@@ -108,21 +109,31 @@ class CalendarController extends Controller
             ->whereYear('date_released', $year)
             ->whereMonth('date_released', $month)
             ->get()
-            ->each(fn($r) => $r->_type = 'sales');
+            ->each(function($r) { $r->_type = 'sales'; $r->_date_key = $r->date_released->format('Y-m-d'); });
         
         $commissionReleases = CommissionRequest::whereNotNull('date_released')
             ->whereYear('date_released', $year)
             ->whereMonth('date_released', $month)
             ->get()
-            ->each(fn($r) => $r->_type = 'commission');
+            ->each(function($r) { $r->_type = 'commission'; $r->_date_key = $r->date_released->format('Y-m-d'); });
 
         $expenseReleases = DepartmentalExpense::whereNotNull('date_released')
             ->whereYear('date_released', $year)
             ->whereMonth('date_released', $month)
             ->get()
-            ->each(fn($r) => $r->_type = 'expense');
+            ->each(function($r) { $r->_type = 'expense'; $r->_date_key = $r->date_released->format('Y-m-d'); });
 
-        $releases = $clientReleases->merge($commissionReleases)->merge($expenseReleases)->sortBy('date_released');
+        $cashAdvanceReleases = CashAdvance::whereNotNull('repayment_date')
+            ->whereYear('repayment_date', $year)
+            ->whereMonth('repayment_date', $month)
+            ->get()
+            ->each(function($r) {
+                $r->_type = 'cash_advance';
+                $r->date_released = $r->repayment_date; // alias so existing grouping/JS works unchanged
+                $r->_date_key = $r->repayment_date->format('Y-m-d');
+            });
+
+        $releases = $clientReleases->merge($commissionReleases)->merge($expenseReleases)->merge($cashAdvanceReleases)->sortBy('date_released');
 
         $releasesByDay = $releases->groupBy(fn($r) => $r->date_released->day);
 
@@ -141,7 +152,12 @@ class CalendarController extends Controller
             ->distinct()
             ->pluck('year');
 
-        $availableYears = $clientYears->merge($commissionYears)->merge($expenseYears)->unique()->sortDesc()->values();
+        $cashAdvanceYears = CashAdvance::whereNotNull('repayment_date')
+            ->selectRaw('YEAR(repayment_date) as year')
+            ->distinct()
+            ->pluck('year');
+
+        $availableYears = $clientYears->merge($commissionYears)->merge($expenseYears)->merge($cashAdvanceYears)->unique()->sortDesc()->values();
 
         if (!$availableYears->contains((int)$year)) {
             $availableYears->prepend((int)$year);
