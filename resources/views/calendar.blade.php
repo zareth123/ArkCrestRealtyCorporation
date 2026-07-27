@@ -16,7 +16,8 @@
 @endphp
 
 <style>
-.cal-page { display:flex;flex-direction:column;height:calc(100vh - 62px - 20px);gap:0; }
+.cal-page { display:flex;flex-direction:column;gap:0; }
+.cal-page.is-month-view { height:calc(100vh - 62px - 20px); }
 
 /* Top bar */
 .cal-topbar {
@@ -177,8 +178,7 @@
 }
 </style>
 
-<div class="cal-page">
-    {{-- Top Bar --}}
+<div class="cal-page {{ $view === 'list' ? '' : 'is-month-view' }}">    {{-- Top Bar --}}
     <div class="cal-topbar" style="background:linear-gradient(135deg,#1e4575 0%,#2563eb 60%,#1e4575 100%);border-radius:20px;padding:36px 40px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(30,69,117,.25);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
         <div style="position:relative;z-index:2;">
             <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Finance</div>
@@ -217,14 +217,17 @@
     {{-- Calendar Grid / List --}}
     @if($view === 'list')
     @php
-        $commissionListRows = $releases->whereIn('_type', ['sales','commission']);
+        $commissionListRows = $releases->where('_type', 'commission');
         $expenseListRows    = $releases->where('_type', 'expense');
     @endphp
-    <div style="display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;">
+    <div style="display:flex;flex-direction:column;gap:16px;">
 
         {{-- Commission Release section --}}
         <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e8ecf0;overflow:hidden;">
-            <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:12px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;">Commission Release</div>
+            <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:12px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:8px;">
+                Commission Release
+                <span style="background:linear-gradient(135deg,#1e4575,#2563eb);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.3px;">{{ $commissionListRows->count() }} {{ Str::plural('record', $commissionListRows->count()) }}</span>
+            </div>
             @if($commissionListRows->isEmpty())
             <div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No commission releases for {{ $monthNames[$month] }} {{ $year }}</div>
             @else
@@ -255,7 +258,10 @@
 
         {{-- Expenses Release Date section --}}
         <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e8ecf0;overflow:hidden;">
-            <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:12px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;">Expenses Release Date</div>
+            <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:12px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:8px;">
+                Expenses Release Date
+                <span style="background:linear-gradient(135deg,#7f1d1d,#dc2626);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.3px;">{{ $expenseListRows->count() }} {{ Str::plural('record', $expenseListRows->count()) }}</span>
+            </div>
             @if($expenseListRows->isEmpty())
             <div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No expense releases for {{ $monthNames[$month] }} {{ $year }}</div>
             @else
@@ -286,24 +292,30 @@
         {{-- Cash Advance section --}}
         @php $cashAdvanceListRows = $releases->where('_type', 'cash_advance'); @endphp
         <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e8ecf0;overflow:hidden;">
-            <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:12px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.5px;">Cash Advance Repayment Date</div>
+            <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:12px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:8px;">
+            Cash Advance Repayment Date
+            <span style="background:linear-gradient(135deg,#312e81,#4f46e5);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.3px;">{{ $cashAdvanceListRows->count() }} {{ Str::plural('record', $cashAdvanceListRows->count()) }}</span>
+        </div>
             @if($cashAdvanceListRows->isEmpty())
             <div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No cash advances for {{ $monthNames[$month] }} {{ $year }}</div>
             @else
             <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
             <table style="width:100%;border-collapse:collapse;min-width:700px;">
                 <thead><tr style="background:linear-gradient(135deg,#312e81,#4f46e5);">
-                    @foreach(['Repayment Date','Employee Name','Amount','Status'] as $h)
+                    @foreach(['Cash Advance No.','Employee','Repayment Term','Amount','Payment Stage','Status','Date Paid'] as $h)
                     <th style="padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;">{{ $h }}</th>
                     @endforeach
                 </tr></thead>
                 <tbody>
                 @foreach($cashAdvanceListRows as $r)
-                <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;" onclick="showEventDetail('{{ $r->_type }}', {{ $r->id }})" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
-                    <td style="padding:11px 16px;font-size:13px;font-weight:600;color:#4f46e5;white-space:nowrap;">{{ $r->repayment_date ? $r->repayment_date->format('M d, Y') : ' ' }}</td>
-                    <td style="padding:11px 16px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->employee_name ?? ' ' }}</td>
-                    <td style="padding:11px 16px;font-size:13px;font-weight:700;color:#4f46e5;">{{ $r->amount ? '₱'.number_format($r->amount,2) : ' ' }}</td>
-                    <td style="padding:11px 16px;"><span class="ca-badge ca-badge-{{ strtolower($r->status ?? '') }}">{{ ucfirst(strtolower($r->status ?? '')) }}</span></td>
+                <tr style="border-bottom:1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                    <td style="padding:14px 18px;font-size:13px;font-weight:700;color:#4f46e5;white-space:nowrap;">{{ $r->control_number ?? ' ' }}</td>
+                    <td style="padding:14px 18px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->employee_name ?? ' ' }}</td>
+                    <td style="padding:14px 18px;font-size:13px;color:#374151;">{{ $r->repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term '.$r->term_number }}</td>
+                    <td style="padding:14px 18px;font-size:13px;font-weight:700;color:#4f46e5;">{{ $r->amount ? '₱'.number_format($r->amount,2) : ' ' }}</td>
+                    <td style="padding:14px 18px;font-size:13px;color:#374151;">{{ $r->term_number }}/{{ $r->total_terms ?? '?' }}</td>
+                    <td style="padding:14px 18px;"><span class="ca-badge ca-badge-{{ $r->status === 'PAID' ? 'approved' : 'pending' }}">{{ ucfirst(strtolower($r->status ?? '')) }}</span></td>
+                    <td style="padding:14px 18px;font-size:13px;font-weight:600;color:#4f46e5;white-space:nowrap;">{{ $r->date_paid ? $r->date_paid->format('M d, Y') : ' ' }}</td>
                 </tr>
                 @endforeach
                 </tbody>
@@ -415,10 +427,13 @@ function showEventDetail(type, id) {
         ['Requested Amount', fmt(ev.requested_amount), true],
         ['Status', ev.status||' ', false],
     ] : isCashAdvance ? [
-        ['Employee Name', ev.employee_name||' ', false],
+        ['Cash Advance No.', ev.control_number||' ', false],
+        ['Employee', ev.employee_name||' ', false],
+        ['Repayment Term', ev.repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term ' + ev.term_number, false],
         ['Amount', fmt(ev.amount), true],
-        ['Repayment Date', fmtDate(ev.repayment_date), false],
+        ['Payment Stage', (ev.term_number||'?') + '/' + (ev.total_terms||'?'), false],
         ['Status', ev.status||' ', false],
+        ['Date Paid', fmtDate(ev.date_paid), false],
     ] : [
         ['Date Released', fmtDate(ev.date_released), false],
         ['Agent', ev.agent_name||' ', false],

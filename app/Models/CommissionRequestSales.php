@@ -61,7 +61,11 @@ class CommissionRequestSales extends Model
         'lot_area' => 'decimal:4',
         'price_sqm' => 'decimal:2',
         'tcp' => 'decimal:2',
-        'discount' => 'decimal:2',
+        // Was 'decimal:2' — that cast formats the value to exactly 2 decimal
+        // places *before* it's saved, which was rounding off the discount
+        // percentage regardless of the DB column's precision. 'float' passes
+        // the value through at full precision instead.
+        'discount' => 'float',
         'discount_value' => 'decimal:2',
         'net_tcp' => 'decimal:2',
         'commission_percent' => 'decimal:4',

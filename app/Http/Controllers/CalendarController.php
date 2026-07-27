@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\CashAdvance;
+use App\Models\CashAdvanceRepayment;
 use App\Models\CommissionRequest;
 use App\Models\CommissionRequestSales;
 use App\Models\DepartmentalExpense;
@@ -123,16 +124,21 @@ class CalendarController extends Controller
             ->get()
             ->each(function($r) { $r->_type = 'expense'; $r->_date_key = $r->date_released->format('Y-m-d'); });
 
-        $cashAdvanceReleases = CashAdvance::whereNotNull('repayment_date')
-            ->whereYear('repayment_date', $year)
-            ->whereMonth('repayment_date', $month)
+        $cashAdvanceReleases = CashAdvanceRepayment::whereNotNull('date_paid')
+            ->whereYear('date_paid', $year)
+            ->whereMonth('date_paid', $month)
+            ->with('cashAdvance')
             ->get()
             ->each(function($r) {
-                $r->_type = 'cash_advance';
-                $r->date_released = $r->repayment_date; // alias so existing grouping/JS works unchanged
-                $r->_date_key = $r->repayment_date->format('Y-m-d');
+                $r->_type          = 'cash_advance';
+                $r->date_released  = $r->date_paid;
+                $r->_date_key      = $r->date_paid->format('Y-m-d');
+                $r->employee_name  = optional($r->cashAdvance)->employee_name;
+                $r->control_number = optional($r->cashAdvance)->control_number;
+                $r->repayment_type = optional($r->cashAdvance)->repayment_type;
+                $r->total_terms    = optional($r->cashAdvance)->total_terms;
+                $r->amount_total   = optional($r->cashAdvance)->amount;
             });
-
         $releases = $clientReleases->merge($commissionReleases)->merge($expenseReleases)->merge($cashAdvanceReleases)->sortBy('date_released');
 
         $releasesByDay = $releases->groupBy(fn($r) => $r->date_released->day);
@@ -152,8 +158,8 @@ class CalendarController extends Controller
             ->distinct()
             ->pluck('year');
 
-        $cashAdvanceYears = CashAdvance::whereNotNull('repayment_date')
-            ->selectRaw('YEAR(repayment_date) as year')
+        $cashAdvanceYears = CashAdvanceRepayment::whereNotNull('date_paid')
+            ->selectRaw('YEAR(date_paid) as year')
             ->distinct()
             ->pluck('year');
 
