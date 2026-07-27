@@ -57,6 +57,204 @@
             max-width: calc(100vw - 20px) !important;
         }
     }
+
+    .header-brand-link {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        color: inherit;
+        text-decoration: none;
+        min-width: 0;
+    }
+    .header-brand-link:hover .company-name {
+        filter: brightness(1.14);
+    }
+    .training-header-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 13px;
+        margin-right: 6px;
+        border: 1px solid rgba(240,201,106,.62);
+        border-radius: 8px;
+        background: rgba(240,201,106,.10);
+        color: #f7df9a;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: .2s ease;
+    }
+    .training-header-btn svg {
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+    }
+    .training-header-btn:hover {
+        color: #0a1628;
+        background: linear-gradient(135deg,#f7df9a,#d6a944);
+        border-color: #f7df9a;
+        transform: translateY(-1px);
+    }
+
+    /* Header user account dropdown */
+    .ark-account-menu {
+        position: relative;
+        flex-shrink: 0;
+    }
+    .ark-account-trigger {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 210px;
+        padding: 6px 10px 6px 7px;
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 10px;
+        background: rgba(4,16,31,.28);
+        color: #fff;
+        cursor: pointer;
+        font-family: inherit;
+        text-align: left;
+        transition: background .2s ease, border-color .2s ease;
+    }
+    .ark-account-trigger:hover,
+    .ark-account-menu.open .ark-account-trigger {
+        background: rgba(4,16,31,.48);
+        border-color: rgba(240,201,106,.42);
+    }
+    .ark-account-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg,#f7d56f,#d6a944);
+        color: #10223a;
+        font-size: 15px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+    .ark-account-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .ark-account-copy {
+        min-width: 0;
+        flex: 1;
+    }
+    .ark-account-name,
+    .ark-account-email {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .ark-account-name {
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.25;
+    }
+    .ark-account-email {
+        margin-top: 2px;
+        color: rgba(255,255,255,.62);
+        font-size: 10px;
+        line-height: 1.2;
+    }
+    .ark-account-chevron {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        transition: transform .2s ease;
+    }
+    .ark-account-menu.open .ark-account-chevron {
+        transform: rotate(180deg);
+    }
+    .ark-account-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        width: 260px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 18px 45px rgba(15,23,42,.22);
+        z-index: 10050;
+    }
+    .ark-account-menu.open .ark-account-dropdown {
+        display: block;
+    }
+    .ark-account-dropdown-head {
+        padding: 14px 16px;
+        border-bottom: 1px solid #eef2f7;
+        background: #f8fafc;
+    }
+    .ark-account-dropdown-head strong,
+    .ark-account-dropdown-head span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .ark-account-dropdown-head strong {
+        color: #0f2745;
+        font-size: 13px;
+    }
+    .ark-account-dropdown-head span {
+        margin-top: 3px;
+        color: #64748b;
+        font-size: 11px;
+    }
+    .ark-account-action {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 16px;
+        color: #163a63;
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background .18s ease, color .18s ease;
+    }
+    .ark-account-action:hover {
+        color: #9a6e12;
+        background: #fff8e7;
+    }
+    .ark-account-action svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 760px) {
+        .header-brand-link { gap: 8px; }
+        .training-header-btn { width: 38px; height: 38px; padding: 0; justify-content: center; margin-right: 2px; }
+        .training-header-btn span { display: none; }
+        .ark-account-trigger {
+            min-width: 0;
+            width: 42px;
+            height: 42px;
+            padding: 2px;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .ark-account-avatar { width: 36px; height: 36px; }
+        .ark-account-copy, .ark-account-chevron { display: none; }
+        .ark-account-dropdown {
+            position: fixed;
+            top: 66px;
+            right: 10px;
+            width: min(280px, calc(100vw - 20px));
+        }
+    }
     </style>
 </head>
 <body>
@@ -71,14 +269,23 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                          </svg>
                     </button>
-                <div class="logo">
-                    <img src="{{ asset('images/ArkCrest_Logo.png') }}" alt="ARCKREST Logo" class="logo-img">
-    </div>
-    <h1 class="company-name">ARCKREST REALTY CORPORATION</h1>
+                <a href="{{ route('landing') }}" class="header-brand-link" title="Go to ArkCrest landing page">
+                    <div class="logo">
+                        <img src="{{ asset('images/ArkCrest_Logo.png') }}" alt="ARCKREST Logo" class="logo-img">
+                    </div>
+                    <h1 class="company-name">ARCKREST REALTY CORPORATION</h1>
+                </a>
 </div>
 
                 <!-- Right Side: Search and Notification -->
                 <div class="header-right">
+                    <a href="{{ route('agent-training') }}" class="training-header-btn" title="Open ArkCrest Agent Training">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <span>Agent Training</span>
+                    </a>
+
                     <!-- Search -->
                     <div class="search-container">
                         <button id="searchToggle" class="hdr-btn" title="Search">
@@ -228,6 +435,46 @@
                                 <button type="button" onclick="notifMarkAllRead()" style="background:none;border:none;color:#1e4575;font-size:12px;font-weight:600;cursor:pointer;padding:0;">Mark all read</button>
                                 <button type="button" onclick="notifClearAll()" style="background:none;border:none;color:#ef4444;font-size:12px;font-weight:600;cursor:pointer;padding:0;">Clear All</button>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- User account menu -->
+                    <div class="ark-account-menu" data-account-menu>
+                        <button
+                            type="button"
+                            class="ark-account-trigger"
+                            data-account-trigger
+                            aria-haspopup="true"
+                            aria-expanded="false"
+                            title="Open profile menu"
+                        >
+                            <span class="ark-account-avatar">
+                                @if(auth()->user()->avatar_url)
+                                    <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }} profile picture">
+                                @else
+                                    {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+                                @endif
+                            </span>
+                            <span class="ark-account-copy">
+                                <span class="ark-account-name">{{ auth()->user()->name ?? 'Staff' }}</span>
+                                <span class="ark-account-email">{{ auth()->user()->email ?? '' }}</span>
+                            </span>
+                            <svg class="ark-account-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+
+                        <div class="ark-account-dropdown" data-account-dropdown>
+                            <div class="ark-account-dropdown-head">
+                                <strong>{{ auth()->user()->name ?? 'Staff' }}</strong>
+                                <span>{{ auth()->user()->email ?? '' }}</span>
+                            </div>
+                            <a href="{{ route('settings', ['panel' => 'profile']) }}" class="ark-account-action">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 11l6.768-6.768a2.5 2.5 0 113.536 3.536L12.536 14.536A4 4 0 019.707 15.7L7 16l.3-2.707A4 4 0 018.464 10.464L9 11zm-2 9.5V19h4.5"/>
+                                </svg>
+                                Edit Profile Settings
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -2011,5 +2258,47 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 @endif
+
+<script>
+(function () {
+    var menus = Array.prototype.slice.call(document.querySelectorAll('[data-account-menu]'));
+
+    function closeMenu(menu) {
+        menu.classList.remove('open');
+        var trigger = menu.querySelector('[data-account-trigger]');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    menus.forEach(function (menu) {
+        var trigger = menu.querySelector('[data-account-trigger]');
+        if (!trigger) return;
+
+        trigger.addEventListener('click', function (event) {
+            event.stopPropagation();
+            var willOpen = !menu.classList.contains('open');
+
+            menus.forEach(function (otherMenu) {
+                if (otherMenu !== menu) closeMenu(otherMenu);
+            });
+
+            menu.classList.toggle('open', willOpen);
+            trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+
+        menu.addEventListener('click', function (event) {
+            event.stopPropagation();
+        });
+    });
+
+    document.addEventListener('click', function () {
+        menus.forEach(closeMenu);
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') menus.forEach(closeMenu);
+    });
+})();
+</script>
+
 </body>
 </html>

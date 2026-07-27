@@ -108,13 +108,34 @@
 
   /* -------- NAV -------- */
   .nav{
-    position:absolute;
+    position:fixed;
     top:0; left:0; right:0;
-    z-index:50;
-    padding:28px 0;
+    z-index:1000;
+    padding:16px 0;
+    background:rgba(13,26,43,0.94);
+    border-bottom:1px solid rgba(255,255,255,0.10);
+    box-shadow:0 8px 30px rgba(5,12,20,0.18);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
   }
-  .nav .wrap{ display:flex; align-items:center; justify-content:space-between; }
-  .brand{ display:flex; align-items:center; gap:12px; color:#fff; }
+  .nav .wrap{
+    width:100%;
+    max-width:none;
+    padding:0 28px;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+    align-items:center;
+    gap:24px;
+    position:relative;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    color:#fff;
+    flex-shrink:0;
+    justify-self:start;
+  }
   .brand .mark{
     width:38px; height:38px; border-radius:50%;
     background:#fff;
@@ -125,29 +146,150 @@
   .brand .name{
     font-size:14px; letter-spacing:3px; font-weight:700; text-transform:uppercase;
   }
-  .nav-links{ display:flex; gap:44px; }
-  .nav-links a{
+  .nav-links{ display:flex; align-items:center; gap:32px; justify-self:center; }
+  .nav-links > a{
     color:rgba(255,255,255,0.88);
     font-size:12px; letter-spacing:2px; text-transform:uppercase; font-weight:600;
     padding-bottom:8px;
     border-bottom:2px solid transparent;
     transition:.25s;
   }
-  .nav-links a.active, .nav-links a:hover{ border-color:var(--orange); color:#fff; }
+  .nav-links > a.active, .nav-links > a:hover{ border-color:var(--orange); color:#fff; }
+  .nav-actions{ display:flex; align-items:center; gap:10px; flex-shrink:0; justify-self:end; }
+  .nav-mobile-actions{ display:none; }
   .btn{
-    display:inline-block;
-    padding:13px 26px;
-    font-size:12px; letter-spacing:2px; text-transform:uppercase; font-weight:700;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:12px 18px;
+    font-size:11px; letter-spacing:1.5px; text-transform:uppercase; font-weight:700;
     border-radius:2px;
     transition:.25s;
+    white-space:nowrap;
   }
-  .btn-orange{ background:var(--orange); color:#fff; }
-  .btn-orange:hover{ background:var(--orange-dark); }
+  .btn svg{ width:15px; height:15px; }
+  .btn-orange{ background:var(--orange); color:#fff; border:1px solid var(--orange); }
+  .btn-orange:hover{ background:var(--orange-dark); border-color:var(--orange-dark); }
   .btn-outline{ border:1px solid rgba(255,255,255,0.5); color:#fff; }
-  .btn-outline:hover{ background:rgba(255,255,255,0.1); }
+  .btn-outline:hover{ background:rgba(255,255,255,0.1); border-color:#fff; }
+  .btn-training{
+    color:#0d1a2b;
+    border:1px solid #e6bd62;
+    background:linear-gradient(135deg,#f7df9a,#d6a944);
+    box-shadow:0 7px 18px rgba(214,169,68,0.18);
+  }
+  .btn-training:hover{ transform:translateY(-1px); background:linear-gradient(135deg,#ffe7a2,#e0b54c); }
 
-  .mobile-toggle{ display:none; flex-direction:column; gap:5px; cursor:pointer; }
-  .mobile-toggle span{ width:24px; height:2px; background:#fff; }
+
+  /* -------- AUTHENTICATED USER MENU -------- */
+  .ark-account-menu{
+    position:relative;
+    flex-shrink:0;
+  }
+  .ark-account-trigger{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    min-width:190px;
+    max-width:230px;
+    padding:5px 9px 5px 5px;
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:8px;
+    background:rgba(5,16,29,.34);
+    color:#fff;
+    cursor:pointer;
+    font-family:inherit;
+    text-align:left;
+    transition:.2s;
+  }
+  .ark-account-trigger:hover,
+  .ark-account-menu.open .ark-account-trigger{
+    border-color:rgba(247,223,154,.58);
+    background:rgba(5,16,29,.58);
+  }
+  .ark-account-avatar{
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    overflow:hidden;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(135deg,#f7df9a,#d6a944);
+    color:#10223a;
+    font-size:14px;
+    font-weight:800;
+    text-transform:uppercase;
+  }
+  .ark-account-avatar img{ width:100%; height:100%; object-fit:cover; }
+  .ark-account-copy{ min-width:0; flex:1; }
+  .ark-account-name,
+  .ark-account-email{
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .ark-account-name{ color:#fff; font-size:11px; font-weight:700; line-height:1.25; }
+  .ark-account-email{ color:rgba(255,255,255,.62); font-size:9px; line-height:1.2; margin-top:2px; }
+  .ark-account-chevron{ width:15px; height:15px; flex-shrink:0; transition:transform .2s; }
+  .ark-account-menu.open .ark-account-chevron{ transform:rotate(180deg); }
+  .ark-account-dropdown{
+    display:none;
+    position:absolute;
+    top:calc(100% + 10px);
+    right:0;
+    width:260px;
+    overflow:hidden;
+    border:1px solid #e2e8f0;
+    border-radius:10px;
+    background:#fff;
+    box-shadow:0 18px 45px rgba(0,0,0,.28);
+    z-index:1100;
+  }
+  .ark-account-menu.open .ark-account-dropdown{ display:block; }
+  .ark-account-dropdown-head{
+    padding:14px 16px;
+    border-bottom:1px solid #edf1f5;
+    background:#f8fafc;
+  }
+  .ark-account-dropdown-head strong,
+  .ark-account-dropdown-head span{
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .ark-account-dropdown-head strong{ color:#132840; font-size:13px; }
+  .ark-account-dropdown-head span{ color:#64748b; font-size:11px; margin-top:3px; }
+  .ark-account-action{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:13px 16px;
+    color:#173b63;
+    font-size:12px;
+    font-weight:700;
+    text-decoration:none;
+    letter-spacing:.2px;
+    text-transform:none;
+    transition:.18s;
+  }
+  .ark-account-action:hover{ background:#fff8e7; color:#9a6e12; }
+  .ark-account-action svg{ width:18px; height:18px; flex-shrink:0; }
+
+  .mobile-toggle{
+    display:none;
+    flex-direction:column;
+    gap:5px;
+    cursor:pointer;
+    background:transparent;
+    border:0;
+    padding:8px;
+  }
+  .mobile-toggle span{ width:24px; height:2px; background:#fff; transition:.2s; }
 
   /* -------- HERO -------- */
   .hero{
@@ -340,8 +482,66 @@
   footer .brand{ color:#fff; }
 
   /* -------- RESPONSIVE -------- */
+  @media (max-width:1200px){
+    .nav .wrap{ padding-left:20px; padding-right:20px; gap:16px; }
+    .nav-links{ gap:18px; }
+    .brand .name{ font-size:12px; letter-spacing:2px; }
+    .nav-actions{ gap:8px; }
+    .nav-actions .btn{ padding:10px 12px; letter-spacing:1px; }
+    .nav-actions .ark-account-trigger{
+      width:42px;
+      min-width:42px;
+      max-width:42px;
+      height:42px;
+      padding:2px;
+      justify-content:center;
+      border-radius:50%;
+    }
+    .nav-actions .ark-account-avatar{ width:36px; height:36px; }
+    .nav-actions .ark-account-copy,
+    .nav-actions .ark-account-chevron{ display:none; }
+  }
   @media (max-width:900px){
-    .nav-links{ display:none; }
+    .nav{ padding:13px 0; }
+    .nav .wrap{
+      display:flex;
+      padding-left:20px;
+      padding-right:20px;
+      justify-content:space-between;
+      gap:16px;
+    }
+    .nav-links{
+      display:none;
+      position:absolute;
+      top:calc(100% + 13px);
+      right:20px;
+      width:min(310px, calc(100vw - 40px));
+      flex-direction:column;
+      align-items:stretch;
+      gap:4px;
+      padding:18px;
+      background:rgba(13,26,43,0.99);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:5px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.32);
+    }
+    .nav-links.open{ display:flex; }
+    .nav-links > a{ width:100%; padding:10px 4px; }
+    .nav-actions{ display:none; }
+    .nav-mobile-actions{ display:grid; gap:9px; padding-top:12px; margin-top:6px; border-top:1px solid rgba(255,255,255,0.12); }
+    .nav-mobile-actions .btn{ width:100%; }
+    .nav-mobile-actions .ark-account-menu{ width:100%; }
+    .nav-mobile-actions .ark-account-trigger{
+      width:100%;
+      max-width:none;
+      min-width:0;
+    }
+    .nav-mobile-actions .ark-account-dropdown{
+      position:static;
+      width:100%;
+      margin-top:8px;
+      box-shadow:none;
+    }
     .mobile-toggle{ display:flex; }
     .about .grid, .philosophy .grid{ grid-template-columns:1fr; gap:40px; }
     .stat-row{ grid-template-columns:1fr; }
@@ -352,6 +552,10 @@
     .pill-row{ gap:22px; }
     footer .wrap{ flex-direction:column; text-align:center; }
   }
+  @media (max-width:480px){
+    .brand .name{ font-size:11px; letter-spacing:1.5px; }
+    .brand .mark{ width:34px; height:34px; }
+  }
 </style>
 </head>
 <body>
@@ -359,22 +563,127 @@
   <!-- NAV -->
   <nav class="nav">
     <div class="wrap">
-      <div class="brand">
+      <a href="{{ route('landing') }}" class="brand" aria-label="Go to ArkCrest landing page home">
         <img
             class="mark"
             src="{{ asset('images/ArkCrest_Logo.png') }}"
             alt="ArkCrest Realty logo"
         >
         <div class="name">ArkCrest Realty</div>
-      </div>
-      <div class="nav-links">
+      </a>
+
+      <div class="nav-links" id="landingNavLinks">
         <a href="#home" class="active">Home</a>
         <a href="#about">About</a>
         <a href="#services">Services</a>
         <a href="#portfolio">Portfolio</a>
+
+        <div class="nav-mobile-actions">
+          @auth
+            <a href="{{ route('agent-training') }}" class="btn btn-training">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"/></svg>
+              Agent Training
+            </a>
+            <a href="{{ route('dashboard') }}" class="btn btn-orange">Dashboard</a>
+
+            <div class="ark-account-menu" data-account-menu>
+              <button
+                type="button"
+                class="ark-account-trigger"
+                data-account-trigger
+                aria-haspopup="true"
+                aria-expanded="false"
+                title="Open profile menu"
+              >
+                <span class="ark-account-avatar">
+                  @if(auth()->user()->avatar_url)
+                    <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }} profile picture">
+                  @else
+                    {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+                  @endif
+                </span>
+                <span class="ark-account-copy">
+                  <span class="ark-account-name">{{ auth()->user()->name ?? 'Staff' }}</span>
+                  <span class="ark-account-email">{{ auth()->user()->email ?? '' }}</span>
+                </span>
+                <svg class="ark-account-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              <div class="ark-account-dropdown" data-account-dropdown>
+                <div class="ark-account-dropdown-head">
+                  <strong>{{ auth()->user()->name ?? 'Staff' }}</strong>
+                  <span>{{ auth()->user()->email ?? '' }}</span>
+                </div>
+                <a href="{{ route('settings', ['panel' => 'profile']) }}" class="ark-account-action">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 11l6.768-6.768a2.5 2.5 0 113.536 3.536L12.536 14.536A4 4 0 019.707 15.7L7 16l.3-2.707A4 4 0 018.464 10.464L9 11zm-2 9.5V19h4.5"/>
+                  </svg>
+                  Edit Profile Settings
+                </a>
+              </div>
+            </div>
+          @else
+            <a href="{{ route('login') }}" class="btn btn-outline">Staff Login</a>
+            <a href="#inquire" class="btn btn-orange">Inquire Now</a>
+          @endauth
+        </div>
       </div>
-      <a href="#inquire" class="btn btn-orange">Inquire Now</a>
-      <div class="mobile-toggle"><span></span><span></span><span></span></div>
+
+      <div class="nav-actions">
+        @auth
+          <a href="{{ route('agent-training') }}" class="btn btn-training">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"/></svg>
+            Agent Training
+          </a>
+          <a href="{{ route('dashboard') }}" class="btn btn-orange">Dashboard</a>
+
+          <div class="ark-account-menu" data-account-menu>
+            <button
+              type="button"
+              class="ark-account-trigger"
+              data-account-trigger
+              aria-haspopup="true"
+              aria-expanded="false"
+              title="Open profile menu"
+            >
+              <span class="ark-account-avatar">
+                @if(auth()->user()->avatar_url)
+                  <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }} profile picture">
+                @else
+                  {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+                @endif
+              </span>
+              <span class="ark-account-copy">
+                <span class="ark-account-name">{{ auth()->user()->name ?? 'Staff' }}</span>
+                <span class="ark-account-email">{{ auth()->user()->email ?? '' }}</span>
+              </span>
+              <svg class="ark-account-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+            <div class="ark-account-dropdown" data-account-dropdown>
+              <div class="ark-account-dropdown-head">
+                <strong>{{ auth()->user()->name ?? 'Staff' }}</strong>
+                <span>{{ auth()->user()->email ?? '' }}</span>
+              </div>
+              <a href="{{ route('settings', ['panel' => 'profile']) }}" class="ark-account-action">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 11l6.768-6.768a2.5 2.5 0 113.536 3.536L12.536 14.536A4 4 0 019.707 15.7L7 16l.3-2.707A4 4 0 018.464 10.464L9 11zm-2 9.5V19h4.5"/>
+                </svg>
+                Edit Profile Settings
+              </a>
+            </div>
+          </div>
+        @else
+          <a href="{{ route('login') }}" class="btn btn-outline">Staff Login</a>
+          <a href="#inquire" class="btn btn-orange">Inquire Now</a>
+        @endauth
+      </div>
+
+      <button type="button" class="mobile-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="landingNavLinks">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </nav>
 
@@ -626,22 +935,70 @@
   </footer>
 
   <script>
-    // Mobile nav toggle (basic show/hide, restyle as needed)
     const toggle = document.querySelector('.mobile-toggle');
     const links = document.querySelector('.nav-links');
+
     toggle.addEventListener('click', () => {
-      const isOpen = links.style.display === 'flex';
-      links.style.display = isOpen ? 'none' : 'flex';
-      links.style.flexDirection = 'column';
-      links.style.position = 'absolute';
-      links.style.top = '64px';
-      links.style.right = '40px';
-      links.style.background = 'rgba(13,26,43,0.97)';
-      links.style.padding = '20px 28px';
-      links.style.borderRadius = '4px';
-      links.style.gap = '18px';
+      const isOpen = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    links.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => {
+        links.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.nav')) {
+        links.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
     });
   </script>
+
+
+<script>
+(function () {
+    var menus = Array.prototype.slice.call(document.querySelectorAll('[data-account-menu]'));
+
+    function closeMenu(menu) {
+        menu.classList.remove('open');
+        var trigger = menu.querySelector('[data-account-trigger]');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    menus.forEach(function (menu) {
+        var trigger = menu.querySelector('[data-account-trigger]');
+        if (!trigger) return;
+
+        trigger.addEventListener('click', function (event) {
+            event.stopPropagation();
+            var willOpen = !menu.classList.contains('open');
+
+            menus.forEach(function (otherMenu) {
+                if (otherMenu !== menu) closeMenu(otherMenu);
+            });
+
+            menu.classList.toggle('open', willOpen);
+            trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+
+        menu.addEventListener('click', function (event) {
+            event.stopPropagation();
+        });
+    });
+
+    document.addEventListener('click', function () {
+        menus.forEach(closeMenu);
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') menus.forEach(closeMenu);
+    });
+})();
+</script>
 
 </body>
 </html>

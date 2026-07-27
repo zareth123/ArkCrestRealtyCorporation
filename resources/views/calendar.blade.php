@@ -176,6 +176,56 @@
     display:flex;align-items:center;gap:16px;
     padding:10px 0 0;font-size:11px;color:#64748b;flex-shrink:0;
 }
+
+/* ---- List-view table filters (search + column filter dropdown), matches the
+   "All Expenses" / Commission Monitoring filter pattern ---- */
+.cal-filters-bar { display:flex;flex-direction:column;gap:10px;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0; }
+.cal-filters-row { display:flex;justify-content:flex-start;align-items:center;flex-wrap:wrap;gap:12px; }
+.cal-search-wrapper { display:flex;align-items:center;gap:10px;width:100%;max-width:420px; }
+.cal-search-box { display:flex;align-items:center;gap:8px;background:white;border:1.5px solid #d0d5dd;border-radius:8px;padding:0 10px;height:40px;flex:1; }
+.cal-search-box svg { width:15px;height:15px;color:#8a9bad;flex-shrink:0; }
+.cal-search-box input { border:none;outline:none;font-size:13px;width:100%;color:#344054;background:transparent; }
+.cal-column-filter-dropdown { position:relative; }
+.cal-column-filter-btn {
+    display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+    font-size:13px;font-weight:600;color:#1e4575;background:white;
+    border:2px solid #1e4575;border-radius:8px;padding:9px 14px;
+    cursor:pointer;height:40px;box-sizing:border-box;transition:all .2s ease;
+}
+.cal-column-filter-btn:hover { background:#eef2f7; }
+.cal-filter-count-badge {
+    background:#A37929;color:white;font-size:11px;font-weight:700;border-radius:999px;
+    min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;
+}
+.cal-column-filter-menu {
+    position:absolute;top:calc(100% + 6px);left:0;min-width:220px;max-height:300px;overflow-y:auto;
+    background:white;border:1.5px solid #d0d5dd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);
+    z-index:500;padding:6px;
+}
+.cal-column-filter-menu-item { display:flex;align-items:center;gap:8px;padding:9px 10px;font-size:13px;font-weight:500;color:#344054;border-radius:6px;cursor:pointer;white-space:nowrap; }
+.cal-column-filter-menu-item:hover { background:#eef2f7; }
+.cal-column-filter-menu-item .cfm-check { width:14px;color:#A37929;font-weight:700;visibility:hidden; }
+.cal-column-filter-menu-item.is-active .cfm-check { visibility:visible; }
+.cal-column-filter-menu-item.is-active { color:#1e4575;font-weight:700; }
+.cal-active-filters-row { display:flex;flex-wrap:wrap;align-items:center;gap:10px; }
+.cal-filter-chip { display:flex;align-items:center;gap:6px;background:#eef2f7;border:1.5px solid #d0d5dd;border-radius:8px;padding:6px 8px 6px 12px; }
+.cal-filter-chip label { font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap; }
+.cal-filter-chip input, .cal-filter-chip select { font-size:13px;padding:6px 8px;border:1.5px solid #d0d5dd;border-radius:6px;color:#344054;min-width:120px; }
+.cal-filter-chip .cfm-remove { background:none;border:none;color:#8a9bad;cursor:pointer;font-size:16px;line-height:1;padding:2px 4px; }
+.cal-filter-chip .cfm-remove:hover { color:#dc2626; }
+.cal-clear-filters-btn { font-size:12px;font-weight:600;color:#1e4575;background:white;border:1px solid #d0d5dd;border-radius:6px;padding:8px 14px;cursor:pointer;white-space:nowrap; }
+.cal-no-results-row td { padding:24px !important;text-align:center;color:#94a3b8;font-size:13px; }
+
+@media (max-width: 768px) {
+    .cal-search-wrapper { max-width:100%;flex-direction:column;align-items:stretch;gap:10px; }
+    .cal-column-filter-dropdown { width:100%; }
+    .cal-column-filter-btn { width:100%;justify-content:center; }
+    .cal-column-filter-menu { left:0;right:0;min-width:0;width:100%;box-sizing:border-box; }
+    .cal-active-filters-row { flex-direction:column;align-items:stretch; }
+    .cal-filter-chip { width:100%;flex-wrap:wrap;box-sizing:border-box; }
+    .cal-filter-chip input, .cal-filter-chip select { flex:1 1 auto;min-width:0;width:100%; }
+    .cal-clear-filters-btn { width:100%;text-align:center; }
+}
 </style>
 
 <div class="cal-page {{ $view === 'list' ? '' : 'is-month-view' }}">    {{-- Top Bar --}}
@@ -231,6 +281,26 @@
             @if($commissionListRows->isEmpty())
             <div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No commission releases for {{ $monthNames[$month] }} {{ $year }}</div>
             @else
+            <div class="cal-filters-bar">
+                <div class="cal-filters-row">
+                    <div class="cal-column-filter-dropdown" id="calCommissionFilterDropdown">
+                        <button type="button" class="cal-column-filter-btn" onclick="calFilters.commission.toggleMenu(event)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                            <span>Filter</span>
+                            <span id="calCommissionFilterBadge" class="cal-filter-count-badge" style="display:none;">0</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div id="calCommissionFilterMenu" class="cal-column-filter-menu" style="display:none;"></div>
+                    </div>
+                    <div class="cal-search-wrapper">
+                        <div class="cal-search-box">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" id="calCommissionSearch" placeholder="Search commission releases...">
+                        </div>
+                    </div>
+                </div>
+                <div id="calCommissionActiveFilters" class="cal-active-filters-row" style="display:none;"></div>
+            </div>
             <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
             <table style="width:100%;border-collapse:collapse;min-width:700px;">
                 <thead><tr style="background:linear-gradient(135deg,#0f2a4a,#1e4575);">
@@ -238,9 +308,17 @@
                     <th style="padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;">{{ $h }}</th>
                     @endforeach
                 </tr></thead>
-                <tbody>
+                <tbody id="calCommissionTableBody">
                 @foreach($commissionListRows as $r)
-                <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;" onclick="showEventDetail('{{ $r->_type }}', {{ $r->id }})" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;"
+                    data-date-released="{{ $r->date_released ? $r->date_released->format('Y-m-d') : '' }}"
+                    data-agent="{{ $r->agent_name }}"
+                    data-client="{{ $r->client_name }}"
+                    data-project="{{ $r->project_name }}"
+                    data-net-tcp="{{ $r->net_tcp }}"
+                    data-commission="{{ $r->commission }}"
+                    data-status="{{ $r->status === 'Not Released' ? 'Not Yet Released' : $r->status }}"
+                    onclick="showEventDetail('{{ $r->_type }}', {{ $r->id }})" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                     <td style="padding:11px 16px;font-size:13px;font-weight:600;color:#059669;white-space:nowrap;">{{ $r->date_released ? $r->date_released->format('M d, Y') : ' ' }}</td>
                     <td style="padding:11px 16px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->agent_name ?? ' ' }}</td>
                     <td style="padding:11px 16px;font-size:13px;color:#374151;">{{ $r->client_name ?? ' ' }}</td>
@@ -250,6 +328,7 @@
                     <td style="padding:11px 16px;"><span class="cal-status-badge {{ $r->status === 'Released' ? 'cal-status-released' : 'cal-status-pending' }}">{{ $r->status === 'Not Released' ? 'Not Yet Released' : ($r->status ?? ' ') }}</span></td>
                 </tr>
                 @endforeach
+                <tr id="calCommissionNoResults" class="cal-no-results-row" style="display:none;"><td colspan="7">No records match your filters.</td></tr>
                 </tbody>
             </table>
             </div>
@@ -265,6 +344,26 @@
             @if($expenseListRows->isEmpty())
             <div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No expense releases for {{ $monthNames[$month] }} {{ $year }}</div>
             @else
+            <div class="cal-filters-bar">
+                <div class="cal-filters-row">
+                    <div class="cal-column-filter-dropdown" id="calExpenseFilterDropdown">
+                        <button type="button" class="cal-column-filter-btn" onclick="calFilters.expense.toggleMenu(event)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                            <span>Filter</span>
+                            <span id="calExpenseFilterBadge" class="cal-filter-count-badge" style="display:none;">0</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div id="calExpenseFilterMenu" class="cal-column-filter-menu" style="display:none;"></div>
+                    </div>
+                    <div class="cal-search-wrapper">
+                        <div class="cal-search-box">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" id="calExpenseSearch" placeholder="Search expense releases...">
+                        </div>
+                    </div>
+                </div>
+                <div id="calExpenseActiveFilters" class="cal-active-filters-row" style="display:none;"></div>
+            </div>
             <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
             <table style="width:100%;border-collapse:collapse;min-width:700px;">
                 <thead><tr style="background:linear-gradient(135deg,#7f1d1d,#dc2626);">
@@ -272,9 +371,16 @@
                     <th style="padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;">{{ $h }}</th>
                     @endforeach
                 </tr></thead>
-                <tbody>
+                <tbody id="calExpenseTableBody">
                 @foreach($expenseListRows as $r)
-                <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;" onclick="showEventDetail('{{ $r->_type }}', {{ $r->id }})" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;"
+                    data-date-released="{{ $r->date_released ? $r->date_released->format('Y-m-d') : '' }}"
+                    data-requestor="{{ $r->requestor_name }}"
+                    data-department="{{ $r->department }}"
+                    data-category="{{ $r->category }}"
+                    data-amount="{{ $r->requested_amount }}"
+                    data-status="{{ $r->status }}"
+                    onclick="showEventDetail('{{ $r->_type }}', {{ $r->id }})" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                     <td style="padding:11px 16px;font-size:13px;font-weight:600;color:#dc2626;white-space:nowrap;">{{ $r->date_released ? $r->date_released->format('M d, Y') : ' ' }}</td>
                     <td style="padding:11px 16px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->requestor_name ?? ' ' }}</td>
                     <td style="padding:11px 16px;font-size:13px;color:#374151;">{{ $r->department ?? ' ' }}</td>
@@ -283,6 +389,7 @@
                     <td style="padding:11px 16px;"><span class="status-badge status-{{ strtolower(str_replace(' ', '-', $r->status ?? '')) }}">{{ $r->status ?? ' ' }}</span></td>
                 </tr>
                 @endforeach
+                <tr id="calExpenseNoResults" class="cal-no-results-row" style="display:none;"><td colspan="6">No records match your filters.</td></tr>
                 </tbody>
             </table>
             </div>
@@ -299,6 +406,26 @@
             @if($cashAdvanceListRows->isEmpty())
             <div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No cash advances for {{ $monthNames[$month] }} {{ $year }}</div>
             @else
+            <div class="cal-filters-bar">
+                <div class="cal-filters-row">
+                    <div class="cal-column-filter-dropdown" id="calCashAdvanceFilterDropdown">
+                        <button type="button" class="cal-column-filter-btn" onclick="calFilters.cashAdvance.toggleMenu(event)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                            <span>Filter</span>
+                            <span id="calCashAdvanceFilterBadge" class="cal-filter-count-badge" style="display:none;">0</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div id="calCashAdvanceFilterMenu" class="cal-column-filter-menu" style="display:none;"></div>
+                    </div>
+                    <div class="cal-search-wrapper">
+                        <div class="cal-search-box">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" id="calCashAdvanceSearch" placeholder="Search cash advances...">
+                        </div>
+                    </div>
+                </div>
+                <div id="calCashAdvanceActiveFilters" class="cal-active-filters-row" style="display:none;"></div>
+            </div>
             <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
             <table style="width:100%;border-collapse:collapse;min-width:700px;">
                 <thead><tr style="background:linear-gradient(135deg,#312e81,#4f46e5);">
@@ -306,9 +433,17 @@
                     <th style="padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;">{{ $h }}</th>
                     @endforeach
                 </tr></thead>
-                <tbody>
+                <tbody id="calCashAdvanceTableBody">
                 @foreach($cashAdvanceListRows as $r)
-                <tr style="border-bottom:1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                <tr style="border-bottom:1px solid #f1f5f9;"
+                    data-control="{{ $r->control_number }}"
+                    data-employee="{{ $r->employee_name }}"
+                    data-repayment-term="{{ $r->repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term '.$r->term_number }}"
+                    data-amount="{{ $r->amount }}"
+                    data-stage="{{ $r->term_number }}/{{ $r->total_terms ?? '?' }}"
+                    data-status="{{ ucfirst(strtolower($r->status ?? '')) }}"
+                    data-date-paid="{{ $r->date_paid ? $r->date_paid->format('Y-m-d') : '' }}"
+                    onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                     <td style="padding:14px 18px;font-size:13px;font-weight:700;color:#4f46e5;white-space:nowrap;">{{ $r->control_number ?? ' ' }}</td>
                     <td style="padding:14px 18px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->employee_name ?? ' ' }}</td>
                     <td style="padding:14px 18px;font-size:13px;color:#374151;">{{ $r->repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term '.$r->term_number }}</td>
@@ -318,6 +453,7 @@
                     <td style="padding:14px 18px;font-size:13px;font-weight:600;color:#4f46e5;white-space:nowrap;">{{ $r->date_paid ? $r->date_paid->format('M d, Y') : ' ' }}</td>
                 </tr>
                 @endforeach
+                <tr id="calCashAdvanceNoResults" class="cal-no-results-row" style="display:none;"><td colspan="7">No records match your filters.</td></tr>
                 </tbody>
             </table>
             </div>
@@ -481,5 +617,249 @@ function showDayEvents(dateStr) {
     }).join('') || '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:20px;">No releases found.</div>';
     document.getElementById('calDayModal').style.display = 'flex';
 }
+// ---- List-view table filters (search + column filter dropdown) ----
+// Reusable per-table engine, mirrors the "All Expenses" / Commission Monitoring filter pattern.
+function createCalTableFilter(opts) {
+    const state = { columnFilters: {} };
+
+    function fieldConfig(key) {
+        return opts.fields.find(f => f.key === key);
+    }
+
+    function toggleMenu(evt) {
+        if (evt) evt.stopPropagation();
+        const menu = document.getElementById(opts.menuId);
+        if (!menu) return;
+        const isOpen = menu.style.display === 'block';
+        menu.style.display = isOpen ? 'none' : 'block';
+        if (!isOpen) renderMenu();
+    }
+
+    function closeMenu() {
+        const menu = document.getElementById(opts.menuId);
+        if (menu) menu.style.display = 'none';
+    }
+
+    function renderMenu() {
+        const menu = document.getElementById(opts.menuId);
+        if (!menu) return;
+        menu.innerHTML = opts.fields.map(f => {
+            const active = state.columnFilters.hasOwnProperty(f.key);
+            return `<div class="cal-column-filter-menu-item${active ? ' is-active' : ''}" onclick="calFilters.${opts.name}.toggleField('${f.key}')">
+                        <span class="cfm-check">&#10003;</span><span>${f.label}</span>
+                    </div>`;
+        }).join('');
+    }
+
+    function toggleField(key) {
+        if (state.columnFilters.hasOwnProperty(key)) {
+            removeField(key);
+        } else {
+            const f = fieldConfig(key);
+            state.columnFilters[key] = (f && f.type === 'daterange') ? { from: '', to: '' } : '';
+            renderMenu();
+            renderActive();
+            closeMenu();
+            setTimeout(() => {
+                const el = document.getElementById(opts.name + 'Input_' + key) || document.getElementById(opts.name + 'Input_' + key + '_from');
+                if (el) el.focus();
+            }, 0);
+        }
+    }
+
+    function removeField(key) {
+        delete state.columnFilters[key];
+        renderMenu();
+        renderActive();
+        apply();
+    }
+
+    function clearAll() {
+        Object.keys(state.columnFilters).forEach(k => delete state.columnFilters[k]);
+        renderMenu();
+        renderActive();
+        apply();
+    }
+
+    function updateValue(key, value) {
+        state.columnFilters[key] = value;
+        apply();
+    }
+
+    function updateRangeValue(key, part, value) {
+        if (!state.columnFilters[key] || typeof state.columnFilters[key] !== 'object') {
+            state.columnFilters[key] = { from: '', to: '' };
+        }
+        state.columnFilters[key][part] = value;
+        apply();
+    }
+
+    function renderActive() {
+        const row = document.getElementById(opts.activeRowId);
+        const badge = document.getElementById(opts.badgeId);
+        if (!row) return;
+        const keys = Object.keys(state.columnFilters);
+
+        if (badge) {
+            badge.style.display = keys.length ? 'inline-flex' : 'none';
+            badge.textContent = keys.length;
+        }
+
+        if (keys.length === 0) {
+            row.style.display = 'none';
+            row.innerHTML = '';
+            return;
+        }
+
+        row.style.display = 'flex';
+        row.innerHTML = keys.map(key => {
+            const f = fieldConfig(key);
+            let inputHtml = '';
+            if (f.type === 'select') {
+                const val = state.columnFilters[key] || '';
+                inputHtml = `<select id="${opts.name}Input_${key}" onchange="calFilters.${opts.name}.updateValue('${key}', this.value)">
+                                <option value="">All</option>
+                                ${f.options.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+                             </select>`;
+            } else if (f.type === 'daterange') {
+                const range = (state.columnFilters[key] && typeof state.columnFilters[key] === 'object') ? state.columnFilters[key] : { from: '', to: '' };
+                inputHtml = `<input type="date" id="${opts.name}Input_${key}_from" value="${range.from || ''}" onchange="calFilters.${opts.name}.updateRangeValue('${key}', 'from', this.value)">
+                             <span style="color:#8a9bad;font-size:12px;">to</span>
+                             <input type="date" id="${opts.name}Input_${key}_to" value="${range.to || ''}" onchange="calFilters.${opts.name}.updateRangeValue('${key}', 'to', this.value)">`;
+            } else {
+                const val = state.columnFilters[key] || '';
+                inputHtml = `<input type="text" id="${opts.name}Input_${key}" placeholder="Search ${f.label.toLowerCase()}..." value="${val}" oninput="calFilters.${opts.name}.updateValue('${key}', this.value)">`;
+            }
+            return `<div class="cal-filter-chip">
+                        <label>${f.label}</label>
+                        ${inputHtml}
+                        <button type="button" class="cfm-remove" title="Remove filter" onclick="calFilters.${opts.name}.removeField('${key}')">&times;</button>
+                    </div>`;
+        }).join('') + `<button type="button" class="cal-clear-filters-btn" onclick="calFilters.${opts.name}.clearAll()">Clear Filters</button>`;
+    }
+
+    function matchesColumnFilters(row) {
+        for (const key in state.columnFilters) {
+            const f = fieldConfig(key);
+            if (!f) continue;
+
+            if (f.type === 'daterange') {
+                const range = state.columnFilters[key];
+                if (!range || (!range.from && !range.to)) continue;
+                const rowVal = (row.getAttribute(f.dataAttr) || '').toString();
+                if (!rowVal) return false;
+                if (range.from && rowVal < range.from) return false;
+                if (range.to && rowVal > range.to) return false;
+                continue;
+            }
+
+            const filterVal = (state.columnFilters[key] || '').toString().trim().toLowerCase();
+            if (!filterVal) continue;
+            const rowVal = (row.getAttribute(f.dataAttr) || '').toString().toLowerCase();
+
+            if (f.type === 'select') {
+                if (rowVal !== filterVal) return false;
+            } else {
+                if (!rowVal.includes(filterVal)) return false;
+            }
+        }
+        return true;
+    }
+
+    function apply() {
+        const searchInput = document.getElementById(opts.searchId);
+        const tableBody = document.getElementById(opts.tableBodyId);
+        if (!tableBody) return;
+        const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const searchWords = searchTerm.split(/\s+/).filter(w => w.length > 0);
+
+        const dataRows = Array.from(tableBody.querySelectorAll('tr[data-status], tr[' + opts.fields[0].dataAttr + ']'));
+        let visible = 0;
+
+        for (const row of dataRows) {
+            const text = row.textContent.toLowerCase();
+            const matchesSearch = searchWords.length === 0 || searchWords.every(w => text.includes(w));
+            const columnMatch = matchesColumnFilters(row);
+
+            if (matchesSearch && columnMatch) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        }
+
+        const noResults = document.getElementById(opts.noResultsId);
+        if (noResults) {
+            noResults.style.display = (visible === 0 && dataRows.length > 0) ? '' : 'none';
+        }
+    }
+
+    document.addEventListener('click', function(evt) {
+        const wrapper = document.getElementById(opts.dropdownId);
+        if (wrapper && !wrapper.contains(evt.target)) closeMenu();
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById(opts.searchId);
+        if (searchInput) searchInput.addEventListener('input', apply);
+    });
+
+    return { toggleMenu, toggleField, removeField, clearAll, updateValue, updateRangeValue, apply };
+}
+
+const calFilters = {
+    commission: createCalTableFilter({
+        name: 'commission',
+        dropdownId: 'calCommissionFilterDropdown',
+        menuId: 'calCommissionFilterMenu',
+        activeRowId: 'calCommissionActiveFilters',
+        badgeId: 'calCommissionFilterBadge',
+        searchId: 'calCommissionSearch',
+        tableBodyId: 'calCommissionTableBody',
+        noResultsId: 'calCommissionNoResults',
+        fields: [
+            { key: 'agent',         label: 'Agent',          dataAttr: 'data-agent',          type: 'text' },
+            { key: 'client',        label: 'Client',         dataAttr: 'data-client',         type: 'text' },
+            { key: 'project',       label: 'Project',        dataAttr: 'data-project',        type: 'text' },
+            { key: 'date_released', label: 'Date Released',  dataAttr: 'data-date-released',  type: 'daterange' },
+            { key: 'status',        label: 'Status',         dataAttr: 'data-status',         type: 'select', options: ['Requested', 'Not Yet Released', 'Released'] },
+        ]
+    }),
+    expense: createCalTableFilter({
+        name: 'expense',
+        dropdownId: 'calExpenseFilterDropdown',
+        menuId: 'calExpenseFilterMenu',
+        activeRowId: 'calExpenseActiveFilters',
+        badgeId: 'calExpenseFilterBadge',
+        searchId: 'calExpenseSearch',
+        tableBodyId: 'calExpenseTableBody',
+        noResultsId: 'calExpenseNoResults',
+        fields: [
+            { key: 'requestor',     label: 'Requestor Name', dataAttr: 'data-requestor',      type: 'text' },
+            { key: 'department',    label: 'Department',     dataAttr: 'data-department',     type: 'text' },
+            { key: 'category',      label: 'Category',       dataAttr: 'data-category',       type: 'text' },
+            { key: 'date_released', label: 'Date Released',  dataAttr: 'data-date-released',  type: 'daterange' },
+            { key: 'status',        label: 'Status',         dataAttr: 'data-status',         type: 'text' },
+        ]
+    }),
+    cashAdvance: createCalTableFilter({
+        name: 'cashAdvance',
+        dropdownId: 'calCashAdvanceFilterDropdown',
+        menuId: 'calCashAdvanceFilterMenu',
+        activeRowId: 'calCashAdvanceActiveFilters',
+        badgeId: 'calCashAdvanceFilterBadge',
+        searchId: 'calCashAdvanceSearch',
+        tableBodyId: 'calCashAdvanceTableBody',
+        noResultsId: 'calCashAdvanceNoResults',
+        fields: [
+            { key: 'control',       label: 'Cash Advance No.', dataAttr: 'data-control',        type: 'text' },
+            { key: 'employee',      label: 'Employee',         dataAttr: 'data-employee',        type: 'text' },
+            { key: 'stage',         label: 'Payment Stage',    dataAttr: 'data-stage',           type: 'text' },
+            { key: 'date_paid',     label: 'Date Paid',        dataAttr: 'data-date-paid',       type: 'daterange' },
+            { key: 'status',        label: 'Status',           dataAttr: 'data-status',          type: 'text' },
+        ]
+    }),
+};
 </script>
 @endsection
