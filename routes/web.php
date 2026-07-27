@@ -53,8 +53,11 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('page.visible');
 
-    // Staff sales and real estate agent training mockup
-    Route::view('/agent-training', 'training-course')->name('agent-training');
+    // Staff sales and real estate agent training — Real Estate Agent Training course
+    Route::get('/agent-training', [App\Http\Controllers\TrainingCourseController::class, 'index'])->name('agent-training');
+    Route::post('/agent-training/module/{module}/quiz', [App\Http\Controllers\TrainingCourseController::class, 'submitQuiz'])
+        ->name('agent-training.quiz.submit')
+        ->middleware('throttle:20,1');
 
     // Summary Report
     Route::get('/summary-report', [App\Http\Controllers\SummaryReportController::class, 'index'])->name('summary-report')->middleware('page.visible');

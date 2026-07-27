@@ -35,6 +35,27 @@ class AppServiceProvider extends ServiceProvider
         } catch (\Exception $e) {
             // Table may already be mid-creation or DB not reachable yet.
         }
+        // Auto-create the training_module_progress table if it doesn't exist yet
+        // (Real Estate Agent Training course — per-user module/quiz progress).
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('training_module_progress')) {
+                \Illuminate\Support\Facades\Schema::create('training_module_progress', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->id();
+                    $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                    $table->unsignedTinyInteger('module_number');
+                    $table->unsignedInteger('attempts')->default(0);
+                    $table->unsignedTinyInteger('last_score')->nullable();
+                    $table->unsignedTinyInteger('best_score')->nullable();
+                    $table->boolean('passed')->default(false);
+                    $table->timestamp('last_attempted_at')->nullable();
+                    $table->timestamp('completed_at')->nullable();
+                    $table->timestamps();
+                    $table->unique(['user_id', 'module_number']);
+                });
+            }
+        } catch (\Exception $e) {
+            // Table may already be mid-creation or DB not reachable yet.
+        }
         // Auto-seed departments if empty
         try {
             if (\App\Models\Department::count() === 0) {
@@ -94,6 +115,19 @@ class AppServiceProvider extends ServiceProvider
                     ? $user->preferred_address . ' ' . $user->name
                     : $user->name);
                 $view->with('trainingInitial', strtoupper(substr($user->name ?: 'A', 0, 1)));
+
+                // Real per-user course progress (Real Estate Agent Training) —
+                // feeds the always-visible academy sidebar's module list and
+                // progress bar, not just the training-course page itself.
+                try {
+                    $sidebarProgress = \App\Services\AgentTrainingCourseService::progressFor($user);
+                    $view->with('academyProgress', $sidebarProgress);
+                    $view->with('academyOverallPercent', \App\Services\AgentTrainingCourseService::overallPercent($sidebarProgress));
+                } catch (\Exception $e) {
+                    // Table may not exist yet (fresh install before migration runs).
+                    $view->with('academyProgress', []);
+                    $view->with('academyOverallPercent', 0);
+                }
             } else {
                 $view->with('hiddenSections', []);
                 $view->with('userNotes', collect());

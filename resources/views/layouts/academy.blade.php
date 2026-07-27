@@ -268,6 +268,10 @@
         .course-link small { margin-top: 3px; color: rgba(255, 255, 255, .40); font-size: 9px; }
         .course-lock { color: rgba(255, 255, 255, .28); }
         .course-lock svg { width: 14px; height: 14px; }
+        .course-check { color: #7fd68a; }
+        .course-check svg { width: 14px; height: 14px; }
+        .course-link-disabled { cursor: default; opacity: .62; }
+        .course-link-disabled:hover { background: none; }
         .sidebar-footer {
             margin-top: auto;
             padding-top: 24px;
@@ -526,41 +530,26 @@
         <h2 class="sidebar-course-title">Real Estate Sales Foundations</h2>
 
         <div class="sidebar-progress">
-            <div class="sidebar-progress-head"><span>Overall progress</span><strong>0%</strong></div>
-            <div class="sidebar-progress-track"><div class="sidebar-progress-bar"></div></div>
+            <div class="sidebar-progress-head"><span>Overall progress</span><strong>{{ $academyOverallPercent ?? 0 }}%</strong></div>
+            <div class="sidebar-progress-track"><div class="sidebar-progress-bar" style="width: {{ $academyOverallPercent ?? 0 }}%"></div></div>
         </div>
 
         <nav class="course-navigation">
-            <a href="{{ route('agent-training') }}#module-01" class="course-link {{ request()->routeIs('agent-training') ? 'active' : '' }}">
-                <span class="course-link-number">01</span>
-                <span><strong>Sales Fundamentals</strong><small>3 lessons · 35 min</small></span>
-                <span></span>
-            </a>
-            <a href="{{ route('agent-training') }}#module-02" class="course-link">
-                <span class="course-link-number">02</span>
-                <span><strong>Property Knowledge</strong><small>3 lessons · 45 min</small></span>
-                <span class="course-lock"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-            </a>
-            <a href="{{ route('agent-training') }}#module-03" class="course-link">
-                <span class="course-link-number">03</span>
-                <span><strong>Client Qualification</strong><small>3 lessons · 40 min</small></span>
-                <span class="course-lock"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-            </a>
-            <a href="{{ route('agent-training') }}#module-04" class="course-link">
-                <span class="course-link-number">04</span>
-                <span><strong>Site Visits</strong><small>3 lessons · 50 min</small></span>
-                <span class="course-lock"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-            </a>
-            <a href="{{ route('agent-training') }}#module-05" class="course-link">
-                <span class="course-link-number">05</span>
-                <span><strong>Ethical Selling</strong><small>3 lessons · 45 min</small></span>
-                <span class="course-lock"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-            </a>
-            <a href="{{ route('agent-training') }}#module-06" class="course-link">
-                <span class="course-link-number">06</span>
-                <span><strong>Closing & After-Sales</strong><small>3 lessons · 35 min</small></span>
-                <span class="course-lock"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-            </a>
+            @php $navShortTitles = [1=>'Sales Fundamentals',2=>'Property Knowledge',3=>'Client Qualification',4=>'Site Visits',5=>'Documentation & Ethics',6=>'Closing']; @endphp
+            @foreach (($academyProgress ?? []) as $m)
+                <a href="{{ $m['unlocked'] ? route('agent-training') . '#module-0' . $m['number'] : 'javascript:void(0)' }}"
+                   class="course-link {{ request()->routeIs('agent-training') && $m['number'] === 1 ? 'active' : '' }} {{ !$m['unlocked'] ? 'course-link-disabled' : '' }}">
+                    <span class="course-link-number">{{ sprintf('%02d', $m['number']) }}</span>
+                    <span><strong>{{ $navShortTitles[$m['number']] ?? $m['title'] }}</strong><small>{{ $m['lessons'] }} lessons · {{ $m['minutes'] }} min</small></span>
+                    @if ($m['completed'])
+                        <span class="course-check" title="Completed"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></span>
+                    @elseif (!$m['unlocked'])
+                        <span class="course-lock"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
+                    @else
+                        <span></span>
+                    @endif
+                </a>
+            @endforeach
             <a href="{{ route('practice') }}" class="course-link {{ request()->routeIs('practice') || request()->routeIs('practice.*') ? 'active' : '' }}">
                 <span class="course-link-number">07</span>
                 <span><strong>Persuasion Practice</strong><small>AI buyer roleplay</small></span>
