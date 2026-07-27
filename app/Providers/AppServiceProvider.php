@@ -63,6 +63,9 @@ class AppServiceProvider extends ServiceProvider
                 $view->with('dueNotesCount', 0);
                 $view->with('sysNotifs', collect());
                 $view->with('unreadNotifCount', 0);
+                $view->with('trainingUser', null);
+                $view->with('trainingName', '');
+                $view->with('trainingInitial', 'A');
                 return;
             }
             $user = auth()->user();
@@ -82,12 +85,24 @@ class AppServiceProvider extends ServiceProvider
                     ->orderBy('notified_at', 'desc')->limit(50)->get();
                 $view->with('sysNotifs', $sysNotifs);
                 $view->with('unreadNotifCount', $sysNotifs->where('is_read', false)->count());
+                // Agent Training / Sales Academy header display — computed here (not in the
+                // academy layout's own @php block) because a child view's @section content
+                // renders BEFORE the parent layout it @extends, so variables set only inside
+                // the layout aren't defined yet when the child references them.
+                $view->with('trainingUser', $user);
+                $view->with('trainingName', $user->preferred_address
+                    ? $user->preferred_address . ' ' . $user->name
+                    : $user->name);
+                $view->with('trainingInitial', strtoupper(substr($user->name ?: 'A', 0, 1)));
             } else {
                 $view->with('hiddenSections', []);
                 $view->with('userNotes', collect());
                 $view->with('dueNotesCount', 0);
                 $view->with('sysNotifs', collect());
                 $view->with('unreadNotifCount', 0);
+                $view->with('trainingUser', null);
+                $view->with('trainingName', '');
+                $view->with('trainingInitial', 'A');
             }
         });
     }

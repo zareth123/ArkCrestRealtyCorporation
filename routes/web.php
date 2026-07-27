@@ -96,6 +96,23 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::delete('/api/expenses/{id}', [DepartmentController::class, 'deleteExpense']);
     Route::delete('/api/categories/{id}', [DepartmentController::class, 'deleteCategory']);
 
+    // Persuasion Practice (AI buyer roleplay training)
+    Route::get('/practice', [App\Http\Controllers\PersuasionPracticeController::class, 'index'])->name('practice');
+    Route::get('/practice/history', [App\Http\Controllers\PersuasionPracticeController::class, 'history'])->name('practice.history');
+    Route::post('/practice/{scenario}/start', [App\Http\Controllers\PersuasionPracticeController::class, 'start'])->name('practice.start')->middleware('throttle:15,1');
+    Route::get('/practice/session/{session}', [App\Http\Controllers\PersuasionPracticeController::class, 'chat'])->name('practice.chat');
+    Route::post('/api/practice/session/{session}/message', [App\Http\Controllers\PersuasionPracticeController::class, 'sendMessage'])->name('practice.message')->middleware('throttle:20,1');
+    Route::post('/api/practice/session/{session}/retry', [App\Http\Controllers\PersuasionPracticeController::class, 'retryMessage'])->name('practice.retry')->middleware('throttle:20,1');
+    Route::post('/api/practice/session/{session}/end', [App\Http\Controllers\PersuasionPracticeController::class, 'end'])->name('practice.end')->middleware('throttle:10,1');
+
+    // Persuasion Practice — scenario management (admin only)
+    Route::middleware('admin')->group(function () {
+        Route::get('/practice/admin', [App\Http\Controllers\PersuasionScenarioAdminController::class, 'index'])->name('practice.admin');
+        Route::post('/practice/admin', [App\Http\Controllers\PersuasionScenarioAdminController::class, 'store'])->name('practice.admin.store');
+        Route::put('/practice/admin/{scenario}', [App\Http\Controllers\PersuasionScenarioAdminController::class, 'update'])->name('practice.admin.update');
+        Route::delete('/practice/admin/{scenario}', [App\Http\Controllers\PersuasionScenarioAdminController::class, 'destroy'])->name('practice.admin.destroy');
+    });
+
     // Settings
     Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('settings');
     Route::get('/users/{user}/avatar', [App\Http\Controllers\UserAvatarController::class, 'show'])
@@ -248,20 +265,20 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::post('/cash-advance/{id}/approve', [App\Http\Controllers\CashAdvanceController::class, 'approve'])->name('cash-advance.approve');
     Route::post('/cash-advance/{id}/reject', [App\Http\Controllers\CashAdvanceController::class, 'reject'])->name('cash-advance.reject');
     Route::get('/cash-advance/{id}/repayments', [App\Http\Controllers\CashAdvanceController::class, 'repayments'])->name('cash-advance.repayments');
-    Route::post('/cash-advance/{id}/repayments/{term}/pay', [App\Http\Controllers\CashAdvanceController::class, 'markRepaymentPaid'])->name('cash-advance-repayments.pay');
+Route::post('/cash-advance/{id}/repayments/{term}/pay', [App\Http\Controllers\CashAdvanceController::class, 'markRepaymentPaid'])->name('cash-advance-repayments.pay');
     Route::post('/cash-advance/{id}/repayments/{term}/unpay', [App\Http\Controllers\CashAdvanceController::class, 'unmarkRepaymentPaid'])->name('cash-advance-repayments.unpay');
-    
+
     Route::delete('/cash-advance/{id}', [App\Http\Controllers\CashAdvanceController::class, 'destroy'])->name('cash-advance.destroy');
     Route::get('/agent-cash-advance', [App\Http\Controllers\AgentCashAdvanceController::class, 'index'])->name('agent-cash-advance')->middleware('page.visible');
-     Route::post('/agent-cash-advance', [App\Http\Controllers\AgentCashAdvanceController::class, 'store'])->name('agent-cash-advance.store');
-     Route::get('/agent-cash-advance/{id}', [App\Http\Controllers\AgentCashAdvanceController::class, 'show'])->name('agent-cash-advance.show');
-     Route::post('/agent-cash-advance/{id}/approve', [App\Http\Controllers\AgentCashAdvanceController::class, 'approve'])->name('agent-cash-advance.approve');
-     Route::post('/agent-cash-advance/{id}/reject', [App\Http\Controllers\AgentCashAdvanceController::class, 'reject'])->name('agent-cash-advance.reject');
-     Route::get('/agent-cash-advance/{id}/repayments', [App\Http\Controllers\AgentCashAdvanceController::class, 'repayments'])->name('agent-cash-advance.repayments');
-     Route::post('/agent-cash-advance/{id}/repayments/{term}/pay', [App\Http\Controllers\AgentCashAdvanceController::class, 'markRepaymentPaid'])->name('agent-cash-advance-repayments.pay');
-     Route::post('/agent-cash-advance/{id}/repayments/{term}/unpay', [App\Http\Controllers\AgentCashAdvanceController::class, 'unmarkRepaymentPaid'])->name('agent-cash-advance-repayments.unpay');
-     Route::delete('/agent-cash-advance-repayments/{repaymentId}', [App\Http\Controllers\AgentCashAdvanceController::class, 'destroyRepayment'])->name('agent-cash-advance-repayments.destroy');
-     Route::delete('/agent-cash-advance/{id}', [App\Http\Controllers\AgentCashAdvanceController::class, 'destroy'])->name('agent-cash-advance.destroy');
+    Route::post('/agent-cash-advance', [App\Http\Controllers\AgentCashAdvanceController::class, 'store'])->name('agent-cash-advance.store');
+    Route::get('/agent-cash-advance/{id}', [App\Http\Controllers\AgentCashAdvanceController::class, 'show'])->name('agent-cash-advance.show');
+    Route::post('/agent-cash-advance/{id}/approve', [App\Http\Controllers\AgentCashAdvanceController::class, 'approve'])->name('agent-cash-advance.approve');
+    Route::post('/agent-cash-advance/{id}/reject', [App\Http\Controllers\AgentCashAdvanceController::class, 'reject'])->name('agent-cash-advance.reject');
+    Route::get('/agent-cash-advance/{id}/repayments', [App\Http\Controllers\AgentCashAdvanceController::class, 'repayments'])->name('agent-cash-advance.repayments');
+    Route::post('/agent-cash-advance/{id}/repayments/{term}/pay', [App\Http\Controllers\AgentCashAdvanceController::class, 'markRepaymentPaid'])->name('agent-cash-advance-repayments.pay');
+    Route::post('/agent-cash-advance/{id}/repayments/{term}/unpay', [App\Http\Controllers\AgentCashAdvanceController::class, 'unmarkRepaymentPaid'])->name('agent-cash-advance-repayments.unpay');
+    Route::delete('/agent-cash-advance-repayments/{repaymentId}', [App\Http\Controllers\AgentCashAdvanceController::class, 'destroyRepayment'])->name('agent-cash-advance-repayments.destroy');
+    Route::delete('/agent-cash-advance/{id}', [App\Http\Controllers\AgentCashAdvanceController::class, 'destroy'])->name('agent-cash-advance.destroy');
     // Calendar
     Route::get('/calendar', [App\Http\Controllers\CalendarController::class, 'index'])->name('calendar')->middleware('page.visible');
     Route::get('/sales-calendar', [App\Http\Controllers\CalendarController::class, 'salesCalendar'])->name('sales-calendar');
