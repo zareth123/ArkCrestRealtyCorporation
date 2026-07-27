@@ -386,5 +386,28 @@ class CashAdvanceController extends Controller
             'success' => true,
             'message' => "{$record->control_number} was deleted.",
         ]);
+        
     }
+    public function destroyRepayment($repaymentId)
+{
+    $term = CashAdvanceRepayment::findOrFail($repaymentId);
+    $record = $term->cashAdvance;
+
+    ActivityLog::log('delete', 'Cash Advance Repayment', "Deleted repayment term {$term->term_number} for " . ($record->control_number ?? '#' . $term->cash_advance_id) . ($record ? " ({$record->employee_name})" : ''), [
+    'model_class'     => CashAdvanceRepayment::class,
+    'record_id'       => $term->id,
+    'cash_advance_id' => $term->cash_advance_id,
+    'term_number'     => $term->term_number,
+    'status'          => $term->status,
+    'amount'          => $term->amount,
+    'date_paid'       => optional($term->date_paid)->format('Y-m-d'),
+]);
+
+    $term->delete();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Repayment record was deleted.',
+    ]);
+}
 }

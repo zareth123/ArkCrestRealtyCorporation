@@ -268,8 +268,9 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::post('/cash-advance/{id}/approve', [App\Http\Controllers\CashAdvanceController::class, 'approve'])->name('cash-advance.approve');
     Route::post('/cash-advance/{id}/reject', [App\Http\Controllers\CashAdvanceController::class, 'reject'])->name('cash-advance.reject');
     Route::get('/cash-advance/{id}/repayments', [App\Http\Controllers\CashAdvanceController::class, 'repayments'])->name('cash-advance.repayments');
-Route::post('/cash-advance/{id}/repayments/{term}/pay', [App\Http\Controllers\CashAdvanceController::class, 'markRepaymentPaid'])->name('cash-advance-repayments.pay');
+    Route::post('/cash-advance/{id}/repayments/{term}/pay', [App\Http\Controllers\CashAdvanceController::class, 'markRepaymentPaid'])->name('cash-advance-repayments.pay');
     Route::post('/cash-advance/{id}/repayments/{term}/unpay', [App\Http\Controllers\CashAdvanceController::class, 'unmarkRepaymentPaid'])->name('cash-advance-repayments.unpay');
+    Route::delete('/cash-advance-repayments/{repaymentId}', [App\Http\Controllers\CashAdvanceController::class, 'destroyRepayment'])->name('cash-advance-repayments.destroy');
 
     Route::delete('/cash-advance/{id}', [App\Http\Controllers\CashAdvanceController::class, 'destroy'])->name('cash-advance.destroy');
     Route::get('/agent-cash-advance', [App\Http\Controllers\AgentCashAdvanceController::class, 'index'])->name('agent-cash-advance')->middleware('page.visible');

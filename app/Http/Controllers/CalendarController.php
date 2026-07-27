@@ -127,6 +127,7 @@ class CalendarController extends Controller
         $cashAdvanceReleases = CashAdvanceRepayment::whereNotNull('date_paid')
             ->whereYear('date_paid', $year)
             ->whereMonth('date_paid', $month)
+            ->whereHas('cashAdvance')
             ->with('cashAdvance')
             ->get()
             ->each(function($r) {

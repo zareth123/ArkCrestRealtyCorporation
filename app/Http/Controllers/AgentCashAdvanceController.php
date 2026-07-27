@@ -401,7 +401,15 @@ class AgentCashAdvanceController extends Controller
         $term = AgentCashAdvanceRepayment::findOrFail($repaymentId);
         $record = $term->agentCashAdvance;
 
-        ActivityLog::log('delete', 'Agent Cash Advance', "Deleted repayment term {$term->term_number} for " . ($record->control_number ?? '#' . $term->agent_cash_advance_id) . ($record ? " ({$record->agent_name})" : ''));
+        ActivityLog::log('delete', 'Agent Cash Advance Repayment', "Deleted repayment term {$term->term_number} for " . ($record->control_number ?? '#' . $term->agent_cash_advance_id) . ($record ? " ({$record->agent_name})" : ''), [
+        'model_class'           => AgentCashAdvanceRepayment::class,
+        'record_id'             => $term->id,
+        'agent_cash_advance_id' => $term->agent_cash_advance_id,
+        'term_number'           => $term->term_number,
+        'status'                => $term->status,
+        'amount'                => $term->amount,
+        'date_paid'             => optional($term->date_paid)->format('Y-m-d'),
+    ]);
 
         $term->delete();
 
