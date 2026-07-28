@@ -127,6 +127,7 @@
 }
 .cal-event.cal-event-expense { background:#dc2626; }
 .cal-event.cal-event-cash-advance { background:#4f46e5; }
+.cal-event.cal-event-agent-cash-advance { background:#0891b2; }
 .cal-event:hover { opacity:.85; }
 
 /* Expense status badges — matches departmental-expenses-enhanced.css */
@@ -460,6 +461,70 @@
             @endif
         </div>
 
+        {{-- Agent Cash Advance section --}}
+        @php $agentCashAdvanceListRows = $releases->where('_type', 'agent_cash_advance'); @endphp
+        <div style="background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e8ecf0;overflow:hidden;">
+            <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:12px;font-weight:700;color:#0891b2;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:8px;">
+            Agent Cash Advance Repayment Date
+            <span style="background:linear-gradient(135deg,#155e75,#0891b2);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.3px;">{{ $agentCashAdvanceListRows->count() }} {{ Str::plural('record', $agentCashAdvanceListRows->count()) }}</span>
+        </div>
+            @if($agentCashAdvanceListRows->isEmpty())
+            <div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No agent cash advances for {{ $monthNames[$month] }} {{ $year }}</div>
+            @else
+            <div class="cal-filters-bar">
+                <div class="cal-filters-row">
+                    <div class="cal-column-filter-dropdown" id="calAgentCashAdvanceFilterDropdown">
+                        <button type="button" class="cal-column-filter-btn" onclick="calFilters.agentCashAdvance.toggleMenu(event)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                            <span>Filter</span>
+                            <span id="calAgentCashAdvanceFilterBadge" class="cal-filter-count-badge" style="display:none;">0</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div id="calAgentCashAdvanceFilterMenu" class="cal-column-filter-menu" style="display:none;"></div>
+                    </div>
+                    <div class="cal-search-wrapper">
+                        <div class="cal-search-box">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" id="calAgentCashAdvanceSearch" placeholder="Search agent cash advances...">
+                        </div>
+                    </div>
+                </div>
+                <div id="calAgentCashAdvanceActiveFilters" class="cal-active-filters-row" style="display:none;"></div>
+            </div>
+            <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table style="width:100%;border-collapse:collapse;min-width:700px;">
+                <thead><tr style="background:linear-gradient(135deg,#155e75,#0891b2);">
+                    @foreach(['Cash Advance No.','Agent','Repayment Term','Amount','Payment Stage','Status','Date Paid'] as $h)
+                    <th style="padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;">{{ $h }}</th>
+                    @endforeach
+                </tr></thead>
+                <tbody id="calAgentCashAdvanceTableBody">
+                @foreach($agentCashAdvanceListRows as $r)
+                <tr style="border-bottom:1px solid #f1f5f9;"
+                    data-control="{{ $r->control_number }}"
+                    data-agent="{{ $r->agent_name }}"
+                    data-repayment-term="{{ $r->repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term '.$r->term_number }}"
+                    data-amount="{{ $r->amount }}"
+                    data-stage="{{ $r->term_number }}/{{ $r->total_terms ?? '?' }}"
+                    data-status="{{ ucfirst(strtolower($r->status ?? '')) }}"
+                    data-date-paid="{{ $r->date_paid ? $r->date_paid->format('Y-m-d') : '' }}"
+                    onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                    <td style="padding:14px 18px;font-size:13px;font-weight:700;color:#0891b2;white-space:nowrap;">{{ $r->control_number ?? ' ' }}</td>
+                    <td style="padding:14px 18px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->agent_name ?? ' ' }}</td>
+                    <td style="padding:14px 18px;font-size:13px;color:#374151;">{{ $r->repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term '.$r->term_number }}</td>
+                    <td style="padding:14px 18px;font-size:13px;font-weight:700;color:#0891b2;">{{ $r->amount ? '₱'.number_format($r->amount,2) : ' ' }}</td>
+                    <td style="padding:14px 18px;font-size:13px;color:#374151;">{{ $r->term_number }}/{{ $r->total_terms ?? '?' }}</td>
+                    <td style="padding:14px 18px;"><span class="ca-badge ca-badge-{{ $r->status === 'PAID' ? 'approved' : 'pending' }}">{{ ucfirst(strtolower($r->status ?? '')) }}</span></td>
+                    <td style="padding:14px 18px;font-size:13px;font-weight:600;color:#0891b2;white-space:nowrap;">{{ $r->date_paid ? $r->date_paid->format('M d, Y') : ' ' }}</td>
+                </tr>
+                @endforeach
+                <tr id="calAgentCashAdvanceNoResults" class="cal-no-results-row" style="display:none;"><td colspan="7">No records match your filters.</td></tr>
+                </tbody>
+            </table>
+            </div>
+            @endif
+        </div>
+
     </div>
     @else
     <div class="cal-grid-wrap">
@@ -485,13 +550,14 @@
             <div class="cal-cell {{ $cls }}">
                 <span class="cal-day-num">{{ $day }}</span>
                 @php
-                    $typeClass = ['expense' => 'cal-event-expense', 'cash_advance' => 'cal-event-cash-advance'];
+                    $typeClass = ['expense' => 'cal-event-expense', 'cash_advance' => 'cal-event-cash-advance', 'agent_cash_advance' => 'cal-event-agent-cash-advance'];
                 @endphp
                 @foreach($events->take(2) as $event)
                 @php
                     $label = match($event->_type) {
                         'expense' => $event->requestor_name,
                         'cash_advance' => $event->employee_name,
+                        'agent_cash_advance' => $event->agent_name,
                         default => $event->client_name,
                     };
                 @endphp
@@ -555,6 +621,7 @@ function showEventDetail(type, id) {
 
     const isExpense = type === 'expense';
     const isCashAdvance = type === 'cash_advance';
+    const isAgentCashAdvance = type === 'agent_cash_advance';
     const rows = isExpense ? [
         ['Date Released', fmtDate(ev.date_released), false],
         ['Requestor Name', ev.requestor_name||' ', false],
@@ -570,6 +637,14 @@ function showEventDetail(type, id) {
         ['Payment Stage', (ev.term_number||'?') + '/' + (ev.total_terms||'?'), false],
         ['Status', ev.status||' ', false],
         ['Date Paid', fmtDate(ev.date_paid), false],
+    ] : isAgentCashAdvance ? [
+        ['Cash Advance No.', ev.control_number||' ', false],
+        ['Agent', ev.agent_name||' ', false],
+        ['Repayment Term', ev.repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term ' + ev.term_number, false],
+        ['Amount', fmt(ev.amount), true],
+        ['Payment Stage', (ev.term_number||'?') + '/' + (ev.total_terms||'?'), false],
+        ['Status', ev.status||' ', false],
+        ['Date Paid', fmtDate(ev.date_paid), false],
     ] : [
         ['Date Released', fmtDate(ev.date_released), false],
         ['Agent', ev.agent_name||' ', false],
@@ -579,8 +654,8 @@ function showEventDetail(type, id) {
         ['Status', ev.status||' ', false],
     ];
 
-    const highlightColor = isExpense ? '#dc2626' : isCashAdvance ? '#4f46e5' : '#059669';
-    document.getElementById('calModalTitle').textContent = (isExpense ? ev.requestor_name : isCashAdvance ? ev.employee_name : ev.client_name) || ' ';
+    const highlightColor = isExpense ? '#dc2626' : isCashAdvance ? '#4f46e5' : isAgentCashAdvance ? '#0891b2' : '#059669';
+    document.getElementById('calModalTitle').textContent = (isExpense ? ev.requestor_name : isCashAdvance ? ev.employee_name : isAgentCashAdvance ? ev.agent_name : ev.client_name) || ' ';
     document.getElementById('calEventBody').innerHTML = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             ${rows.map(([lbl,val,highlight]) => `
@@ -601,10 +676,11 @@ function showDayEvents(dateStr) {
     document.getElementById('calDayModalBody').innerHTML = dayEvents.map(ev => {
         const isExpense = ev._type === 'expense';
         const isCashAdvance = ev._type === 'cash_advance';
-        const title = isExpense ? (ev.requestor_name || ' ') : isCashAdvance ? (ev.employee_name || ' ') : (ev.client_name || ' ');
-        const subtitle = isExpense ? (ev.department || ' ') : isCashAdvance ? (ev.control_number || ' ') : (ev.agent_name || ' ');
-        const amount = isExpense ? fmt(ev.requested_amount) : isCashAdvance ? fmt(ev.amount) : fmt(ev.commission);
-        const amountColor = isExpense ? '#dc2626' : isCashAdvance ? '#4f46e5' : '#059669';
+        const isAgentCashAdvance = ev._type === 'agent_cash_advance';
+        const title = isExpense ? (ev.requestor_name || ' ') : isCashAdvance ? (ev.employee_name || ' ') : isAgentCashAdvance ? (ev.agent_name || ' ') : (ev.client_name || ' ');
+        const subtitle = isExpense ? (ev.department || ' ') : isCashAdvance ? (ev.control_number || ' ') : isAgentCashAdvance ? (ev.control_number || ' ') : (ev.agent_name || ' ');
+        const amount = isExpense ? fmt(ev.requested_amount) : (isCashAdvance || isAgentCashAdvance) ? fmt(ev.amount) : fmt(ev.commission);
+        const amountColor = isExpense ? '#dc2626' : isCashAdvance ? '#4f46e5' : isAgentCashAdvance ? '#0891b2' : '#059669';
         return `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px;cursor:pointer;"
              onclick="document.getElementById('calDayModal').style.display='none';showEventDetail('${ev._type}', ${ev.id})">
@@ -855,6 +931,23 @@ const calFilters = {
         fields: [
             { key: 'control',       label: 'Cash Advance No.', dataAttr: 'data-control',        type: 'text' },
             { key: 'employee',      label: 'Employee',         dataAttr: 'data-employee',        type: 'text' },
+            { key: 'stage',         label: 'Payment Stage',    dataAttr: 'data-stage',           type: 'text' },
+            { key: 'date_paid',     label: 'Date Paid',        dataAttr: 'data-date-paid',       type: 'daterange' },
+            { key: 'status',        label: 'Status',           dataAttr: 'data-status',          type: 'text' },
+        ]
+    }),
+    agentCashAdvance: createCalTableFilter({
+        name: 'agentCashAdvance',
+        dropdownId: 'calAgentCashAdvanceFilterDropdown',
+        menuId: 'calAgentCashAdvanceFilterMenu',
+        activeRowId: 'calAgentCashAdvanceActiveFilters',
+        badgeId: 'calAgentCashAdvanceFilterBadge',
+        searchId: 'calAgentCashAdvanceSearch',
+        tableBodyId: 'calAgentCashAdvanceTableBody',
+        noResultsId: 'calAgentCashAdvanceNoResults',
+        fields: [
+            { key: 'control',       label: 'Cash Advance No.', dataAttr: 'data-control',        type: 'text' },
+            { key: 'agent',         label: 'Agent',            dataAttr: 'data-agent',           type: 'text' },
             { key: 'stage',         label: 'Payment Stage',    dataAttr: 'data-stage',           type: 'text' },
             { key: 'date_paid',     label: 'Date Paid',        dataAttr: 'data-date-paid',       type: 'daterange' },
             { key: 'status',        label: 'Status',           dataAttr: 'data-status',          type: 'text' },

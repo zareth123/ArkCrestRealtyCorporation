@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\CashAdvance;
 use App\Models\CashAdvanceRepayment;
+use App\Models\AgentCashAdvanceRepayment;
 use App\Models\CommissionRequest;
 use App\Models\CommissionRequestSales;
 use App\Models\DepartmentalExpense;
@@ -140,7 +141,24 @@ class CalendarController extends Controller
                 $r->total_terms    = optional($r->cashAdvance)->total_terms;
                 $r->amount_total   = optional($r->cashAdvance)->amount;
             });
-        $releases = $clientReleases->merge($commissionReleases)->merge($expenseReleases)->merge($cashAdvanceReleases)->sortBy('date_released');
+        $agentCashAdvanceReleases = AgentCashAdvanceRepayment::whereNotNull('date_paid')
+            ->whereYear('date_paid', $year)
+            ->whereMonth('date_paid', $month)
+            ->whereHas('agentCashAdvance')
+            ->with('agentCashAdvance')
+            ->get()
+            ->each(function($r) {
+                $r->_type          = 'agent_cash_advance';
+                $r->date_released  = $r->date_paid;
+                $r->_date_key      = $r->date_paid->format('Y-m-d');
+                $r->agent_name     = optional($r->agentCashAdvance)->agent_name;
+                $r->control_number = optional($r->agentCashAdvance)->control_number;
+                $r->repayment_type = optional($r->agentCashAdvance)->repayment_type;
+                $r->total_terms    = optional($r->agentCashAdvance)->total_terms;
+                $r->amount_total   = optional($r->agentCashAdvance)->amount;
+            });
+
+        $releases = $clientReleases->concat($commissionReleases)->concat($expenseReleases)->concat($cashAdvanceReleases)->concat($agentCashAdvanceReleases)->sortBy('date_released');
 
         $releasesByDay = $releases->groupBy(fn($r) => $r->date_released->day);
 
@@ -164,7 +182,12 @@ class CalendarController extends Controller
             ->distinct()
             ->pluck('year');
 
-        $availableYears = $clientYears->merge($commissionYears)->merge($expenseYears)->merge($cashAdvanceYears)->unique()->sortDesc()->values();
+        $agentCashAdvanceYears = AgentCashAdvanceRepayment::whereNotNull('date_paid')
+            ->selectRaw('YEAR(date_paid) as year')
+            ->distinct()
+            ->pluck('year');
+
+        $availableYears = $clientYears->merge($commissionYears)->merge($expenseYears)->merge($cashAdvanceYears)->merge($agentCashAdvanceYears)->unique()->sortDesc()->values();
 
         if (!$availableYears->contains((int)$year)) {
             $availableYears->prepend((int)$year);

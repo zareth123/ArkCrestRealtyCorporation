@@ -753,6 +753,26 @@ _deptCategories['{{ strtoupper($dept->name) }}'] = [
 ];
 @endforeach
 
+// Sales & Marketing "Particular" options — added here (rather than relying
+// solely on DB-seeded categories) so the dropdown always has values, just
+// like the other departments. Merged in (not overwritten) in case
+// categories are seeded for this department later.
+(function(){
+    var salesMarketingCats = [
+    'Advertisement Cost',
+    'Sales Incentives',
+    'Agent Allowances',
+    'Transportation',
+    'Food/Meals',
+    'Sales Miscellaneous'
+    ];
+    var existing = _deptCategories['SALES & MARKETING'] || [];
+    salesMarketingCats.forEach(function(c){
+    if(existing.indexOf(c) === -1) existing.push(c);
+    });
+    _deptCategories['SALES & MARKETING'] = existing;
+})();
+
 function updDept(){
     var v = document.getElementById('f_dept').value;
     document.getElementById('disp_dept').textContent = v ? v + ' DEPARTMENT' : 'DEPARTMENT';
