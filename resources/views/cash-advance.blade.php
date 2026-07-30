@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+\@extends('layouts.dashboard')
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/departmental-expenses-enhanced.css') }}?v={{ time() }}">
@@ -152,15 +152,9 @@
                             <option value="5">5</option>
                             <option value="6">6</option>
                         </select>
-                        <span class="ca-hint">Each term is one salary deduction. Maximum of 6 terms.</span>
+                        <input type="number" id="ca_installment_terms_other" class="form-control" min="1" step="1" placeholder="Enter number of terms" style="display:none;">
+                        <span class="ca-hint" id="ca_terms_hint">Each term is one installment. Maximum of 6 terms.</span>
                         <span class="ca-error" id="err_installment_terms"></span>
-                    </div>
-
-                    <div class="form-group" id="ca_repay_date_group" style="display:none;">
-                        <label>Repayment Date <span class="required">*</span></label>
-                        <input type="date" id="ca_repayment_date" name="repayment_date" class="form-control">
-                        <span class="ca-hint">One-time payment date.</span>
-                        <span class="ca-error" id="err_repayment_date"></span>
                     </div>
                 </div>
             </div>
@@ -223,9 +217,7 @@
                 <tbody>
                     @forelse($records as $r)
                     @php
-                        $termsLabel = $r->repayment_type === 'OTHERS'
-                            ? 'One-time — ' . (optional($r->repayment_date)->format('Y-m-d') ?? '—')
-                            : ($r->installment_terms ?? '—') . ' term' . (($r->installment_terms ?? 0) == 1 ? '' : 's');
+                        $termsLabel = ($r->installment_terms ?? '—') . ' term' . (($r->installment_terms ?? 0) == 1 ? '' : 's');
                         $termsEditable = in_array($r->status, ['APPROVED', 'COMPLETED']);
                     @endphp
                     <tr id="ca-row-{{ $r->id }}" data-amount="{{ $r->amount }}"
@@ -346,7 +338,7 @@
                         @foreach($r->repayments as $rep)
                         @php
                             $repAmount = $rep->amount;
-                            $repTermLabel = $r->repayment_type === 'OTHERS' ? 'one-time payment' : ('term ' . $rep->term_number);
+                            $repTermLabel = 'term ' . $rep->term_number;
                             $repStatusLabel = $rep->status === 'PAID' ? 'paid' : 'partial';
                         @endphp
                         <tr data-id="{{ $rep->id }}"
@@ -361,13 +353,7 @@
                             </td>
                             <td class="ca-id ca-sticky-col ca-sticky-id">{{ $r->control_number }}</td>
                             <td>{{ $r->employee_name }}</td>
-                            <td>
-                                @if($r->repayment_type === 'OTHERS')
-                                    One-time Payment
-                                @else
-                                    Term {{ $rep->term_number }}
-                                @endif
-                            </td>
+                            <td>Term {{ $rep->term_number }}</td>
                             <td>₱{{ number_format($repAmount, 2) }}</td>
                             <td>{{ $rep->term_number }}/{{ $r->total_terms }}</td>
                             <td>
@@ -747,18 +733,17 @@ var _caPendingData = null; // holds the validated request data between "Create C
     const form = document.getElementById('caForm');
     const dateRequestedInput = document.getElementById('ca_date_requested');
     const dateNeededInput = document.getElementById('ca_date_needed');
-    const repaymentDateInput = document.getElementById('ca_repayment_date');
 
-    if (!form || !dateRequestedInput || !dateNeededInput || !repaymentDateInput) {
+    if (!form || !dateRequestedInput || !dateNeededInput) {
         console.error('[cash-advance] init aborted: expected form elements not found on page', {
             form: !!form, dateRequestedInput: !!dateRequestedInput,
-            dateNeededInput: !!dateNeededInput, repaymentDateInput: !!repaymentDateInput,
+            dateNeededInput: !!dateNeededInput,
         });
         return;
     }
 
-    // Default Date Requested to today, and keep Date Needed / Repayment Date
-    // from being picked earlier than their logical predecessor.
+    // Default Date Requested to today, and keep Date Needed from being
+    // picked earlier than its logical predecessor.
     dateRequestedInput.value = todayStr;
 
     function syncMinDates() {
@@ -766,7 +751,6 @@ var _caPendingData = null; // holds the validated request data between "Create C
         if (dateNeededInput.value && dateRequestedInput.value && dateNeededInput.value < dateRequestedInput.value) {
             dateNeededInput.value = '';
         }
-        repaymentDateInput.setAttribute('min', dateNeededInput.value || dateRequestedInput.value || todayStr);
     }
     dateRequestedInput.addEventListener('change', syncMinDates);
     dateNeededInput.addEventListener('change', syncMinDates);
@@ -821,19 +805,19 @@ var _caPendingData = null; // holds the validated request data between "Create C
             valid = false;
         }
 
-        if (data.repayment_type === 'INSTALLMENT') {
-            if (!data.installment_terms) {
-                setError('ca_installment_terms', 'Please select the number of terms.');
-                valid = false;
-            }
-        } else if (data.repayment_type === 'OTHERS') {
-            if (!data.repayment_date) {
-                setError('ca_repayment_date', 'Please select a repayment date.');
-                valid = false;
-            } else if (data.date_needed && data.repayment_date < data.date_needed) {
-                setError('ca_repayment_date', 'Repayment date cannot be earlier than the date needed.');
-                valid = false;
-            }
+        const termsEl = data.repayment_type === 'OTHERS'
+            ? document.getElementById('ca_installment_terms_other')
+            : document.getElementById('ca_installment_terms');
+        const termsErrEl = document.getElementById('err_installment_terms');
+        const termsVal = parseInt(data.installment_terms, 10);
+        if (!data.installment_terms || isNaN(termsVal) || termsVal < 1) {
+            if (termsEl) termsEl.classList.add('ca-invalid');
+            if (termsErrEl) termsErrEl.textContent = 'Please enter the number of terms.';
+            valid = false;
+        } else if (data.repayment_type === 'INSTALLMENT' && termsVal > 6) {
+            if (termsEl) termsEl.classList.add('ca-invalid');
+            if (termsErrEl) termsErrEl.textContent = 'A maximum of 6 terms is allowed for Installment.';
+            valid = false;
         }
 
         return valid;
@@ -861,19 +845,12 @@ var _caPendingData = null; // holds the validated request data between "Create C
 
     function caCopyBlock(label, data, employeeLabel, controlHtml) {
     const amount = parseFloat(data.amount) || 0;
-    let repaymentRows;
-    if (data.repayment_type === 'INSTALLMENT') {
-        const terms = parseInt(data.installment_terms, 10) || 0;
-        const perTerm = terms > 0 ? (amount / terms) : 0;
-        repaymentRows =
-            '<tr><td style="padding:4px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:4px 0;">Installment</td></tr>' +
-            '<tr><td style="padding:4px 0;color:#555;">Number of Terms</td><td style="padding:4px 0;">' + terms + ' salary deduction' + (terms === 1 ? '' : 's') + '</td></tr>' +
-            '<tr><td style="padding:4px 0;color:#555;">Amount per Term</td><td style="padding:4px 0;">₱ ' + money(perTerm) + '</td></tr>';
-    } else {
-        repaymentRows =
-            '<tr><td style="padding:4px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:4px 0;">Others — One-time Payment</td></tr>' +
-            '<tr><td style="padding:4px 0;color:#555;">Repayment Date</td><td style="padding:4px 0;">' + fmtDate(data.repayment_date) + '</td></tr>';
-    }
+    const terms = parseInt(data.installment_terms, 10) || 0;
+    const perTerm = terms > 0 ? (amount / terms) : 0;
+    const repaymentRows =
+        '<tr><td style="padding:4px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:4px 0;">' + (data.repayment_type === 'OTHERS' ? 'Others' : 'Installment') + '</td></tr>' +
+        '<tr><td style="padding:4px 0;color:#555;">Number of Terms</td><td style="padding:4px 0;">' + terms + ' installment' + (terms === 1 ? '' : 's') + '</td></tr>' +
+        '<tr><td style="padding:4px 0;color:#555;">Amount per Term</td><td style="padding:4px 0;">₱ ' + money(perTerm) + '</td></tr>';
 
     return '<div style="page-break-inside:avoid;">'
         + '<p style="font-style:italic;margin:0 0 4px;font-size:10px;">' + label + '</p>'
@@ -920,8 +897,9 @@ function buildPreviewHtml(data) {
             date_requested: document.getElementById('ca_date_requested').value,
             date_needed: document.getElementById('ca_date_needed').value,
             repayment_type: document.getElementById('ca_repayment_type').value,
-            installment_terms: document.getElementById('ca_installment_terms').value,
-            repayment_date: document.getElementById('ca_repayment_date').value,
+            installment_terms: document.getElementById('ca_repayment_type').value === 'OTHERS'
+                ? document.getElementById('ca_installment_terms_other').value
+                : document.getElementById('ca_installment_terms').value,
         };
 
         if (!validateForm(data)) {
@@ -957,23 +935,22 @@ function buildPreviewHtml(data) {
 
     window.caToggleRepaymentType = function() {
         const type = document.getElementById('ca_repayment_type').value;
-        const termsGroup = document.getElementById('ca_terms_group');
-        const dateGroup = document.getElementById('ca_repay_date_group');
-        const termsInput = document.getElementById('ca_installment_terms');
-        const dateInput = document.getElementById('ca_repayment_date');
+        const selectEl = document.getElementById('ca_installment_terms');
+        const otherEl = document.getElementById('ca_installment_terms_other');
+        const termsHint = document.getElementById('ca_terms_hint');
 
         if (type === 'OTHERS') {
-            termsGroup.style.display = 'none';
-            dateGroup.style.display = '';
-            termsInput.value = '';
-            termsInput.removeAttribute('required');
-            dateInput.setAttribute('required', 'required');
+            selectEl.style.display = 'none';
+            selectEl.removeAttribute('required');
+            otherEl.style.display = '';
+            otherEl.setAttribute('required', 'required');
+            termsHint.textContent = 'Enter how many terms this cash advance should be repaid in.';
         } else {
-            dateGroup.style.display = 'none';
-            termsGroup.style.display = '';
-            dateInput.value = '';
-            dateInput.removeAttribute('required');
-            termsInput.setAttribute('required', 'required');
+            otherEl.style.display = 'none';
+            otherEl.removeAttribute('required');
+            selectEl.style.display = '';
+            selectEl.setAttribute('required', 'required');
+            termsHint.textContent = 'Each term is one installment. Maximum of 6 terms.';
         }
     };
 
@@ -1121,21 +1098,13 @@ function caEscapeHtml(s) {
 function caCopyBlockView(label, data) {
     const amount = parseFloat(data.amount) || 0;
 
-    let repaymentRows;
-    if (data.repayment_type === 'INSTALLMENT') {
-        const terms = parseInt(data.installment_terms, 10) || 0;
-        const perTerm = data.amount_per_term != null ? parseFloat(data.amount_per_term) : (terms > 0 ? amount / terms : 0);
-        repaymentRows =
-            '<tr><td style="padding:4px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:4px 0;">Installment</td></tr>' +
-            '<tr><td style="padding:4px 0;color:#555;">Number of Terms</td><td style="padding:4px 0;">' + terms + ' salary deduction' + (terms === 1 ? '' : 's') + '</td></tr>' +
-            '<tr><td style="padding:4px 0;color:#555;">Amount per Term</td><td style="padding:4px 0;">₱ ' + caMoney(perTerm) + '</td></tr>' +
-            '<tr><td style="padding:4px 0;color:#555;">Payment Stage</td><td style="padding:4px 0;">' + caEscapeHtml(data.payment_stage_label) + '</td></tr>';
-    } else {
-        repaymentRows =
-            '<tr><td style="padding:4px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:4px 0;">Others — One-time Payment</td></tr>' +
-            '<tr><td style="padding:4px 0;color:#555;">Repayment Date</td><td style="padding:4px 0;">' + caFmtDate(data.repayment_date) + '</td></tr>' +
-            '<tr><td style="padding:4px 0;color:#555;">Payment Stage</td><td style="padding:4px 0;">' + caEscapeHtml(data.payment_stage_label) + '</td></tr>';
-    }
+    const terms = parseInt(data.installment_terms, 10) || 0;
+    const perTerm = data.amount_per_term != null ? parseFloat(data.amount_per_term) : (terms > 0 ? amount / terms : 0);
+    const repaymentRows =
+        '<tr><td style="padding:4px 0;width:190px;color:#555;">Repayment Type</td><td style="padding:4px 0;">' + (data.repayment_type === 'OTHERS' ? 'Others' : 'Installment') + '</td></tr>' +
+        '<tr><td style="padding:4px 0;color:#555;">Number of Terms</td><td style="padding:4px 0;">' + terms + ' installment' + (terms === 1 ? '' : 's') + '</td></tr>' +
+        '<tr><td style="padding:4px 0;color:#555;">Amount per Term</td><td style="padding:4px 0;">₱ ' + caMoney(perTerm) + '</td></tr>' +
+        '<tr><td style="padding:4px 0;color:#555;">Payment Stage</td><td style="padding:4px 0;">' + caEscapeHtml(data.payment_stage_label) + '</td></tr>';
 
     return '<div style="page-break-inside:avoid;">'
         + '<p style="font-style:italic;margin:0 0 4px;font-size:10px;">' + label + '</p>'
@@ -1214,47 +1183,32 @@ function caRenderEditContent(id, data) {
 
     function termAmountFallback(t) {
         if (t.amount != null) return parseFloat(t.amount) || 0;
-        return data.repayment_type === 'OTHERS' ? totalAmount : (parseFloat(data.amount_per_term) || 0);
+        return parseFloat(data.amount_per_term) || 0;
     }
 
-    if (data.repayment_type === 'OTHERS') {
-        const t = data.terms[0] || {};
+    data.terms.forEach(function(t) {
         const isPaid = t.status === 'PAID';
         const amt = termAmountFallback(t);
-        rowsHtml = '<div class="ca-term-row' + (isPaid ? ' is-paid' : '') + '">'
-            + '<span class="ca-term-label">Repayment</span>'
+        // If the balance already hit zero before this term's turn (e.g. the
+        // whole advance was paid off at term 2 of 6), there's nothing left
+        // to collect for it — show it as waived instead of still offering
+        // an amount/date input and a "Paid" button for it.
+        const isWaived = !isPaid && remaining <= 0;
+        rowsHtml += '<div class="ca-term-row' + (isPaid ? ' is-paid' : (isWaived ? ' is-waived' : '')) + '">'
+            + '<span class="ca-term-label">Term ' + t.term_number + '</span>'
             + (isPaid
                 ? '<span class="ca-term-amount">₱' + caMoney(amt) + '</span>'
                   + '<span class="ca-term-badge-paid' + (CA_IS_ADMIN ? ' is-clickable' : '') + '"' + (CA_IS_ADMIN ? ' onclick="caUnmarkTermPaid(' + t.term_number + ')" title="Click to undo"' : '') + '>✓ Paid — ' + caFmtDate(t.date_paid) + '</span>'
-                : '<input type="number" step="0.01" min="0.01" id="ca_term_amount_' + t.term_number + '" class="ca-term-amount-input" placeholder="₱' + amt.toFixed(2) + '">'
-                  + '<input type="date" id="ca_term_date_' + t.term_number + '" class="ca-term-date-input">'
-                  + '<button type="button" class="ca-btn-mark-paid" onclick="caMarkTermPaid(' + t.term_number + ')">Paid</button>');
-        rowsHtml += '</div>';
-    } else {
-        data.terms.forEach(function(t) {
-            const isPaid = t.status === 'PAID';
-            const amt = termAmountFallback(t);
-            // If the balance already hit zero before this term's turn (e.g. the
-            // whole advance was paid off at term 2 of 6), there's nothing left
-            // to collect for it — show it as waived instead of still offering
-            // an amount/date input and a "Paid" button for it.
-            const isWaived = !isPaid && remaining <= 0;
-            rowsHtml += '<div class="ca-term-row' + (isPaid ? ' is-paid' : (isWaived ? ' is-waived' : '')) + '">'
-                + '<span class="ca-term-label">Term ' + t.term_number + '</span>'
-                + (isPaid
-                    ? '<span class="ca-term-amount">₱' + caMoney(amt) + '</span>'
-                      + '<span class="ca-term-badge-paid' + (CA_IS_ADMIN ? ' is-clickable' : '') + '"' + (CA_IS_ADMIN ? ' onclick="caUnmarkTermPaid(' + t.term_number + ')" title="Click to undo"' : '') + '>✓ Paid — ' + caFmtDate(t.date_paid) + '</span>'
-                    : (isWaived
-                        ? '<span class="ca-term-badge-waived" style="display:inline-block;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;background:#e2e8f0;color:#475569;">Balance already fully paid — no payment needed</span>'
-                        : '<input type="number" step="0.01" min="0.01" id="ca_term_amount_' + t.term_number + '" class="ca-term-amount-input" placeholder="₱' + amt.toFixed(2) + '">'
-                          + '<input type="date" id="ca_term_date_' + t.term_number + '" class="ca-term-date-input">'
-                          + '<button type="button" class="ca-btn-mark-paid" onclick="caMarkTermPaid(' + t.term_number + ')">Paid</button>'))
-                + '</div>';
-        });
-    }
+                : (isWaived
+                    ? '<span class="ca-term-badge-waived" style="display:inline-block;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;background:#e2e8f0;color:#475569;">Balance already fully paid — no payment needed</span>'
+                    : '<input type="number" step="0.01" min="0.01" id="ca_term_amount_' + t.term_number + '" class="ca-term-amount-input" placeholder="₱' + amt.toFixed(2) + '">'
+                      + '<input type="date" id="ca_term_date_' + t.term_number + '" class="ca-term-date-input">'
+                      + '<button type="button" class="ca-btn-mark-paid" onclick="caMarkTermPaid(' + t.term_number + ')">Paid</button>'))
+            + '</div>';
+    });
 
     var divideBtnHtml = '';
-    if (data.repayment_type === 'INSTALLMENT' && unpaidTerms.length > 1 && remaining > 0) {
+    if (unpaidTerms.length > 1 && remaining > 0) {
         divideBtnHtml = '<button type="button" class="ca-btn-divide-equally" onclick="caDivideEqually()">Divide Equally by '
             + unpaidTerms.length + ' Term' + (unpaidTerms.length === 1 ? '' : 's') + '</button>';
     }

@@ -48,8 +48,16 @@ class CashAdvanceController extends Controller
                 'date_requested'     => 'required|date',
                 'date_needed'        => 'required|date|after_or_equal:date_requested',
                 'repayment_type'     => 'required|in:INSTALLMENT,OTHERS',
-                'installment_terms'  => 'required_if:repayment_type,INSTALLMENT|nullable|integer|min:1|max:' . CashAdvance::MAX_INSTALLMENT_TERMS,
-                'repayment_date'     => 'required_if:repayment_type,OTHERS|nullable|date|after_or_equal:date_needed',
+                'installment_terms'  => [
+                    'required',
+                    'integer',
+                    'min:1',
+                    function ($attribute, $value, $fail) use ($request) {
+                        if ($request->input('repayment_type') === 'INSTALLMENT' && $value > CashAdvance::MAX_INSTALLMENT_TERMS) {
+                            $fail('A maximum of ' . CashAdvance::MAX_INSTALLMENT_TERMS . ' terms is allowed for Installment.');
+                        }
+                    },
+                ],
             ], [
                 'employee_id.exists'      => 'Selected employee could not be found.',
                 'employee_name.required_without' => 'Please enter or select an employee.',
@@ -62,10 +70,9 @@ class CashAdvanceController extends Controller
                 'date_needed.after_or_equal' => 'Date needed cannot be earlier than the date requested.',
                 'repayment_type.required' => 'Please select a repayment type.',
                 'repayment_type.in'       => 'Repayment type must be either Installment or Others.',
-                'installment_terms.required_if' => 'Please select the number of terms.',
-                'installment_terms.max'   => 'A maximum of ' . CashAdvance::MAX_INSTALLMENT_TERMS . ' terms is allowed.',
-                'repayment_date.required_if' => 'Please select a repayment date.',
-                'repayment_date.after_or_equal' => 'Repayment date cannot be earlier than the date needed.',
+                'installment_terms.required' => 'Please enter the number of terms.',
+                'installment_terms.integer'  => 'Number of terms must be a whole number.',
+                'installment_terms.min'      => 'Number of terms must be at least 1.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['success' => false, 'message' => $e->validator->errors()->first()], 422);
@@ -85,11 +92,8 @@ class CashAdvanceController extends Controller
 
         $employeeName = $employee ? $employee->name : trim($validated['employee_name']);
 
-        // Only persist the fields relevant to the chosen repayment type —
-        // an Installment request has no repayment_date, an Others request
-        // has no installment_terms.
-        $isInstallment = $validated['repayment_type'] === 'INSTALLMENT';
-
+        // Both repayment types now store a term count — Installment picks
+        // from a capped dropdown, Others types in any number of terms.
         $record = CashAdvance::create([
             'control_number'     => CashAdvance::nextControlNumber(),
             'employee_id'        => $employee?->id,
@@ -100,8 +104,7 @@ class CashAdvanceController extends Controller
             'date_requested'     => $validated['date_requested'],
             'date_needed'        => $validated['date_needed'],
             'repayment_type'     => $validated['repayment_type'],
-            'installment_terms'  => $isInstallment ? $validated['installment_terms'] : null,
-            'repayment_date'     => $isInstallment ? null : $validated['repayment_date'],
+            'installment_terms'  => $validated['installment_terms'],
             'status'             => 'PENDING',
         ]);
 
@@ -189,13 +192,11 @@ class CashAdvanceController extends Controller
     {
         $record = CashAdvance::with('repayments')->findOrFail($id);
 
-        // Default amount suggested per term: the equal split for an
-        // INSTALLMENT plan, or the full amount for a one-time OTHERS
-        // repayment. This is only ever a starting suggestion — the actual
-        // amount recorded is whatever is submitted with the payment.
-        $defaultTermAmount = $record->repayment_type === 'INSTALLMENT'
-            ? $record->amount_per_term
-            : (float) $record->amount;
+        // Default amount suggested per term: the amount split evenly across
+        // total_terms, for both INSTALLMENT and OTHERS alike. This is only
+        // ever a starting suggestion — the actual amount recorded is
+        // whatever is submitted with the payment.
+        $defaultTermAmount = $record->amount_per_term;
 
         $paidByTerm = $record->repayments->keyBy('term_number');
 

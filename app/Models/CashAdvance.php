@@ -48,12 +48,14 @@ class CashAdvance extends Model
     public const MAX_INSTALLMENT_TERMS = 6;
 
     /**
-     * The amount deducted per term when repayment_type is INSTALLMENT.
-     * Returns null when the request isn't an installment plan.
+     * The amount deducted per term. Both INSTALLMENT and OTHERS store a
+     * number of terms and split the amount evenly across them — OTHERS
+     * simply allows any term count instead of the capped dropdown.
+     * Returns null when no term count has been set.
      */
     public function getAmountPerTermAttribute(): ?float
     {
-        if ($this->repayment_type !== 'INSTALLMENT' || !$this->installment_terms) {
+        if (!$this->installment_terms) {
             return null;
         }
 
@@ -75,12 +77,15 @@ class CashAdvance extends Model
         return $this->hasMany(CashAdvanceRepayment::class)->orderBy('term_number');
     }
 
-    /** Total number of repayment terms expected (installment terms, or 1 for Others). */
+    /**
+     * Total number of repayment terms expected. Both INSTALLMENT and
+     * OTHERS store their term count in installment_terms — OTHERS just
+     * lets the requester type any number instead of picking from the
+     * capped dropdown.
+     */
     public function getTotalTermsAttribute(): int
     {
-        return $this->repayment_type === 'INSTALLMENT'
-            ? (int) ($this->installment_terms ?? 0)
-            : 1;
+        return (int) ($this->installment_terms ?? 0);
     }
 
     /** Number of repayment terms marked PAID so far. */
@@ -133,13 +138,6 @@ class CashAdvance extends Model
 
         if ($allTermsPaid || $balanceSettled) {
             return 'Completed';
-        }
-
-        if ($this->repayment_type === 'OTHERS'
-            && $this->repayment_date
-            && $this->repayment_date->isPast()
-            && $this->paid_terms < $this->total_terms) {
-            return 'Overdue';
         }
 
         return 'Active';
