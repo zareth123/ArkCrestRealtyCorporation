@@ -265,6 +265,7 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::put('/commission-monitoring/{id}', [App\Http\Controllers\CommissionMonitoringController::class, 'update'])->name('commission-monitoring.update');
     Route::delete('/commission-monitoring/{id}', [App\Http\Controllers\CommissionMonitoringController::class, 'destroy'])->name('commission-monitoring.destroy');
     Route::post('/commission-monitoring/bulk-delete', [App\Http\Controllers\CommissionMonitoringController::class, 'bulkDestroy'])->name('commission-monitoring.bulk-delete');
+    Route::post('/api/commission-notifications/{notificationId}/process', [App\Http\Controllers\CommissionMonitoringController::class, 'processCommissionNotification'])->name('commission-notifications.process');
 
     // Cash Advance
     Route::get('/cash-advance', [App\Http\Controllers\CashAdvanceController::class, 'index'])->name('cash-advance')->middleware('page.visible');
