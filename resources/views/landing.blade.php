@@ -475,20 +475,6 @@
   .stat-card .label{ font-size:13px; letter-spacing:2px; text-transform:uppercase; font-weight:700; margin-bottom:14px; }
   .stat-card .desc{ font-size:14px; color:#a9b8c6; max-width:230px; margin:0 auto; }
 
-  .carousel-arrow{
-    position:absolute; top:50%; transform:translateY(-50%);
-    width:44px; height:44px; border-radius:50%;
-    border:1px solid rgba(255,255,255,0.3);
-    display:flex; align-items:center; justify-content:center;
-    color:#fff; cursor:pointer; z-index:5;
-    background:rgba(255,255,255,0.03);
-    transition:background .25s ease, border-color .25s ease, transform .25s cubic-bezier(.16,1,.3,1);
-  }
-  .carousel-arrow:hover{ background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.55); }
-  .carousel-arrow.left{ left:24px; }
-  .carousel-arrow.right{ right:24px; }
-  .carousel-arrow.on-light{ border-color:rgba(19,40,64,0.25); color:var(--navy-900); }
-
   /* -------- ABOUT / HERITAGE -------- */
   .about{ padding:130px 0; background:var(--cream); }
   .about .grid{
@@ -514,8 +500,6 @@
   }
   .portfolio-head .eyebrow{ color:var(--orange); margin-bottom:14px; }
   .portfolio-head h2{ font-size:clamp(30px,3.8vw,46px); color:#fff; }
-  .portfolio-nav{ display:flex; gap:12px; }
-  .portfolio-nav .carousel-arrow{ position:static; transform:none; }
 
   .estate-grid{
     display:grid;
@@ -601,8 +585,6 @@
     .about .ph:hover img,
     .collage .ph:hover img{ transform:scale(1.08); }
     .estate-card:hover{ transform:translateY(-6px); }
-    .carousel-arrow:hover{ transform:translateY(-50%) scale(1.08); }
-    .portfolio-nav .carousel-arrow:hover{ transform:scale(1.08); }
     .why-item:hover{ padding-left:14px; }
     .why-item:hover .no{ transform:translateX(4px); }
   }
@@ -831,10 +813,6 @@
     .cta-buttons{ gap:14px; }
     .cta-buttons .btn{ flex:1 1 200px; }
     footer .wrap{ flex-direction:column; text-align:center; }
-
-    /* decorative carousel arrows crowd content on narrow screens */
-    .about .carousel-arrow{ display:none; }
-    .stats .carousel-arrow{ display:none; }
   }
   @media (max-width:600px){
     .wrap{ padding:0 18px; }
@@ -899,8 +877,9 @@
       <div class="nav-links" id="landingNavLinks">
         <a href="#home" class="active">Home</a>
         <a href="#about">About</a>
-        <a href="#services">Services</a>
         <a href="#portfolio">Portfolio</a>
+        <a href="#services">Services</a>
+        
 
         <div class="nav-mobile-actions">
           @auth
@@ -1032,8 +1011,6 @@
   <!-- STATS -->
   <section class="stats">
     <div class="wrap" style="position:relative;">
-      <div class="carousel-arrow left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
-      <div class="carousel-arrow right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
       <div class="section-head reveal">
         <span class="eyebrow on-dark"><span class="rule"></span>Market Authority</span>
         <h2><em>Trusted by</em> Visionary Investors</h2>
@@ -1065,8 +1042,6 @@
   <!-- ABOUT / HERITAGE -->
   <section class="about" id="about">
     <div class="wrap" style="position:relative;">
-      <div class="carousel-arrow left on-light" style="left:-22px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
-      <div class="carousel-arrow right on-light" style="right:-22px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
       <div class="grid">
         <div class="ph reveal-scale">
           <img
@@ -1092,10 +1067,6 @@
         <div>
           <span class="eyebrow">The Portfolio</span>
           <h2><em>Featured</em> Estates</h2>
-        </div>
-        <div class="portfolio-nav">
-          <div class="carousel-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
-          <div class="carousel-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
         </div>
       </div>
       <div class="estate-grid reveal-stagger">
@@ -1518,27 +1489,66 @@
   </script>
 
   <script>
-    const toggle = document.querySelector('.mobile-toggle');
-    const links = document.querySelector('.nav-links');
+    (function () {
+      // ---- Mobile hamburger toggle ----
+      var toggle = document.querySelector('.mobile-toggle');
+      var links = document.querySelector('.nav-links');
 
-    toggle.addEventListener('click', () => {
-      const isOpen = links.classList.toggle('open');
-      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    });
-
-    links.querySelectorAll('a').forEach((link) => {
-      link.addEventListener('click', () => {
-        links.classList.remove('open');
-        toggle.setAttribute('aria-expanded', 'false');
+      toggle.addEventListener('click', function () {
+        var isOpen = links.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       });
-    });
 
-    document.addEventListener('click', (event) => {
-      if (!event.target.closest('.nav')) {
-        links.classList.remove('open');
-        toggle.setAttribute('aria-expanded', 'false');
+      links.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', function () {
+          links.classList.remove('open');
+          toggle.setAttribute('aria-expanded', 'false');
+        });
+      });
+
+      document.addEventListener('click', function (event) {
+        if (!event.target.closest('.nav')) {
+          links.classList.remove('open');
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      // ---- Scroll-spy: highlight active nav link based on scroll position ----
+      var navLinks = Array.prototype.slice.call(
+        document.querySelectorAll('#landingNavLinks > a[href^="#"]')
+      );
+      var sections = navLinks
+        .map(function (link) {
+          return document.getElementById(link.getAttribute('href').slice(1));
+        })
+        .filter(Boolean);
+
+      function setActive(id) {
+        navLinks.forEach(function (link) {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+        });
       }
-    });
+
+      if ('IntersectionObserver' in window && sections.length) {
+        var observer = new IntersectionObserver(
+          function (entries) {
+            var visible = entries.filter(function (e) { return e.isIntersecting; });
+            if (visible.length) {
+              visible.sort(function (a, b) { return b.intersectionRatio - a.intersectionRatio; });
+              setActive(visible[0].target.id);
+            }
+          },
+          { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
+        );
+        sections.forEach(function (section) { observer.observe(section); });
+      }
+
+      navLinks.forEach(function (link) {
+        link.addEventListener('click', function () {
+          setActive(link.getAttribute('href').slice(1));
+        });
+      });
+    })();
   </script>
 
 

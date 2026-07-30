@@ -20,7 +20,7 @@ class AgentTrainingCourseService
     /** A module is marked "completed" the first time its quiz score reaches this percentage. */
     public const PASSING_SCORE = 70;
 
-    public const TOTAL_MODULES = 7;
+    public const TOTAL_MODULES = 6;
 
     /**
      * Course outline. Module 1 (Sales & Lead-Generation Toolkit) is a
@@ -68,13 +68,6 @@ class AgentTrainingCourseService
             6 => [
                 'title'       => 'Documentation and Ethical Selling',
                 'summary'     => 'Follow responsible documentation practices and protect the client through transparent communication.',
-                'minutes'     => 45,
-                'lessons'     => 3,
-                'implemented' => true,
-            ],
-            7 => [
-                'title'       => 'Closing and After-Sales Service',
-                'summary'     => 'Handle objections, guide the decision, complete the handoff, and maintain long-term relationships.',
                 'minutes'     => 45,
                 'lessons'     => 3,
                 'implemented' => true,
@@ -600,108 +593,6 @@ class AgentTrainingCourseService
                         'To teach agents how to close deals faster',
                     ],
                     'correct' => 1,
-                ],
-            ],
-            7 => [
-                [
-                    'question' => 'What does the LAER method stand for in handling final-hour objections?',
-                    'options' => [
-                        'Listen, Acknowledge, Explore, Respond',
-                        'Look, Analyze, Evaluate, React',
-                        'Learn, Ask, Explain, Recommend',
-                        'Listen, Argue, Explain, Retry',
-                    ],
-                    'correct' => 0,
-                ],
-                [
-                    'question' => 'According to Lesson 6.1, what are final objections usually really rooted in?',
-                    'options' => [
-                        'Dislike of the agent',
-                        'The fear of making a massive financial commitment',
-                        "Dissatisfaction with the property's location",
-                        'A desire to negotiate a lower commission',
-                    ],
-                    'correct' => 1,
-                ],
-                [
-                    'question' => 'When a client raises a final objection, what does the module recommend relying on to reassure them?',
-                    'options' => [
-                        'Pressure and urgency tactics',
-                        'The data and understanding gathered during discovery and qualification (Module 3)',
-                        'A lower asking price only',
-                        'Ignoring the objection and moving straight to signing',
-                    ],
-                    'correct' => 1,
-                ],
-                [
-                    'question' => 'During the escrow period, which parties does the agent typically coordinate with?',
-                    'options' => [
-                        'Mortgage lenders, title officers, and home inspectors',
-                        'Only the buyer',
-                        "Only the seller's family",
-                        'Social media followers',
-                    ],
-                    'correct' => 0,
-                ],
-                [
-                    'question' => "What is the agent's role during the closing process, according to Lesson 6.2?",
-                    'options' => [
-                        'To step back and let the lawyers handle everything',
-                        'To act as the conductor making sure all third parties hit their deadlines so the deal closes on schedule',
-                        'To stop communicating until the deed is signed',
-                        'To renegotiate the price after the contract is signed',
-                    ],
-                    'correct' => 1,
-                ],
-                [
-                    'question' => "What happens to the agent's workload after the contract is signed, according to Lesson 6.2?",
-                    'options' => [
-                        'It ends immediately',
-                        'It intensifies, as contingencies must be tracked and removed on time',
-                        "It is handed off entirely to the bank",
-                        'It decreases significantly',
-                    ],
-                    'correct' => 1,
-                ],
-                [
-                    'question' => 'What percentage of buyers say they would use their agent again, according to Lesson 6.3?',
-                    'options' => [
-                        '20%',
-                        '50%',
-                        '80%',
-                        '100%',
-                    ],
-                    'correct' => 2,
-                ],
-                [
-                    'question' => 'Why do so few past clients actually return to the same agent, based on Lesson 6.3?',
-                    'options' => [
-                        'They always move to a different city',
-                        'The agent failed to stay in touch',
-                        'They are legally required to switch agents',
-                        'Referral programs are illegal',
-                    ],
-                    'correct' => 1,
-                ],
-                [
-                    'question' => 'Which of these is part of the post-close relationship system described in Lesson 6.3?',
-                    'options' => [
-                        'Checking in at 30 days, 6 months, and 1 year, sending annual property value updates, and asking for referrals',
-                        'Sending a single thank-you text and nothing else',
-                        'Waiting for the client to reach out first',
-                        "Removing the client's contact info after closing",
-                    ],
-                    'correct' => 0,
-                ],
-                [
-                    'question' => "What is described as an agent's most profitable future lead source?",
-                    'options' => [
-                        'Cold calling',
-                        'Paid social media ads',
-                        'Past clients',
-                        'Walk-in inquiries',
-                    ],
-                    'correct' => 2,
                 ],
             ],
         ];

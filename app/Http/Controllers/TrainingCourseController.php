@@ -22,20 +22,26 @@ class TrainingCourseController extends Controller
             4 => AgentTrainingCourseService::quizForView(4),
             5 => AgentTrainingCourseService::quizForView(5),
             6 => AgentTrainingCourseService::quizForView(6),
-            7 => AgentTrainingCourseService::quizForView(7),
         ];
         $overallPercent = AgentTrainingCourseService::overallPercent($progress);
         $completedCount = AgentTrainingCourseService::completedCount($progress);
 
         // Where the "Start / Continue Course" button should jump to: the
-        // first unlocked-but-not-yet-completed module, defaulting to Module 1.
-        $continueModule = 1;
-        foreach ($progress as $m) {
-            if ($m['unlocked'] && !$m['completed']) {
-                $continueModule = $m['number'];
+        // first unlocked-but-not-yet-completed *numbered* module, defaulting
+        // to Module 1. We only look at real training modules here (1..TOTAL_MODULES) —
+        // $progress may also carry non-module entries (e.g. Persuasion Practice),
+        // which must never be picked as $continueModule since it isn't rendered
+        // by training-modules.module-XX / the module route.
+        $totalModules = AgentTrainingCourseService::TOTAL_MODULES;
+        $continueModule = null;
+        for ($number = 1; $number <= $totalModules; $number++) {
+            if (isset($progress[$number]) && $progress[$number]['unlocked'] && !$progress[$number]['completed']) {
+                $continueModule = $number;
                 break;
             }
         }
+        // All numbered modules are complete — nothing left to "continue" into.
+        $allModulesCompleted = is_null($continueModule);
 
         return view('training-course', [
             'progress'       => $progress,
@@ -44,6 +50,54 @@ class TrainingCourseController extends Controller
             'completedCount' => $completedCount,
             'passingScore'   => AgentTrainingCourseService::PASSING_SCORE,
             'continueModule' => $continueModule,
+            'allModulesCompleted' => $allModulesCompleted,
+        ]);
+    }
+
+    /**
+     * Renders a single module's own page: lesson content, its quiz, and
+     * previous/next navigation. Each module now lives at its own URL
+     * (/agent-training/module/{module}) instead of being rendered as one
+     * long accordion on the course overview page.
+     */
+    public function showModule(Request $request, int $module)
+    {
+        $modulesMeta = AgentTrainingCourseService::modules();
+
+        if (!isset($modulesMeta[$module])) {
+            abort(404);
+        }
+
+        $user = $request->user();
+        $progress = AgentTrainingCourseService::progressFor($user);
+
+        if (!$progress[$module]['unlocked']) {
+            $previous = $module - 1;
+            $message = isset($modulesMeta[$previous])
+                ? 'Complete Module ' . sprintf('%02d', $previous) . ' — ' . $modulesMeta[$previous]['title'] . ' before opening this module.'
+                : 'This module is not available yet.';
+
+            return redirect()
+                ->route('agent-training')
+                ->with('error', $message);
+        }
+
+        $questions = AgentTrainingCourseService::quizForView($module);
+
+        $totalModules = AgentTrainingCourseService::TOTAL_MODULES;
+        $prevModule = $module > 1 ? $progress[$module - 1] : null;
+        $nextModule = $module < $totalModules ? $progress[$module + 1] : null;
+
+        return view('training-course-module', [
+            'module'         => $progress[$module],
+            'moduleNumber'   => $module,
+            'questions'      => $questions,
+            'passingScore'   => AgentTrainingCourseService::PASSING_SCORE,
+            'prevModule'     => $prevModule,
+            'nextModule'     => $nextModule,
+            'overallPercent' => AgentTrainingCourseService::overallPercent($progress),
+            'completedCount' => AgentTrainingCourseService::completedCount($progress),
+            'totalModules'   => $totalModules,
         ]);
     }
 
@@ -114,6 +168,7 @@ class TrainingCourseController extends Controller
             'best_score'      => $row->best_score,
             'module_completed' => $updatedProgress[$module]['completed'],
             'next_unlocked'   => isset($updatedProgress[$module + 1]) ? $updatedProgress[$module + 1]['unlocked'] : false,
+            'next_module'     => $module + 1 <= AgentTrainingCourseService::TOTAL_MODULES ? $module + 1 : null,
             'overall_percent' => AgentTrainingCourseService::overallPercent($updatedProgress),
             'completed_count' => AgentTrainingCourseService::completedCount($updatedProgress),
         ]);

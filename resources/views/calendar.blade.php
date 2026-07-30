@@ -439,7 +439,7 @@
                 <tr style="border-bottom:1px solid #f1f5f9;"
                     data-control="{{ $r->control_number }}"
                     data-employee="{{ $r->employee_name }}"
-                    data-repayment-term="{{ $r->repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term '.$r->term_number }}"
+                    data-repayment-term="Term {{ $r->term_number }}"
                     data-amount="{{ $r->amount }}"
                     data-stage="{{ $r->term_number }}/{{ $r->total_terms ?? '?' }}"
                     data-status="{{ ucfirst(strtolower($r->status ?? '')) }}"
@@ -447,7 +447,7 @@
                     onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                     <td style="padding:14px 18px;font-size:13px;font-weight:700;color:#4f46e5;white-space:nowrap;">{{ $r->control_number ?? ' ' }}</td>
                     <td style="padding:14px 18px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->employee_name ?? ' ' }}</td>
-                    <td style="padding:14px 18px;font-size:13px;color:#374151;">{{ $r->repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term '.$r->term_number }}</td>
+                    <td style="padding:14px 18px;font-size:13px;color:#374151;">Term {{ $r->term_number }}</td>
                     <td style="padding:14px 18px;font-size:13px;font-weight:700;color:#4f46e5;">{{ $r->amount ? '₱'.number_format($r->amount,2) : ' ' }}</td>
                     <td style="padding:14px 18px;font-size:13px;color:#374151;">{{ $r->term_number }}/{{ $r->total_terms ?? '?' }}</td>
                     <td style="padding:14px 18px;"><span class="ca-badge ca-badge-{{ $r->status === 'PAID' ? 'approved' : 'pending' }}">{{ ucfirst(strtolower($r->status ?? '')) }}</span></td>
@@ -503,7 +503,7 @@
                 <tr style="border-bottom:1px solid #f1f5f9;"
                     data-control="{{ $r->control_number }}"
                     data-agent="{{ $r->agent_name }}"
-                    data-repayment-term="{{ $r->repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term '.$r->term_number }}"
+                    data-repayment-term="Term {{ $r->term_number }}"
                     data-amount="{{ $r->amount }}"
                     data-stage="{{ $r->term_number }}/{{ $r->total_terms ?? '?' }}"
                     data-status="{{ ucfirst(strtolower($r->status ?? '')) }}"
@@ -511,7 +511,7 @@
                     onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                     <td style="padding:14px 18px;font-size:13px;font-weight:700;color:#0891b2;white-space:nowrap;">{{ $r->control_number ?? ' ' }}</td>
                     <td style="padding:14px 18px;font-size:13px;color:#0f172a;font-weight:600;">{{ $r->agent_name ?? ' ' }}</td>
-                    <td style="padding:14px 18px;font-size:13px;color:#374151;">{{ $r->repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term '.$r->term_number }}</td>
+                    <td style="padding:14px 18px;font-size:13px;color:#374151;">Term {{ $r->term_number }}</td>
                     <td style="padding:14px 18px;font-size:13px;font-weight:700;color:#0891b2;">{{ $r->amount ? '₱'.number_format($r->amount,2) : ' ' }}</td>
                     <td style="padding:14px 18px;font-size:13px;color:#374151;">{{ $r->term_number }}/{{ $r->total_terms ?? '?' }}</td>
                     <td style="padding:14px 18px;"><span class="ca-badge ca-badge-{{ $r->status === 'PAID' ? 'approved' : 'pending' }}">{{ ucfirst(strtolower($r->status ?? '')) }}</span></td>
@@ -632,7 +632,7 @@ function showEventDetail(type, id) {
     ] : isCashAdvance ? [
         ['Cash Advance No.', ev.control_number||' ', false],
         ['Employee', ev.employee_name||' ', false],
-        ['Repayment Term', ev.repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term ' + ev.term_number, false],
+        ['Repayment Term', 'Term ' + ev.term_number, false],
         ['Amount', fmt(ev.amount), true],
         ['Payment Stage', (ev.term_number||'?') + '/' + (ev.total_terms||'?'), false],
         ['Status', ev.status||' ', false],
@@ -640,7 +640,7 @@ function showEventDetail(type, id) {
     ] : isAgentCashAdvance ? [
         ['Cash Advance No.', ev.control_number||' ', false],
         ['Agent', ev.agent_name||' ', false],
-        ['Repayment Term', ev.repayment_type === 'OTHERS' ? 'One-time Payment' : 'Term ' + ev.term_number, false],
+        ['Repayment Term', 'Term ' + ev.term_number, false],
         ['Amount', fmt(ev.amount), true],
         ['Payment Stage', (ev.term_number||'?') + '/' + (ev.total_terms||'?'), false],
         ['Status', ev.status||' ', false],
