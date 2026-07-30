@@ -30,8 +30,8 @@
                     <div class="progress-head"><span>Course progress</span><strong>{{ $overallPercent }}%</strong></div>
                     <div class="progress-track"><div class="progress-bar" style="width: {{ $overallPercent }}%"></div></div>
                     <div class="overview-stats">
-                        <div class="overview-stat"><strong>{{ $completedCount }}/6</strong><span>Completed</span></div>
-                        <div class="overview-stat"><strong>6</strong><span>Live Now</span></div>
+                        <div class="overview-stat"><strong>{{ $completedCount }}/7</strong><span>Completed</span></div>
+                        <div class="overview-stat"><strong>7</strong><span>Live Now</span></div>
                         <div class="overview-stat"><strong>4.5h</strong><span>Full Course</span></div>
                     </div>
                 </aside>
@@ -70,8 +70,8 @@
                             </article>
                         @endif
                     @endforeach
-                    <a href="{{ route('practice') }}" class="module-card module-card-link" id="module-07">
-                        <div class="module-number">07</div>
+                    <a href="{{ route('practice') }}" class="module-card module-card-link" id="module-08">
+                        <div class="module-number">08</div>
                         <h3>Persuasion Practice</h3>
                         <p>Practice live persuasion and closing skills against an AI buyer roleplay, then get scored feedback.</p>
                         <div class="module-meta"><span>AI Roleplay · Self-paced</span><span class="module-status">Ready</span></div>
@@ -84,12 +84,12 @@
                 <button type="button" class="crs-module-detail-head" {{ $progress[1]['unlocked'] ? '' : 'disabled' }}>
                     <div class="crs-module-detail-badge">Module 01</div>
                     <div class="crs-module-detail-titlewrap">
-                        <h2>Real Estate Sales Fundamentals</h2>
-                        <p>Understand the baseline responsibilities, professional standards, and operational cycles of a successful real estate agent.</p>
+                        <h2>Sales &amp; Lead-Generation Toolkit</h2>
+                        <p>Read a lot plan, compute payment terms, run a professional Facebook page, and turn inquiries into booked site visits.</p>
                     </div>
                     <div class="crs-module-detail-meta">
-                        <span>⏱ 35 min</span>
-                        <span>3 Lessons</span>
+                        <span>⏱ 50 min</span>
+                        <span>4 Lessons</span>
                         @if ($progress[1]['completed'])
                             <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[1]['best_score'] }}%</span>
                         @elseif ($progress[1]['unlocked'])
@@ -105,6 +105,132 @@
                     <div class="crs-locked-panel">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                         <p>This module isn't available yet.</p>
+                    </div>
+                @else
+                <div class="crs-module-body">
+                    <div class="crs-objective"><strong>Objective:</strong> Build the practical, day-one toolkit every agent needs — reading a lot plan, computing payment terms, running a professional Facebook page, and converting inbound inquiries into booked site visits.</div>
+
+                    <article class="crs-lesson">
+                        <h3><span class="crs-lesson-num">Lesson 1.1</span> Reading the Lot Plan &amp; Computing Payment Terms</h3>
+                        <p>Before you can answer a single client question, you need to read the lot plan like a map. Every subdivision plan comes with a color-coded legend — for example, on 758 Mangas Kanluran Resifarm's Phase 1 map, red means <strong>Sold</strong>, violet means <strong>Reserved</strong>, yellow means <strong>Not For Sale</strong>, and black means a <strong>Regular Corner Lot</strong>. Everything else is available inventory. Corner lots and lots facing sunrise typically command more interest, so knowing exactly which block-and-lot numbers qualify — and being able to name them instantly — is a basic credibility test clients will throw at you early in a conversation.</p>
+                        <p>Once a client points at a lot, you need to compute their options on the spot. Four formulas cover almost everything you'll be asked:</p>
+                        <div class="crs-cycle">
+                            <div class="crs-cycle-step"><span>1</span><strong>Total Contract Price</strong><small>Price per sqm × Lot Area</small></div>
+                            <div class="crs-cycle-step"><span>2</span><strong>Down Payment</strong><small>% of Down Payment × Total Contract Price</small></div>
+                            <div class="crs-cycle-step"><span>3</span><strong>Net Down Payment</strong><small>Down Payment − Reservation Fee</small></div>
+                            <div class="crs-cycle-step"><span>4</span><strong>Monthly Amortization</strong><small>Remaining Balance ÷ Number of Months</small></div>
+                        </div>
+                        <div class="crs-scenario">
+                            <strong>🇵🇭 Philippine Scenario</strong>
+                            <p>A client asks for a 30% spot down payment computation on a 200 sqm inner lot at Alfonso Highlands, priced at ₱5,500/sqm. TCP = 200 × ₱5,500 = ₱1,100,000. 30% down payment = ₱330,000. Subtracting the ₱20,000 reservation leaves a net down payment of ₱310,000, against a 70% balance of ₱770,000 — payable at roughly ₱21,389/month over 3 years. Being able to walk through this live, without hesitating, is what makes a client trust your numbers.</p>
+                        </div>
+                        <div class="crs-takeaway-line"><strong>Core Takeaway:</strong> You must be able to read a lot plan's legend and compute Total Contract Price, down payment, and monthly amortization confidently and correctly — clients will test this early, and a wrong number costs you credibility fast.</div>
+                    </article>
+
+                    <article class="crs-lesson">
+                        <h3><span class="crs-lesson-num">Lesson 1.2</span> Building a Professional Facebook Page &amp; Inquiry Materials</h3>
+                        <p>Your Facebook Page is your storefront. Creating one takes two steps: from your profile icon, select <strong>Create Page</strong>, then fill in a Page Name, choose the <strong>Real Estate Agent</strong> or <strong>Real Estate Service</strong> category, and add a short bio describing what you help clients find.</p>
+                        <p><strong>Naming and branding:</strong></p>
+                        <ul class="crs-list">
+                            <li>Do use a catchy, brand-style name — think "LandNest Tagaytay" or "Prime South Deals" — that's easy to search and remember.</li>
+                            <li>Don't lean on generic real estate terms like "realty," a specific province name, or "property" in the page name — it reads as templated instead of like a real brand.</li>
+                        </ul>
+                        <p><strong>Posting do's and don'ts:</strong></p>
+                        <ul class="crs-list">
+                            <li>Do post the <strong>monthly payment</strong> instead of the full Total Contract Price — it makes the property feel more approachable.</li>
+                            <li>Do use actual, clear property photos and highlight real benefits: accessibility, nature, investment potential, peaceful environment.</li>
+                            <li>Don't post the exact price per sqm, the developer's name (unless management approves), the Lot Plan itself, or the exact address publicly.</li>
+                        </ul>
+                        <p>Once someone does inquire, have four materials ready to send: <strong>Property Details</strong> (location, future developments, accessibility, community guidelines), the <strong>Lot Plan</strong>, a <strong>Vicinity Map</strong>, and a <strong>Computation</strong> tailored to the lot they're asking about.</p>
+                        <div class="crs-scenario">
+                            <strong>🇵🇭 Philippine Scenario</strong>
+                            <p>A page called "Metro Tagaytay Hub" posts a farm-residential lot with the caption "Find Land. Build Life." and a monthly-payment figure instead of the full price — alongside real drone photos of the property and a client-satisfaction post. It reads as an established brand, not a one-off listing.</p>
+                        </div>
+                        <div class="crs-takeaway-line"><strong>Core Takeaway:</strong> A professional page name and disciplined posting habits build trust before a client ever messages you — and protecting sensitive pricing, developer, and location details keeps you and the brokerage safe.</div>
+                    </article>
+
+                    <article class="crs-lesson">
+                        <h3><span class="crs-lesson-num">Lesson 1.3</span> Engaging, Qualifying, and Handling Objections in Chat</h3>
+                        <p>A lead goes cold roughly <strong>2 minutes</strong> after they message you. Reply within that window to keep the conversation warm. But don't rush to computation — follow the sequence <strong>Intro → Details → Computation</strong>, with room for questions at each stage, rather than dumping numbers on someone who hasn't even seen a photo yet.</p>
+                        <p><strong>Chat etiquette that builds trust:</strong></p>
+                        <ul class="crs-list">
+                            <li>Do use a simple, professional introduction and send clear, complete photos with a short explanation.</li>
+                            <li>Don't over-use emojis or casual spelling ("hellow," "okiiiieee") and don't leave a message on "seen" without acknowledgment.</li>
+                            <li>Do ask open-ended questions with options ("alin po sa dalawa ang nagustuhan niyo, inner or end unit?") instead of a flat yes/no ("Are you still interested po?").</li>
+                            <li>Do use inclusive language — "natin" and "we" instead of "niyo" and "you" — to give the client a sense of shared ownership in the decision.</li>
+                        </ul>
+                        <p>After sending a computation, don't assume the client understands it — explain it right away and highlight the advantages (in-house financing, available discounts, 0% interest terms). If there's no response, re-engage rather than going silent.</p>
+                        <p><strong>Common objections and how to handle them:</strong></p>
+                        <ul class="crs-list">
+                            <li><em>"Kausapin ko muna asawa ko."</em> — Offer to create a group chat or an online meeting with the spouse so both parties see the same information and can ask questions directly.</li>
+                            <li><em>"Medyo malayo pala."</em> — Don't just agree and drop it; ask what location they'd prefer, since the brokerage likely has projects closer to it.</li>
+                            <li><em>Price or monthly amount feels high.</em> — Reframe the value (location, features-as-benefits) and ask what monthly amount they had in mind, instead of simply agreeing it's expensive.</li>
+                        </ul>
+                        <div class="crs-scenario">
+                            <strong>🇵🇭 Philippine Scenario</strong>
+                            <p>An OFW client says they'll only decide once they're back in the Philippines in December. Instead of passively waiting, you ask if a trusted relative could join a site visit on their behalf this weekend, and offer a video call so they can see the property live — while honestly noting that availability and pricing aren't guaranteed to stay the same until their return.</p>
+                        </div>
+                        <div class="crs-takeaway-line"><strong>Core Takeaway:</strong> Fast, professional, and inclusive communication — paired with options instead of silence on objections — is what keeps a lead moving toward a reservation instead of going cold.</div>
+                    </article>
+
+                    <article class="crs-lesson">
+                        <h3><span class="crs-lesson-num">Lesson 1.4</span> Following Up and Boosting Posts</h3>
+                        <p>A weak follow-up is a flat "Interested pa po kayo?" — it rarely gets a reply. A strong follow-up creates a reason to respond: a promo discount on spot payments, a sense of urgency ("iisa na lang ang available na 200 sqm"), or a new option the client hasn't seen yet (a lower-priced unit, a smaller lot).</p>
+                        <p>To generate new leads at scale, you'll boost posts using two apps: <strong>Meta Ads Manager</strong> for running ads, boosting posts, and tracking inquiries, and <strong>Meta Business Suite</strong> for managing page activity, messages, and scheduling. When boosting a post, choose the <strong>"Get messages"</strong> goal, set your audience's location and age range, write a short greeting with 2–3 AI-suggested questions, then set a daily budget and duration before publishing.</p>
+                        <p>Once an ad is live, monitor it — don't just launch and forget. The key metric is <strong>CPM (Cost Per 1,000 Impressions)</strong>: if it keeps climbing or the ad stops generating inquiries, pause it and refresh the photo, caption, or targeting instead of continuing to spend on a post that's no longer converting.</p>
+                        <div class="crs-scenario">
+                            <strong>🇵🇭 Philippine Scenario</strong>
+                            <p>A boosted post targeting Metro Manila generates 71 messaging conversations for around ₱1,163 in spend — roughly ₱16 per conversation. That's a healthy cost per lead worth continuing; a CPM climbing well past what similar posts typically spend is the signal to pause and try a new creative instead.</p>
+                        </div>
+                        <div class="crs-takeaway-line"><strong>Core Takeaway:</strong> Strong, urgency-driven follow-ups keep warm leads moving, and boosted posts are only worth running as long as their CPM stays reasonable and they keep generating real inquiries.</div>
+                    </article>
+
+                    <div class="crs-callout">
+                        <strong>📌 TAKE NOTE — The Golden Rule</strong>
+                        <p>A lead goes cold after 2 minutes. If a client inquires and you reply 2 minutes late, the chances of getting a response drop below average. Reply within 2 minutes whenever possible to keep the lead warm and increase the chances of engagement and conversion.</p>
+                    </div>
+
+                    <div class="crs-key-takeaways">
+                        <h4>Key Takeaways</h4>
+                        <ul>
+                            <li>Read a lot plan's legend fluently and compute Total Contract Price, down payment, and monthly amortization on the spot.</li>
+                            <li>Run your Facebook Page like a brand — post the monthly payment, real photos, and benefits, while protecting exact pricing, developer names, lot plans, and addresses.</li>
+                            <li>Reply within 2 minutes, follow Intro → Details → Computation, use inclusive and open-ended language, and offer options instead of silence on objections.</li>
+                            <li>Follow up with urgency and new information rather than a flat "still interested?", and keep boosted posts profitable by watching CPM.</li>
+                        </ul>
+                    </div>
+
+                    @include('training-course-quiz', ['module' => 1, 'questions' => $quizzes[1], 'progress' => $progress[1], 'passingScore' => $passingScore])
+                </div>
+                @endif
+            </section>
+
+            {{-- ============================= MODULE 2 ============================= --}}
+            <section class="crs-module-detail {{ $progress[2]['unlocked'] ? '' : 'is-locked' }}" id="module-02">
+                <button type="button" class="crs-module-detail-head" {{ $progress[2]['unlocked'] ? '' : 'disabled' }}>
+                    <div class="crs-module-detail-badge">Module 02</div>
+                    <div class="crs-module-detail-titlewrap">
+                        <h2>Real Estate Sales Fundamentals</h2>
+                        <p>Understand the baseline responsibilities, professional standards, and operational cycles of a successful real estate agent.</p>
+                    </div>
+                    <div class="crs-module-detail-meta">
+                        <span>⏱ 35 min</span>
+                        <span>3 Lessons</span>
+                        @if ($progress[2]['completed'])
+                            <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[2]['best_score'] }}%</span>
+                        @elseif ($progress[2]['unlocked'])
+                            <span class="crs-status crs-status-ready">Ready</span>
+                        @else
+                            <span class="crs-status crs-status-locked">Locked</span>
+                        @endif
+                        <svg class="crs-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                </button>
+
+                @if (!$progress[2]['unlocked'])
+                    <div class="crs-locked-panel">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        <p>Complete <strong>Module 01 — Sales &amp; Lead-Generation Toolkit</strong> to unlock this module.</p>
                     </div>
                 @else
                 <div class="crs-module-body">
@@ -176,15 +302,15 @@
                         </ul>
                     </div>
 
-                    @include('training-course-quiz', ['module' => 1, 'questions' => $quizzes[1], 'progress' => $progress[1], 'passingScore' => $passingScore])
+                    @include('training-course-quiz', ['module' => 2, 'questions' => $quizzes[2], 'progress' => $progress[2], 'passingScore' => $passingScore])
                 </div>
                 @endif
             </section>
 
-            {{-- ============================= MODULE 2 ============================= --}}
-            <section class="crs-module-detail {{ $progress[2]['unlocked'] ? '' : 'is-locked' }}" id="module-02">
-                <button type="button" class="crs-module-detail-head" {{ $progress[2]['unlocked'] ? '' : 'disabled' }}>
-                    <div class="crs-module-detail-badge">Module 02</div>
+            {{-- ============================= MODULE 3 ============================= --}}
+            <section class="crs-module-detail {{ $progress[3]['unlocked'] ? '' : 'is-locked' }}" id="module-03">
+                <button type="button" class="crs-module-detail-head" {{ $progress[3]['unlocked'] ? '' : 'disabled' }}>
+                    <div class="crs-module-detail-badge">Module 03</div>
                     <div class="crs-module-detail-titlewrap">
                         <h2>Property and Market Knowledge</h2>
                         <p>Master the ability to accurately assess property value and communicate a development's specific advantages to the right audience.</p>
@@ -192,9 +318,9 @@
                     <div class="crs-module-detail-meta">
                         <span>⏱ 45 min</span>
                         <span>3 Lessons</span>
-                        @if ($progress[2]['completed'])
-                            <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[2]['best_score'] }}%</span>
-                        @elseif ($progress[2]['unlocked'])
+                        @if ($progress[3]['completed'])
+                            <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[3]['best_score'] }}%</span>
+                        @elseif ($progress[3]['unlocked'])
                             <span class="crs-status crs-status-ready">Ready</span>
                         @else
                             <span class="crs-status crs-status-locked">Locked</span>
@@ -203,10 +329,10 @@
                     </div>
                 </button>
 
-                @if (!$progress[2]['unlocked'])
+                @if (!$progress[3]['unlocked'])
                     <div class="crs-locked-panel">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                        <p>Complete <strong>Module 01 — Real Estate Sales Fundamentals</strong> to unlock this module.</p>
+                        <p>Complete <strong>Module 02 — Real Estate Sales Fundamentals</strong> to unlock this module.</p>
                     </div>
                 @else
                 <div class="crs-module-body">
@@ -257,15 +383,15 @@
                         </ul>
                     </div>
 
-                    @include('training-course-quiz', ['module' => 2, 'questions' => $quizzes[2], 'progress' => $progress[2], 'passingScore' => $passingScore])
+                    @include('training-course-quiz', ['module' => 3, 'questions' => $quizzes[3], 'progress' => $progress[3], 'passingScore' => $passingScore])
                 </div>
                 @endif
             </section>
 
-            {{-- ============================= MODULE 3 ============================= --}}
-            <section class="crs-module-detail {{ $progress[3]['unlocked'] ? '' : 'is-locked' }}" id="module-03">
-                <button type="button" class="crs-module-detail-head" {{ $progress[3]['unlocked'] ? '' : 'disabled' }}>
-                    <div class="crs-module-detail-badge">Module 03</div>
+            {{-- ============================= MODULE 4 ============================= --}}
+            <section class="crs-module-detail {{ $progress[4]['unlocked'] ? '' : 'is-locked' }}" id="module-04">
+                <button type="button" class="crs-module-detail-head" {{ $progress[4]['unlocked'] ? '' : 'disabled' }}>
+                    <div class="crs-module-detail-badge">Module 04</div>
                     <div class="crs-module-detail-titlewrap">
                         <h2>Client Discovery and Qualification</h2>
                         <p>Transition from pitching to diagnosing. Learn to uncover the client's true buying motives and financial readiness before stepping foot on a property.</p>
@@ -273,9 +399,9 @@
                     <div class="crs-module-detail-meta">
                         <span>⏱ 40 min</span>
                         <span>3 Lessons</span>
-                        @if ($progress[3]['completed'])
-                            <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[3]['best_score'] }}%</span>
-                        @elseif ($progress[3]['unlocked'])
+                        @if ($progress[4]['completed'])
+                            <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[4]['best_score'] }}%</span>
+                        @elseif ($progress[4]['unlocked'])
                             <span class="crs-status crs-status-ready">Ready</span>
                         @else
                             <span class="crs-status crs-status-locked">Locked</span>
@@ -284,10 +410,10 @@
                     </div>
                 </button>
 
-                @if (!$progress[3]['unlocked'])
+                @if (!$progress[4]['unlocked'])
                     <div class="crs-locked-panel">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                        <p>Complete <strong>Module 02 — Property and Market Knowledge</strong> to unlock this module.</p>
+                        <p>Complete <strong>Module 03 — Property and Market Knowledge</strong> to unlock this module.</p>
                     </div>
                 @else
                 <div class="crs-module-body">
@@ -346,15 +472,15 @@
                         </ul>
                     </div>
 
-                    @include('training-course-quiz', ['module' => 3, 'questions' => $quizzes[3], 'progress' => $progress[3], 'passingScore' => $passingScore])
+                    @include('training-course-quiz', ['module' => 4, 'questions' => $quizzes[4], 'progress' => $progress[4], 'passingScore' => $passingScore])
                 </div>
                 @endif
             </section>
 
-            {{-- ============================= MODULE 4 ============================= --}}
-            <section class="crs-module-detail {{ $progress[4]['unlocked'] ? '' : 'is-locked' }}" id="module-04">
-                <button type="button" class="crs-module-detail-head" {{ $progress[4]['unlocked'] ? '' : 'disabled' }}>
-                    <div class="crs-module-detail-badge">Module 04</div>
+            {{-- ============================= MODULE 5 ============================= --}}
+            <section class="crs-module-detail {{ $progress[5]['unlocked'] ? '' : 'is-locked' }}" id="module-05">
+                <button type="button" class="crs-module-detail-head" {{ $progress[5]['unlocked'] ? '' : 'disabled' }}>
+                    <div class="crs-module-detail-badge">Module 05</div>
                     <div class="crs-module-detail-titlewrap">
                         <h2>Site Visits and Property Presentation</h2>
                         <p>Execute flawless property showings that maximize the property's appeal and help the client visualize ownership.</p>
@@ -362,9 +488,9 @@
                     <div class="crs-module-detail-meta">
                         <span>⏱ 50 min</span>
                         <span>3 Lessons</span>
-                        @if ($progress[4]['completed'])
-                            <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[4]['best_score'] }}%</span>
-                        @elseif ($progress[4]['unlocked'])
+                        @if ($progress[5]['completed'])
+                            <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[5]['best_score'] }}%</span>
+                        @elseif ($progress[5]['unlocked'])
                             <span class="crs-status crs-status-ready">Ready</span>
                         @else
                             <span class="crs-status crs-status-locked">Locked</span>
@@ -373,10 +499,10 @@
                     </div>
                 </button>
 
-                @if (!$progress[4]['unlocked'])
+                @if (!$progress[5]['unlocked'])
                     <div class="crs-locked-panel">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                        <p>Complete <strong>Module 03 — Client Discovery and Qualification</strong> to unlock this module.</p>
+                        <p>Complete <strong>Module 04 — Client Discovery and Qualification</strong> to unlock this module.</p>
                     </div>
                 @else
                 <div class="crs-module-body">
@@ -427,15 +553,15 @@
                         </ul>
                     </div>
 
-                    @include('training-course-quiz', ['module' => 4, 'questions' => $quizzes[4], 'progress' => $progress[4], 'passingScore' => $passingScore])
+                    @include('training-course-quiz', ['module' => 5, 'questions' => $quizzes[5], 'progress' => $progress[5], 'passingScore' => $passingScore])
                 </div>
                 @endif
             </section>
 
-            {{-- ============================= MODULE 5 ============================= --}}
-            <section class="crs-module-detail {{ $progress[5]['unlocked'] ? '' : 'is-locked' }}" id="module-05">
-                <button type="button" class="crs-module-detail-head" {{ $progress[5]['unlocked'] ? '' : 'disabled' }}>
-                    <div class="crs-module-detail-badge">Module 05</div>
+            {{-- ============================= MODULE 6 ============================= --}}
+            <section class="crs-module-detail {{ $progress[6]['unlocked'] ? '' : 'is-locked' }}" id="module-06">
+                <button type="button" class="crs-module-detail-head" {{ $progress[6]['unlocked'] ? '' : 'disabled' }}>
+                    <div class="crs-module-detail-badge">Module 06</div>
                     <div class="crs-module-detail-titlewrap">
                         <h2>Documentation and Ethical Selling</h2>
                         <p>Protect the client and the brokerage through rigorous documentation, honest communication, and strict adherence to real estate law.</p>
@@ -443,9 +569,9 @@
                     <div class="crs-module-detail-meta">
                         <span>⏱ 45 min</span>
                         <span>3 Lessons</span>
-                        @if ($progress[5]['completed'])
-                            <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[5]['best_score'] }}%</span>
-                        @elseif ($progress[5]['unlocked'])
+                        @if ($progress[6]['completed'])
+                            <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[6]['best_score'] }}%</span>
+                        @elseif ($progress[6]['unlocked'])
                             <span class="crs-status crs-status-ready">Ready</span>
                         @else
                             <span class="crs-status crs-status-locked">Locked</span>
@@ -454,10 +580,10 @@
                     </div>
                 </button>
 
-                @if (!$progress[5]['unlocked'])
+                @if (!$progress[6]['unlocked'])
                     <div class="crs-locked-panel">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                        <p>Complete <strong>Module 04 — Site Visits and Property Presentation</strong> to unlock this module.</p>
+                        <p>Complete <strong>Module 05 — Site Visits and Property Presentation</strong> to unlock this module.</p>
                     </div>
                 @else
                 <div class="crs-module-body">
@@ -510,15 +636,15 @@
                         </ul>
                     </div>
 
-                    @include('training-course-quiz', ['module' => 5, 'questions' => $quizzes[5], 'progress' => $progress[5], 'passingScore' => $passingScore])
+                    @include('training-course-quiz', ['module' => 6, 'questions' => $quizzes[6], 'progress' => $progress[6], 'passingScore' => $passingScore])
                 </div>
                 @endif
             </section>
 
-            {{-- ============================= MODULE 6 ============================= --}}
-            <section class="crs-module-detail {{ $progress[6]['unlocked'] ? '' : 'is-locked' }}" id="module-06">
-                <button type="button" class="crs-module-detail-head" {{ $progress[6]['unlocked'] ? '' : 'disabled' }}>
-                    <div class="crs-module-detail-badge">Module 06</div>
+            {{-- ============================= MODULE 7 ============================= --}}
+            <section class="crs-module-detail {{ $progress[7]['unlocked'] ? '' : 'is-locked' }}" id="module-07">
+                <button type="button" class="crs-module-detail-head" {{ $progress[7]['unlocked'] ? '' : 'disabled' }}>
+                    <div class="crs-module-detail-badge">Module 07</div>
                     <div class="crs-module-detail-titlewrap">
                         <h2>Closing and After-Sales Service</h2>
                         <p>Master the final stages of the transaction and implement systems to generate lifelong repeat and referral business.</p>
@@ -526,9 +652,9 @@
                     <div class="crs-module-detail-meta">
                         <span>⏱ 45 min</span>
                         <span>3 Lessons</span>
-                        @if ($progress[6]['completed'])
-                            <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[6]['best_score'] }}%</span>
-                        @elseif ($progress[6]['unlocked'])
+                        @if ($progress[7]['completed'])
+                            <span class="crs-status crs-status-complete">✓ Completed · Best {{ $progress[7]['best_score'] }}%</span>
+                        @elseif ($progress[7]['unlocked'])
                             <span class="crs-status crs-status-ready">Ready</span>
                         @else
                             <span class="crs-status crs-status-locked">Locked</span>
@@ -537,10 +663,10 @@
                     </div>
                 </button>
 
-                @if (!$progress[6]['unlocked'])
+                @if (!$progress[7]['unlocked'])
                     <div class="crs-locked-panel">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                        <p>Complete <strong>Module 05 — Documentation and Ethical Selling</strong> to unlock this module.</p>
+                        <p>Complete <strong>Module 06 — Documentation and Ethical Selling</strong> to unlock this module.</p>
                     </div>
                 @else
                 <div class="crs-module-body">
@@ -594,7 +720,7 @@
                         </ul>
                     </div>
 
-                    @include('training-course-quiz', ['module' => 6, 'questions' => $quizzes[6], 'progress' => $progress[6], 'passingScore' => $passingScore])
+                    @include('training-course-quiz', ['module' => 7, 'questions' => $quizzes[7], 'progress' => $progress[7], 'passingScore' => $passingScore])
                 </div>
                 @endif
             </section>
@@ -634,7 +760,7 @@
                             </div>
                             <div class="feature-row">
                                 <div class="feature-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
-                                <div><strong>Completion Certificate</strong><span>Certificate generation after all 6 modules are completed.</span></div>
+                                <div><strong>Completion Certificate</strong><span>Certificate generation after all 7 modules are completed.</span></div>
                             </div>
                             <div class="feature-row">
                                 <div class="feature-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5a4 4 0 11-8 0 4 4 0 018 0zm6 2a4 4 0 10-8 0"/></svg></div>

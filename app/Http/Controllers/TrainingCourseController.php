@@ -22,6 +22,7 @@ class TrainingCourseController extends Controller
             4 => AgentTrainingCourseService::quizForView(4),
             5 => AgentTrainingCourseService::quizForView(5),
             6 => AgentTrainingCourseService::quizForView(6),
+            7 => AgentTrainingCourseService::quizForView(7),
         ];
         $overallPercent = AgentTrainingCourseService::overallPercent($progress);
         $completedCount = AgentTrainingCourseService::completedCount($progress);

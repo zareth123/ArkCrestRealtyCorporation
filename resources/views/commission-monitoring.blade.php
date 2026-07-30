@@ -86,6 +86,8 @@
             <input type="hidden" name="commission_stage" id="cm_commission_stage">
             <input type="hidden" name="commission_stage_total" id="cm_commission_stage_total">
             <input type="hidden" name="stage_threshold_amount" id="cm_stage_threshold_amount">
+            <input type="hidden" name="discount_calculation_source" id="cm_add_discount_source" value="percent">
+            <input type="hidden" name="commission_calculation_source" id="cm_add_commission_source" value="percent">
             <div class="form-section">
                 <div class="section-title-bar">
                     <span class="section-icon">📋</span>
@@ -117,19 +119,16 @@
                         <input type="number" id="cm_add_price_sqm" name="price_sqm" placeholder="0.00" step="0.01" min="0" oninput="computeAddTCP()" required>
                     </div>
                     <div class="form-group">
-                        <label>LOT AREA</label>
-                        <input type="number" id="cm_add_lot_area" name="lot_area" placeholder="0.0000" step="0.0001" min="0" oninput="computeAddTCP()">
+                        <label>LOT AREA <span class="required">*</span></label>
+                        <input type="number" id="cm_add_lot_area" name="lot_area" placeholder="0.0000" step="0.0001" min="0" oninput="computeAddTCP()" required>
                     </div>
                     <div class="form-group">
-                        <label style="display:flex;align-items:center;gap:8px;">
-                            DISCOUNT
-                            <span style="display:inline-flex;border:1px solid #d1d5db;border-radius:6px;overflow:hidden;font-size:11px;font-weight:700;">
-                                <button type="button" id="cm_add_disc_pct_btn" onclick="setAddDiscountType('percent')" style="padding:2px 10px;background:#1e457c;color:#fff;border:none;cursor:pointer;">%</button>
-                                <button type="button" id="cm_add_disc_val_btn" onclick="setAddDiscountType('value')" style="padding:2px 10px;background:#fff;color:#374151;border:none;cursor:pointer;">VALUE</button>
-                            </span>
-                        </label>
-                        <input type="number" id="cm_add_discount" name="discount" placeholder="0.00" step="0.01" min="0" max="100" oninput="computeAddNetTCP()">
-                        <input type="hidden" id="cm_add_discount_type" name="discount_type" value="percent">
+                        <label>DISCOUNT (%)</label>
+                        <input type="number" id="cm_add_discount" name="discount" placeholder="0.00" step="any" min="0" max="100" oninput="computeAddDiscountFromPercent()">
+                    </div>
+                    <div class="form-group">
+                        <label>DISCOUNT VALUE <span style="font-size:11px;color:#9ca3af;font-weight:400">(enter % or value)</span></label>
+                        <input type="number" id="cm_add_discount_value" name="discount_value" placeholder="0.00" step="0.01" min="0" oninput="computeAddDiscountFromValue()">
                     </div>
                     <div class="form-group">
                         <label>NET TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
@@ -138,11 +137,11 @@
                     </div>
                     <div class="form-group">
                     <label>% OF COMMISSION <span class="required">*</span></label>
-                    <input type="number" id="cm_add_commission_percent" name="commission_percent" placeholder="e.g. 5" step="0.0001" min="0" max="100" oninput="computeAddCommission()" required>
+                    <input type="number" id="cm_add_commission_percent" name="commission_percent" placeholder="e.g. 5" step="any" min="0" max="100" oninput="computeAddCommissionFromPercent()" required>
                     </div>
                     <div class="form-group">
-                        <label>VALUE OF COMMISSION <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
-                        <input type="text" id="cm_add_commission_display" placeholder="0.00" oninput="computeAddCommissionFromValue()" style="color:#374151;">
+                        <label>VALUE OF COMMISSION <span class="required">*</span> <span style="font-size:11px;color:#9ca3af;font-weight:400">(enter % or value)</span></label>
+                        <input type="number" id="cm_add_commission_display" placeholder="0.00" step="0.01" min="0" oninput="computeAddCommissionFromValue()" style="color:#374151;" required>
                     </div>
                     <div class="form-group">
                         <label>COMMISSION TERMS <span class="required">*</span></label>
@@ -344,6 +343,7 @@
                         data-price-sqm="{{ $request->price_sqm }}"
                         data-lot-area="{{ $request->lot_area }}"
                         data-discount="{{ $request->discount }}"
+                        data-discount-value="{{ $request->discount_value }}"
                         data-commission-percent="{{ $request->commission_percent }}"
                         data-commission="{{ $request->commission }}"
                         @endif
@@ -369,7 +369,7 @@
                         @if($isAdmin)
                         <td>{{ $request->price_sqm ? '₱'.number_format($request->price_sqm, 2) : '-' }}</td>
                         <td>{{ $request->lot_area ? number_format($request->lot_area, 2).' sqm' : '-' }}</td>
-                        <td>{{ $request->discount ? '₱'.number_format($request->discount, 2) : '-' }}</td>
+                        <td>{{ $request->discount !== null ? \App\Support\ExactFinancialMath::normalizePercentage($request->discount).'%' : '-' }}{{ $request->discount_value ? ' (₱'.number_format($request->discount_value, 2).')' : '' }}</td>
                         @endif
                         <td>{{ $request->net_tcp ? '₱'.number_format($request->net_tcp, 2) : '-' }}</td>
                         <td>{{ $request->terms_of_payment ?? '-' }}</td>
@@ -379,7 +379,7 @@
                         <td>{{ $request->date_requested ? $request->date_requested->format('M d, Y') : '-' }}</td>
                         <td>{{ $request->number_of_units ?? '-' }}</td>
                         @if($isAdmin)
-                        <td>{{ $request->commission_percent ? $request->commission_percent.'%' : '-' }}</td>
+                        <td>{{ $request->commission_percent !== null ? \App\Support\ExactFinancialMath::normalizePercentage($request->commission_percent).'%' : '-' }}</td>
                         <td>{{ $request->commission ? '₱'.number_format($request->commission, 2) : '-' }}</td>
                         @endif
                         <td>{{ $request->date_released ? $request->date_released->format('M d, Y') : '-' }}</td>
@@ -389,12 +389,15 @@
                             {{ $request->commission_stage ? $request->commission_stage.'/'.($request->commission_stage_total ?: 1) : '—' }}
                         </td>
                         <td>
-                            <span class="status-badge 
-                                @if($request->status == 'Released') status-released
-                                @else status-pending
-                                @endif">
+                            @if($request->status === 'Requested')
+                            <button type="button" class="status-badge status-pending" onclick="editCommission({{ $request->id }})" title="Complete the required commission information" style="border:none;cursor:pointer;">
+                                Requested — Complete Info
+                            </button>
+                            @else
+                            <span class="status-badge {{ $request->status == 'Released' ? 'status-released' : 'status-pending' }}">
                                 {{ $request->status === 'Not Released' ? 'Not Yet Released' : $request->status }}
                             </span>
+                            @endif
                             @if($isOverdue || $isRecent || $isHighValue)
                             <div class="cm-highlight-badges">
                                 @if($isOverdue)<span class="cm-hl-badge cm-hl-overdue">⚠ Overdue</span>@endif
@@ -1941,6 +1944,11 @@ function clearCmAddForm() {
         if (confirmed) {
             document.getElementById('cmAddForm').reset();
             document.getElementById('cm_commission_stage_display').value = '';
+            document.getElementById('cm_add_discount_source').value = 'percent';
+            document.getElementById('cm_add_commission_source').value = 'percent';
+            document.getElementById('cm_add_net_tcp_display').value = '';
+            document.getElementById('cm_add_commission_display').value = '';
+            document.getElementById('cm_add_vopt_display').value = '';
         }
     });
 }
@@ -1963,7 +1971,11 @@ function previewCommissionSubmit(event) {
     set('cmp_property_details',  val('property_details') || '-');
     set('cmp_price_sqm',         fmtMoney(val('price_sqm')));
     set('cmp_lot_area',          val('lot_area') ? val('lot_area') + ' sqm' : '-');
-    set('cmp_discount',          val('discount') ? val('discount') + (val('discount_type') === 'percent' ? '%' : '') : '-');
+    const discountPercent = val('discount');
+    const discountValue = val('discount_value');
+    set('cmp_discount', discountPercent
+        ? discountPercent + '%' + (discountValue ? ' (₱' + parseFloat(discountValue).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2}) + ')' : '')
+        : (discountValue ? fmtMoney(discountValue) : '-'));
     set('cmp_net_tcp',           fmtMoney(val('net_tcp')));
     set('cmp_commission_percent', val('commission_percent') ? val('commission_percent') + '%' : '-');
     set('cmp_commission',        fmtMoney(val('commission')));
@@ -2000,14 +2012,15 @@ function viewCommission(id) {
             document.getElementById('cm_view_property_details').textContent = fmt(data.property_details);
             document.getElementById('cm_view_price_sqm').textContent = fmtMoney(data.price_sqm);
             document.getElementById('cm_view_lot_area').textContent = data.lot_area ? data.lot_area + ' sqm' : '-';
-            document.getElementById('cm_view_discount').textContent = fmtMoney(data.discount);
+            document.getElementById('cm_view_discount').textContent = data.discount !== null && data.discount !== undefined ? cmFormatExactPercentage(data.discount) + '%' : '-';
+            document.getElementById('cm_view_discount_value').textContent = fmtMoney(data.discount_value);
             document.getElementById('cm_view_net_tcp').textContent = fmtMoney(data.net_tcp);
             document.getElementById('cm_view_terms_of_payment').textContent = fmt(data.terms_of_payment);
             document.getElementById('cm_view_mode_of_payment').textContent = fmt(data.mode_of_payment);
             document.getElementById('cm_view_agent_name').textContent = fmt(data.agent_name);
             document.getElementById('cm_view_date_requested').textContent = fmtDate(data.date_requested);
             document.getElementById('cm_view_number_of_units').textContent = fmt(data.number_of_units);
-            document.getElementById('cm_view_commission_percent').textContent = data.commission_percent ? data.commission_percent + '%' : '-';
+            document.getElementById('cm_view_commission_percent').textContent = data.commission_percent !== null && data.commission_percent !== undefined && data.commission_percent !== '' ? cmFormatExactPercentage(data.commission_percent) + '%' : '-';
             document.getElementById('cm_view_commission').textContent = fmtMoney(data.commission);
             document.getElementById('cm_view_date_released').textContent = fmtDate(data.date_released);
             document.getElementById('cm_view_status').textContent = fmt(data.status);
@@ -2028,23 +2041,48 @@ function editCommission(id) {
             document.getElementById('cm_edit_property_details').value = data.property_details ?? '';
             document.getElementById('cm_edit_price_sqm').value = data.price_sqm ?? '';
             document.getElementById('cm_edit_lot_area').value = data.lot_area ?? '';
-            document.getElementById('cm_edit_discount').value = data.discount ?? '';
+            document.getElementById('cm_edit_discount').value = data.discount !== null && data.discount !== undefined ? cmFormatExactPercentage(data.discount) : '';
+            document.getElementById('cm_edit_discount_value').value = data.discount_value ?? '';
+            document.getElementById('cm_edit_discount_source').value = data.discount_value !== null && data.discount_value !== undefined && data.discount_value !== '' ? 'value' : 'percent';
             document.getElementById('cm_edit_net_tcp').value = data.net_tcp ?? '';
             document.getElementById('cm_edit_net_tcp_display').value = data.net_tcp ? parseFloat(data.net_tcp).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
             if (document.getElementById('cm_edit_payment_type')) document.getElementById('cm_edit_payment_type').value = data.payment_type ?? '';
             if (document.getElementById('cm_edit_value_of_payment_terms')) document.getElementById('cm_edit_value_of_payment_terms').value = data.value_of_payment_terms ?? '';
             if (document.getElementById('cm_edit_vopt_display')) document.getElementById('cm_edit_vopt_display').value = data.value_of_payment_terms ? parseFloat(data.value_of_payment_terms).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
             document.getElementById('cm_edit_terms_of_payment').value = data.terms_of_payment ?? '';
+            document.getElementById('cm_edit_dp_stage').value = data.commission_stage
+                ? `${data.commission_stage}/${data.commission_stage_total || 1}`
+                : '';
             document.getElementById('cm_edit_mode_of_payment').value = data.mode_of_payment ?? '';
             document.getElementById('cm_edit_agent_name').value = data.agent_name ?? '';
             document.getElementById('cm_edit_date_requested').value = d(data.date_requested);
             document.getElementById('cm_edit_number_of_units').value = data.number_of_units ?? '';
-            document.getElementById('cm_edit_commission_percent').value = data.commission_percent ?? '';
+            document.getElementById('cm_edit_commission_percent').value = data.commission_percent !== null && data.commission_percent !== undefined ? cmFormatExactPercentage(data.commission_percent) : '';
             document.getElementById('cm_edit_commission').value = data.commission ?? '';
+            document.getElementById('cm_edit_commission_source').value = data.commission !== null && data.commission !== undefined && data.commission !== '' ? 'value' : 'percent';
             document.getElementById('cm_edit_date_released').value = d(data.date_released);
             document.getElementById('cm_edit_status').value = data.status === 'Released' ? 'Released' : 'Not Yet Released';
             document.getElementById('cm_edit_remarks').value = data.remarks ?? '';
-            if (data.status === 'Requested' && !data.date_released) {
+            const isPendingInformation = data.status === 'Requested';
+            document.getElementById('cm_edit_modal_title').textContent = isPendingInformation
+                ? 'Complete Required Commission Information'
+                : 'Edit Commission Request';
+
+            const lockSourceFields = !!data.source_client_record_id;
+            [
+                'cm_edit_client_name', 'cm_edit_reservation_date', 'cm_edit_project_name',
+                'cm_edit_property_details', 'cm_edit_price_sqm', 'cm_edit_lot_area',
+                'cm_edit_discount', 'cm_edit_discount_value', 'cm_edit_terms_of_payment',
+                'cm_edit_agent_name', 'cm_edit_number_of_units'
+            ].forEach(function(fieldId) {
+                const field = document.getElementById(fieldId);
+                if (!field) return;
+                field.readOnly = lockSourceFields;
+                field.style.background = lockSourceFields ? '#f3f4f6' : '';
+                field.style.cursor = lockSourceFields ? 'not-allowed' : '';
+            });
+
+            if (isPendingInformation && !data.date_released) {
                 calcCmDateReleased('cm_edit');
             }
             document.getElementById('cmEditModal').classList.add('active');
@@ -2087,171 +2125,294 @@ function calcCmDateReleased(prefix) {
     relEl.value = yyyy + '-' + mm + '-' + dd;
 }
 
-function computeCommission() {
-    const netTcp = parseFloat(document.getElementById('cm_edit_net_tcp').value) || 0;
-    const pct    = parseFloat(document.getElementById('cm_edit_commission_percent').value) || 0;
-    const result = netTcp * (pct / 100);
-    document.getElementById('cm_edit_commission').value = result > 0 ? Math.round(result) : '';
+const CM_EXACT_PERCENT_SCALE = 30;
+
+function cmNormalizePlainDecimal(value, maxScale) {
+    const raw = String(value ?? '').replace(/,/g, '').trim();
+    if (!/^\d*(?:\.\d*)?$/.test(raw) || raw === '' || raw === '.') return '';
+    const parts = raw.split('.');
+    const whole = (parts[0] || '0').replace(/^0+(?=\d)/, '');
+    let fraction = parts[1] || '';
+    if (typeof maxScale === 'number') fraction = fraction.slice(0, maxScale);
+    return fraction.length ? whole + '.' + fraction : whole;
+}
+
+function cmExactDecimalParts(value, maxScale) {
+    const normalized = cmNormalizePlainDecimal(value, maxScale);
+    if (normalized === '') return { valid:false, digits:0n, scale:0 };
+    const parts = normalized.split('.');
+    const fraction = parts[1] || '';
+    return {
+        valid: true,
+        digits: BigInt((parts[0] || '0') + fraction),
+        scale: fraction.length
+    };
+}
+
+function cmExactPow10(scale) {
+    return 10n ** BigInt(scale);
+}
+
+function cmExactRoundDivide(numerator, denominator) {
+    if (denominator <= 0n) return 0n;
+    const quotient = numerator / denominator;
+    const remainder = numerator % denominator;
+    return remainder * 2n >= denominator ? quotient + 1n : quotient;
+}
+
+function cmExactFormatScaled(value, scale, trimTrailingZeros) {
+    const text = value.toString().padStart(scale + 1, '0');
+    if (scale === 0) return text;
+    const whole = text.slice(0, -scale);
+    let fraction = text.slice(-scale);
+    if (trimTrailingZeros) fraction = fraction.replace(/0+$/, '');
+    return fraction ? whole + '.' + fraction : whole;
+}
+
+function cmExactMoneyString(value) {
+    const parts = cmExactDecimalParts(value, 30);
+    if (!parts.valid) return '0.00';
+    const cents = parts.scale <= 2
+        ? parts.digits * cmExactPow10(2 - parts.scale)
+        : cmExactRoundDivide(parts.digits, cmExactPow10(parts.scale - 2));
+    return cmExactFormatScaled(cents, 2, false);
+}
+
+function cmExactMultiplyToMoney(left, right) {
+    const a = cmExactDecimalParts(left, 30);
+    const b = cmExactDecimalParts(right, 30);
+    if (!a.valid || !b.valid) return '0.00';
+    const product = a.digits * b.digits;
+    const scale = a.scale + b.scale;
+    const cents = scale <= 2
+        ? product * cmExactPow10(2 - scale)
+        : cmExactRoundDivide(product, cmExactPow10(scale - 2));
+    return cmExactFormatScaled(cents, 2, false);
+}
+
+function cmExactMoneyFromPercentage(baseAmount, percentage) {
+    const base = cmExactDecimalParts(cmExactMoneyString(baseAmount), 2);
+    const pct = cmExactDecimalParts(percentage, CM_EXACT_PERCENT_SCALE);
+    if (!base.valid || !pct.valid || base.digits === 0n || pct.digits === 0n) return '0.00';
+    const denominator = 100n * cmExactPow10(pct.scale);
+    const cents = cmExactRoundDivide(base.digits * pct.digits, denominator);
+    return cmExactFormatScaled(cents, 2, false);
+}
+
+function cmExactPercentageFromMoney(amount, baseAmount) {
+    const amountParts = cmExactDecimalParts(cmExactMoneyString(amount), 2);
+    const baseParts = cmExactDecimalParts(cmExactMoneyString(baseAmount), 2);
+    if (!amountParts.valid || !baseParts.valid || amountParts.digits === 0n || baseParts.digits === 0n) return '';
+    const scaled = (amountParts.digits * 100n * cmExactPow10(CM_EXACT_PERCENT_SCALE)) / baseParts.digits;
+    return cmExactFormatScaled(scaled, CM_EXACT_PERCENT_SCALE, true);
+}
+
+function cmExactSubtractMoney(left, right) {
+    const leftParts = cmExactDecimalParts(cmExactMoneyString(left), 2);
+    const rightParts = cmExactDecimalParts(cmExactMoneyString(right), 2);
+    const cents = leftParts.digits >= rightParts.digits ? leftParts.digits - rightParts.digits : 0n;
+    return cmExactFormatScaled(cents, 2, false);
+}
+
+function cmExactDivideMoney(amount, divisor) {
+    const parts = cmExactDecimalParts(cmExactMoneyString(amount), 2);
+    if (!parts.valid || divisor <= 0) return '0.00';
+    const cents = cmExactRoundDivide(parts.digits, BigInt(divisor));
+    return cmExactFormatScaled(cents, 2, false);
+}
+
+function cmFormatExactPercentage(value) {
+    const normalized = cmNormalizePlainDecimal(value, CM_EXACT_PERCENT_SCALE);
+    if (normalized === '') return '0';
+    const parts = normalized.split('.');
+    const fraction = (parts[1] || '').replace(/0+$/, '');
+    return fraction ? parts[0] + '.' + fraction : parts[0];
+}
+
+function cmMoneyForDisplay(value) {
+    const money = cmExactMoneyString(value);
+    return Number(money).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function computeCommissionFromPercent() {
+    const netTcp = document.getElementById('cm_edit_net_tcp').value || '0.00';
+    const pct = document.getElementById('cm_edit_commission_percent').value || '0';
+    const result = cmExactMoneyFromPercentage(netTcp, pct);
+    document.getElementById('cm_edit_commission_source').value = 'percent';
+    document.getElementById('cm_edit_commission').value = result !== '0.00' ? result : '';
     computeEditValueOfPaymentTerms();
+}
+
+function computeCommissionFromValue() {
+    const netTcp = document.getElementById('cm_edit_net_tcp').value || '0.00';
+    const value = cmExactMoneyString(document.getElementById('cm_edit_commission').value || '0');
+    const pct = cmExactPercentageFromMoney(value, netTcp);
+    document.getElementById('cm_edit_commission_source').value = 'value';
+    document.getElementById('cm_edit_commission').value = value !== '0.00' ? value : '';
+    document.getElementById('cm_edit_commission_percent').value = pct;
+    computeEditValueOfPaymentTerms();
+}
+
+function computeCommission() {
+    const source = document.getElementById('cm_edit_commission_source')?.value || 'percent';
+    if (source === 'value') computeCommissionFromValue();
+    else computeCommissionFromPercent();
 }
 
 function closeCmModal(id) {
     document.getElementById(id).classList.remove('active');
 }
 
-function fmtComma(n) { return n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function fmtComma(n) {
+    return Number(cmExactMoneyString(n)).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
 
 function computeAddTCP() {
-    const priceSqm = parseFloat(document.getElementById('cm_add_price_sqm').value) || 0;
-    const lotArea  = parseFloat(document.getElementById('cm_add_lot_area').value) || 0;
-    const tcp      = priceSqm * lotArea;
-    const discPct  = parseFloat(document.getElementById('cm_add_discount').value) || 0;
-    const netTcp   = tcp - (tcp * discPct / 100);
-    document.getElementById('cm_add_net_tcp').value = netTcp > 0 ? netTcp.toFixed(2) : '';
-    document.getElementById('cm_add_net_tcp_display').value = netTcp > 0 ? fmtComma(netTcp) : '';
-    computeAddCommission();
-    computeValueOfPaymentTerms();
+    const source = document.getElementById('cm_add_discount_source')?.value || 'percent';
+    syncAddDiscount(source);
 }
-function setAddDiscountType(type) {
-    document.getElementById('cm_add_discount_type').value = type;
-    const input = document.getElementById('cm_add_discount');
-    if (type === 'percent') {
-        input.max = 100;
-        input.placeholder = '0.00';
-        document.getElementById('cm_add_disc_pct_btn').style.background = '#1e457c';
-        document.getElementById('cm_add_disc_pct_btn').style.color = '#fff';
-        document.getElementById('cm_add_disc_val_btn').style.background = '#fff';
-        document.getElementById('cm_add_disc_val_btn').style.color = '#374151';
+
+function syncAddDiscount(source) {
+    const tcp = cmExactMultiplyToMoney(
+        document.getElementById('cm_add_price_sqm').value,
+        document.getElementById('cm_add_lot_area').value
+    );
+    const percentEl = document.getElementById('cm_add_discount');
+    const valueEl = document.getElementById('cm_add_discount_value');
+    let value;
+
+    if (source === 'value') {
+        value = cmExactMoneyString(valueEl.value || '0');
+        const tcpParts = cmExactDecimalParts(tcp, 2);
+        const valueParts = cmExactDecimalParts(value, 2);
+        if (valueParts.digits > tcpParts.digits) value = tcp;
+        percentEl.value = cmExactPercentageFromMoney(value, tcp);
+        valueEl.value = value !== '0.00' ? value : '';
     } else {
-        input.removeAttribute('max');
-        input.placeholder = '0.00';
-        document.getElementById('cm_add_disc_val_btn').style.background = '#1e457c';
-        document.getElementById('cm_add_disc_val_btn').style.color = '#fff';
-        document.getElementById('cm_add_disc_pct_btn').style.background = '#fff';
-        document.getElementById('cm_add_disc_pct_btn').style.color = '#374151';
+        value = cmExactMoneyFromPercentage(tcp, percentEl.value || '0');
+        valueEl.value = value !== '0.00' ? value : '';
     }
-    computeAddNetTCP();
+
+    const netTcp = cmExactSubtractMoney(tcp, value);
+    document.getElementById('cm_add_net_tcp').value = tcp !== '0.00' ? netTcp : '';
+    document.getElementById('cm_add_net_tcp_display').value = tcp !== '0.00' ? fmtComma(netTcp) : '';
+    computeAddCommission();
+}
+
+function computeAddDiscountFromPercent() {
+    document.getElementById('cm_add_discount_source').value = 'percent';
+    syncAddDiscount('percent');
+}
+
+function computeAddDiscountFromValue() {
+    document.getElementById('cm_add_discount_source').value = 'value';
+    syncAddDiscount('value');
 }
 
 function computeAddNetTCP() {
-    const priceSqm   = parseFloat(document.getElementById('cm_add_price_sqm').value) || 0;
-    const lotArea    = parseFloat(document.getElementById('cm_add_lot_area').value) || 0;
-    const tcp        = priceSqm * lotArea;
-    const discType   = document.getElementById('cm_add_discount_type')?.value || 'percent';
-    const input      = document.getElementById('cm_add_discount');
-    let discVal      = parseFloat(input.value) || 0;
-    if (discType === 'percent') {
-        if (discVal > 100) { discVal = 100; input.value = 100; }
-        if (discVal < 0)   { discVal = 0;   input.value = 0; }
-    }
-    const discAmount = discType === 'percent' ? (tcp * discVal / 100) : discVal;
-    const netTcp     = tcp - discAmount;
-    document.getElementById('cm_add_net_tcp').value = netTcp > 0 ? netTcp.toFixed(2) : '';
-    document.getElementById('cm_add_net_tcp_display').value = netTcp > 0 ? fmtComma(netTcp) : '';
-    computeAddCommission();
-    computeValueOfPaymentTerms();
-}
-function computeValueOfPaymentTerms() {
-    const commissionRaw = (document.getElementById('cm_add_commission')?.value || '').toString().replace(/,/g, '');
-    const commission = parseFloat(commissionRaw) || 0;
-    const type   = document.getElementById('cm_add_payment_type')?.value || '';
-    let result = 0;
-    if (type === 'Full Payment')         result = commission;
-    if (type === '2 Months Commission')  result = commission / 2;
-    if (type === '3 Months Commission')  result = commission / 3;
-    document.getElementById('cm_add_value_of_payment_terms').value = result > 0 ? result.toFixed(2) : '';
-    document.getElementById('cm_add_vopt_display').value = result > 0 ? fmtComma(result) : '';
+    computeAddTCP();
 }
 
-function setEditDiscountType(type) {
-    document.getElementById('cm_edit_discount_type').value = type;
-    const input = document.getElementById('cm_edit_discount');
-    if (type === 'percent') {
-        input.max = 100;
-        document.getElementById('cm_edit_disc_pct_btn').style.background = '#1e457c';
-        document.getElementById('cm_edit_disc_pct_btn').style.color = '#fff';
-        document.getElementById('cm_edit_disc_val_btn').style.background = '#fff';
-        document.getElementById('cm_edit_disc_val_btn').style.color = '#374151';
+function computeValueOfPaymentTerms() {
+    const commission = cmExactMoneyString(document.getElementById('cm_add_commission')?.value || '0');
+    const type = document.getElementById('cm_add_payment_type')?.value || '';
+    const divisor = type === '2 Months Commission' ? 2 : (type === '3 Months Commission' ? 3 : 1);
+    const result = type ? cmExactDivideMoney(commission, divisor) : '0.00';
+    document.getElementById('cm_add_value_of_payment_terms').value = result !== '0.00' ? result : '';
+    document.getElementById('cm_add_vopt_display').value = result !== '0.00' ? fmtComma(result) : '';
+}
+
+function syncEditDiscount(source) {
+    const tcp = cmExactMultiplyToMoney(
+        document.getElementById('cm_edit_price_sqm').value,
+        document.getElementById('cm_edit_lot_area').value
+    );
+    const percentEl = document.getElementById('cm_edit_discount');
+    const valueEl = document.getElementById('cm_edit_discount_value');
+    let value;
+
+    if (source === 'value') {
+        value = cmExactMoneyString(valueEl.value || '0');
+        const tcpParts = cmExactDecimalParts(tcp, 2);
+        const valueParts = cmExactDecimalParts(value, 2);
+        if (valueParts.digits > tcpParts.digits) value = tcp;
+        percentEl.value = cmExactPercentageFromMoney(value, tcp);
+        valueEl.value = value !== '0.00' ? value : '';
     } else {
-        input.removeAttribute('max');
-        document.getElementById('cm_edit_disc_val_btn').style.background = '#1e457c';
-        document.getElementById('cm_edit_disc_val_btn').style.color = '#fff';
-        document.getElementById('cm_edit_disc_pct_btn').style.background = '#fff';
-        document.getElementById('cm_edit_disc_pct_btn').style.color = '#374151';
+        value = cmExactMoneyFromPercentage(tcp, percentEl.value || '0');
+        valueEl.value = value !== '0.00' ? value : '';
     }
-    computeEditNetTCP();
+
+    const netTcp = cmExactSubtractMoney(tcp, value);
+    const display = document.getElementById('cm_edit_net_tcp_display');
+    const hidden = document.getElementById('cm_edit_net_tcp');
+    if (display) display.value = tcp !== '0.00' ? fmtComma(netTcp) : '';
+    if (hidden) hidden.value = tcp !== '0.00' ? netTcp : '';
+    computeCommission();
+}
+
+function computeEditDiscountFromPercent() {
+    document.getElementById('cm_edit_discount_source').value = 'percent';
+    syncEditDiscount('percent');
+}
+
+function computeEditDiscountFromValue() {
+    document.getElementById('cm_edit_discount_source').value = 'value';
+    syncEditDiscount('value');
 }
 
 function computeEditNetTCP() {
-    const priceSqm = parseFloat(document.getElementById('cm_edit_price_sqm').value) || 0;
-    const lotArea  = parseFloat(document.getElementById('cm_edit_lot_area').value) || 0;
-    const tcp      = priceSqm * lotArea;
-    const discType = document.getElementById('cm_edit_discount_type')?.value || 'percent';
-    const input    = document.getElementById('cm_edit_discount');
-    let discVal    = parseFloat(input.value) || 0;
-    if (discType === 'percent') {
-        if (discVal > 100) { discVal = 100; input.value = 100; }
-        if (discVal < 0)   { discVal = 0;   input.value = 0; }
-    }
-    const discAmount = discType === 'percent' ? (tcp * discVal / 100) : discVal;
-    const netTcp     = tcp - discAmount;
-    const display    = document.getElementById('cm_edit_net_tcp_display');
-    const hidden     = document.getElementById('cm_edit_net_tcp');
-    if (display) display.value = netTcp > 0 ? netTcp.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
-    if (hidden)  hidden.value  = netTcp > 0 ? netTcp.toFixed(2) : '';
-    computeEditValueOfPaymentTerms();
+    const source = document.getElementById('cm_edit_discount_source')?.value || 'percent';
+    syncEditDiscount(source);
 }
 
 function computeEditValueOfPaymentTerms() {
-    const commissionRaw = (document.getElementById('cm_edit_commission')?.value || '').toString().replace(/,/g, '');
-    const commission = parseFloat(commissionRaw) || 0;
-    const type   = document.getElementById('cm_edit_payment_type')?.value || '';
-    let result = 0;
-    if (type === 'Full Payment')         result = commission;
-    if (type === '2 Months Commission')  result = commission / 2;
-    if (type === '3 Months Commission')  result = commission / 3;
+    const commission = cmExactMoneyString(document.getElementById('cm_edit_commission')?.value || '0');
+    const type = document.getElementById('cm_edit_payment_type')?.value || '';
+    const divisor = type === '2 Months Commission' ? 2 : (type === '3 Months Commission' ? 3 : 1);
+    const result = type ? cmExactDivideMoney(commission, divisor) : '0.00';
     const vEl = document.getElementById('cm_edit_value_of_payment_terms');
     const dEl = document.getElementById('cm_edit_vopt_display');
-    if (vEl) vEl.value = result > 0 ? result.toFixed(2) : '';
-    if (dEl) dEl.value = result > 0 ? fmtComma(result) : '';
+    if (vEl) vEl.value = result !== '0.00' ? result : '';
+    if (dEl) dEl.value = result !== '0.00' ? fmtComma(result) : '';
 }
+
+function computeAddCommissionFromPercent(setSource) {
+    if (setSource !== false) document.getElementById('cm_add_commission_source').value = 'percent';
+    const netTcp = document.getElementById('cm_add_net_tcp').value || '0.00';
+    const pct = document.getElementById('cm_add_commission_percent').value || '0';
+    const result = cmExactMoneyFromPercentage(netTcp, pct);
+    document.getElementById('cm_add_commission').value = result !== '0.00' ? result : '';
+    document.getElementById('cm_add_commission_display').value = result !== '0.00' ? result : '';
+    computeValueOfPaymentTerms();
+}
+
+function computeAddCommissionFromValue(setSource) {
+    if (setSource !== false) document.getElementById('cm_add_commission_source').value = 'value';
+    const netTcp = document.getElementById('cm_add_net_tcp').value || '0.00';
+    const value = cmExactMoneyString(document.getElementById('cm_add_commission_display').value || '0');
+    const pct = cmExactPercentageFromMoney(value, netTcp);
+    document.getElementById('cm_add_commission').value = value !== '0.00' ? value : '';
+    document.getElementById('cm_add_commission_display').value = value !== '0.00' ? value : '';
+    document.getElementById('cm_add_commission_percent').value = pct;
+    computeValueOfPaymentTerms();
+}
+
 function computeAddCommission() {
-    const netTcp = parseFloat(document.getElementById('cm_add_net_tcp').value) || 0;
-    const pctEl  = document.getElementById('cm_add_commission_percent');
-    const pct    = pctEl ? (parseFloat(pctEl.value) || 0) : 0;
-    const result = netTcp * (pct / 100);
-    if (netTcp > 0) {
-        document.getElementById('cm_add_commission').value = result > 0 ? result.toFixed(2) : '';
-        const display = document.getElementById('cm_add_commission_display');
-        if (display) display.value = result > 0 ? fmtComma(result) : '';
-    }
-    computeValueOfPaymentTerms();
-}
-function computeAddCommissionFromValue() {
-    const netTcp = parseFloat(document.getElementById('cm_add_net_tcp').value) || 0;
-    const rawVal = (document.getElementById('cm_add_commission_display').value || '').replace(/,/g, '');
-    const val    = parseFloat(rawVal) || 0;
-    const pct    = netTcp > 0 ? (val / netTcp) * 100 : 0;
-    document.getElementById('cm_add_commission').value = val > 0 ? val.toFixed(2) : '';
-    const pctEl = document.getElementById('cm_add_commission_percent');
-    if (pctEl && pct > 0) pctEl.value = pct.toFixed(4).replace(/\.?0+$/, '');
-    computeValueOfPaymentTerms();
+    const source = document.getElementById('cm_add_commission_source')?.value || 'percent';
+    if (source === 'value') computeAddCommissionFromValue(false);
+    else computeAddCommissionFromPercent(false);
 }
 
-
-// Ensure commission hidden field is synced from display before submit
+// Ensure the exact two-decimal commission string is synced before submit.
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('cmAddForm');
     if (form) {
         form.addEventListener('submit', function() {
-            const displayVal = (document.getElementById('cm_add_commission_display')?.value || '').replace(/,/g, '');
-            const hiddenEl   = document.getElementById('cm_add_commission');
-            const parsed     = parseFloat(displayVal);
-            if (parsed > 0) {
-                hiddenEl.value = parsed.toFixed(2);
-            } else {
-                computeAddCommission();
-            }
+            const displayVal = document.getElementById('cm_add_commission_display')?.value || '';
+            const hiddenEl = document.getElementById('cm_add_commission');
+            if (displayVal !== '') hiddenEl.value = cmExactMoneyString(displayVal);
+            else computeAddCommission();
         });
     }
 });
@@ -2315,6 +2476,8 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const form = this;
         const id = document.getElementById('cm_edit_id').value;
+
+        if (!form.reportValidity()) return;
 
         // Clear any previous inline errors before retrying
         document.querySelectorAll('.cm-field-error').forEach(el => el.remove());
@@ -2690,10 +2853,11 @@ function submitCmPermRequest() {
                 <div class="modal-field"><label>Property Details (Block & Lot No.)</label><div class="field-value" id="cm_view_property_details">-</div></div>
                 <div class="modal-field"><label>Price / SQM</label><div class="field-value" id="cm_view_price_sqm">-</div></div>
                 <div class="modal-field"><label>Lot Area</label><div class="field-value" id="cm_view_lot_area">-</div></div>
-                <div class="modal-field"><label>Discount</label><div class="field-value" id="cm_view_discount">-</div></div>
+                <div class="modal-field"><label>Discount (%)</label><div class="field-value" id="cm_view_discount">-</div></div>
+                <div class="modal-field"><label>Discount Value</label><div class="field-value" id="cm_view_discount_value">-</div></div>
                 <div class="modal-field"><label>Net TCP</label><div class="field-value" id="cm_view_net_tcp">-</div></div>
                 <div class="modal-field"><label>Terms of Payment</label><div class="field-value" id="cm_view_terms_of_payment">-</div></div>
-                <div class="modal-field"><label>Mode of Payment</label><div class="field-value" id="cm_view_mode_of_payment">-</div></div>
+                <div class="modal-field"><label>Mode of Payment <span style="color:#ef4444">*</span></label><div class="field-value" id="cm_view_mode_of_payment">-</div></div>
                 <div class="modal-field"><label>Agent's Name</label><div class="field-value" id="cm_view_agent_name">-</div></div>
                 <div class="modal-field"><label>Date Requested</label><div class="field-value" id="cm_view_date_requested">-</div></div>
                 <div class="modal-field"><label>Number of Units</label><div class="field-value" id="cm_view_number_of_units">-</div></div>
@@ -2714,13 +2878,15 @@ function submitCmPermRequest() {
 <div id="cmEditModal" class="modal-overlay">
     <div class="modal-box" style="max-width:800px;">
         <div class="modal-header">
-            <h3>Edit Commission Request</h3>
+            <h3 id="cm_edit_modal_title">Edit Commission Request</h3>
             <button class="modal-close" onclick="closeCmModal('cmEditModal')">✖</button>
         </div>
         <form id="cmEditForm" method="POST">
             @csrf
             @method('PUT')
             <input type="hidden" id="cm_edit_id" name="id">
+            <input type="hidden" id="cm_edit_discount_source" name="discount_calculation_source" value="percent">
+            <input type="hidden" id="cm_edit_commission_source" name="commission_calculation_source" value="percent">
             <div class="modal-body">
                 <div class="modal-grid">
                     <div class="modal-field">
@@ -2741,38 +2907,51 @@ function submitCmPermRequest() {
                     </div>
                     <div class="modal-field">
                         <label>Price / SQM</label>
-                        <input type="number" id="cm_edit_price_sqm" name="price_sqm" step="0.01" min="0" placeholder="0.00">
+                        <input type="number" id="cm_edit_price_sqm" name="price_sqm" step="0.01" min="0" placeholder="0.00" oninput="computeEditNetTCP()">
                     </div>
                     <div class="modal-field">
-                        <label>Lot Area</label>
-                        <input type="number" id="cm_edit_lot_area" name="lot_area" step="0.0001" min="0" placeholder="0.0000" oninput="computeEditNetTCP()">
+                        <label>Lot Area <span style="color:#ef4444">*</span></label>
+                        <input type="number" id="cm_edit_lot_area" name="lot_area" step="0.0001" min="0" placeholder="0.0000" oninput="computeEditNetTCP()" required>
                     </div>
                     <div class="modal-field">
-                        <label style="display:flex;align-items:center;gap:8px;">
-                            DISCOUNT <span class="required">*</span>
-                            <span style="display:inline-flex;border:1px solid #d1d5db;border-radius:6px;overflow:hidden;font-size:11px;font-weight:700;">
-                                <button type="button" id="cm_edit_disc_pct_btn" onclick="setEditDiscountType('percent')" style="padding:2px 10px;background:#1e457c;color:#fff;border:none;cursor:pointer;">%</button>
-                                <button type="button" id="cm_edit_disc_val_btn" onclick="setEditDiscountType('value')" style="padding:2px 10px;background:#fff;color:#374151;border:none;cursor:pointer;">VALUE</button>
-                            </span>
-                        </label>
-                        <input type="number" id="cm_edit_discount" name="discount" step="0.01" min="0" max="100" placeholder="0.00" oninput="computeEditNetTCP()">
-                        <input type="hidden" id="cm_edit_discount_type" name="discount_type" value="percent">
+                        <label>Discount (%)</label>
+                        <input type="number" id="cm_edit_discount" name="discount" step="any" min="0" max="100" placeholder="0.00" oninput="computeEditDiscountFromPercent()">
+                    </div>
+                    <div class="modal-field">
+                        <label>Discount Value <span style="font-size:11px;color:#9ca3af;font-weight:400">(enter % or value)</span></label>
+                        <input type="number" id="cm_edit_discount_value" name="discount_value" step="0.01" min="0" placeholder="0.00" oninput="computeEditDiscountFromValue()">
                     </div>
                     <div class="modal-field">
                         <label>Net TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
                         <input type="text" id="cm_edit_net_tcp_display" placeholder="0.00" readonly style="background:#f3f4f6;cursor:not-allowed;color:#374151;">
                         <input type="hidden" id="cm_edit_net_tcp" name="net_tcp">
                     </div>
-                    <div class="modal-field">
-                        <label>% of Commission</label>
-                        <input type="number" id="cm_edit_commission_percent" name="commission_percent" step="0.0001" min="0" max="100" placeholder="e.g. 5" oninput="computeCommission()">
+                    <div class="commission-required-heading" style="grid-column:1/-1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-top:6px;">
+                        <div style="font-size:12px;font-weight:800;color:#1e4575;text-transform:uppercase;letter-spacing:.6px;">Required Commission Information</div>
+                        <div style="font-size:12px;color:#64748b;margin-top:3px;">Complete every required field before changing this request from Requested to Not Yet Released or Released.</div>
                     </div>
                     <div class="modal-field">
-                        <label>Commission (Auto-computed)</label>
-                        <input type="number" id="cm_edit_commission" name="commission" step="1" placeholder="0.00" style="background:#fff;">
+                        <label>Terms of Payment <span style="color:#ef4444">*</span> <span style="font-size:11px;color:#9ca3af;font-weight:400">(from client record)</span></label>
+                        <input type="text" id="cm_edit_terms_of_payment" name="terms_of_payment" required readonly
+                               style="background:#f3f4f6;cursor:not-allowed;color:#374151;"
+                               title="Terms of Payment is settled in the client record and cannot be changed here.">
                     </div>
                     <div class="modal-field">
-                        <label>Commission Terms</label>
+                        <label>DP Stage <span style="font-size:11px;color:#9ca3af;font-weight:400">(read only)</span></label>
+                        <input type="text" id="cm_edit_dp_stage" readonly
+                               style="background:#f3f4f6;cursor:not-allowed;color:#374151;"
+                               title="DP Stage shows which downpayment stage this commission request belongs to.">
+                    </div>
+                    <div class="modal-field">
+                        <label>% of Commission <span style="color:#ef4444">*</span></label>
+                        <input type="number" id="cm_edit_commission_percent" name="commission_percent" step="any" min="0" max="100" placeholder="e.g. 5" oninput="computeCommissionFromPercent()" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Commission Value <span style="color:#ef4444">*</span> <span style="font-size:11px;color:#9ca3af;font-weight:400">(enter % or value)</span></label>
+                        <input type="number" id="cm_edit_commission" name="commission" step="0.01" min="0" placeholder="0.00" oninput="computeCommissionFromValue()" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Commission Terms <span style="color:#ef4444">*</span></label>
                         <div class="select-wrapper">
                             <select id="cm_edit_payment_type" name="payment_type" onchange="computeEditValueOfPaymentTerms()" required>
                                 <option value="">— Select —</option>
@@ -2786,29 +2965,11 @@ function submitCmPermRequest() {
                     <div class="modal-field">
                         <label>Value of Commission Terms <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
                         <input type="text" id="cm_edit_vopt_display" placeholder="0.00" readonly style="background:#f3f4f6;cursor:not-allowed;color:#374151;">
-                        <input type="hidden" id="cm_edit_value_of_payment_terms" name="value_of_payment_terms">
+                        <input type="hidden" id="cm_edit_value_of_payment_terms" name="value_of_payment_terms" required>
                     </div>
                     <div class="modal-field">
-                        <label>Terms of Payment <span style="color:#ef4444">*</span></label>
-                        <div class="combobox-wrapper">
-                            <input type="text" id="cm_edit_terms_of_payment" name="terms_of_payment" class="combobox-input" required autocomplete="off" placeholder="Type or select payment terms" onclick="toggleCmEditTermsDropdown()" oninput="filterCmEditTerms(this.value)">
-                            <button type="button" class="combobox-arrow" onclick="toggleCmEditTermsDropdown()">▼</button>
-                            <div id="cmEditTermsDropdown" class="combobox-dropdown" style="display:none;">
-                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP - 70% BAL 5 YRS')">30% DP - 70% BAL 5 YRS</div>
-                                <div class="dropdown-item" onclick="selectCmEditTerm('50% DP - 50% BAL 5 YRS')">50% DP - 50% BAL 5 YRS</div>
-                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP (6 MOS) - 70% BAL 54 MOS')">30% DP (6 MOS) - 70% BAL 54 MOS</div>
-                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP (3 MOS) - 70% BAL 57 MOS')">30% DP (3 MOS) - 70% BAL 57 MOS</div>
-                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP (9 MOS) - 70% BAL 36 MOS')">30% DP (9 MOS) - 70% BAL 36 MOS</div>
-                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP (2 MOS) - 70% BAL 57 MOS')">30% DP (2 MOS) - 70% BAL 57 MOS</div>
-                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP (2 MOS) - 70% BAL 5 YRS')">30% DP (2 MOS) - 70% BAL 5 YRS</div>
-                                <div class="dropdown-item" onclick="selectCmEditTerm('STRAIGHT PAYMENT')">STRAIGHT PAYMENT</div>
-                                <div class="dropdown-item" onclick="selectCmEditTerm('30% DP - 70% BAL 3 YRS')">30% DP - 70% BAL 3 YRS</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-field">
-                        <label>Mode of Payment</label>
-                        <select id="cm_edit_mode_of_payment" name="mode_of_payment" onchange="calcCmDateReleased('cm_edit')">
+                        <label>Mode of Payment <span style="color:#ef4444">*</span></label>
+                        <select id="cm_edit_mode_of_payment" name="mode_of_payment" onchange="calcCmDateReleased('cm_edit')" required>
                             <option value="">Select mode</option>
                             <option value="BANK DEPOSIT">BANK DEPOSIT</option>
                             <option value="BANK TRANSFER">BANK TRANSFER</option>
@@ -2943,11 +3104,12 @@ function submitCmPermRequest() {
         set('reservation_date', data.reservation_date);
         set('terms_of_payment', data.terms_of_payment);
         set('number_of_units', data.number_of_units || 1);
-        set('commission_percent', data.commission_percent);
+        set('commission_percent', data.commission_percent !== null && data.commission_percent !== undefined ? cmFormatExactPercentage(data.commission_percent) : '');
         set('property_details', data.block_lot_number || data.property_details);
         set('price_sqm', data.price_sqm);
         set('lot_area', data.lot_area);
-        set('discount', data.discount);
+        set('discount', data.discount !== null && data.discount !== undefined ? cmFormatExactPercentage(data.discount) : '');
+        set('discount_value', data.discount_value);
         set('mode_of_payment', data.mode_of_payment);
 
         if (typeof computeAddTCP === 'function') computeAddTCP();
@@ -3030,6 +3192,7 @@ function submitCmPermRequest() {
             price_sqm: params.get('prefill_price_sqm'),
             lot_area: params.get('prefill_lot_area'),
             discount: params.get('prefill_discount'),
+            discount_value: params.get('prefill_discount_value'),
             mode_of_payment: params.get('prefill_mode_of_payment')
         };
         if (data.client_name || data.project_name) applyPrefill(data, 1);

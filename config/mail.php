@@ -69,4 +69,7 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    // Gmail address that receives "Inquire Now" submissions from the landing page.
+    'arkcrest_inquiry_to' => env('ARKCREST_INQUIRY_EMAIL'),
+
 ];

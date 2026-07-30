@@ -378,6 +378,7 @@ function lcViewRow(id) {
     fetch(`/sales-marketing/${id}`).then(r => r.json()).then(d => {
         var fmt = v => (v ?? '-'), fmtD = v => v ? new Date(v).toLocaleDateString('en-US', {month:'short', day:'2-digit', year:'numeric'}) : '-';
         var fmtP = v => v ? '₱' + parseFloat(v).toLocaleString('en-US', {minimumFractionDigits:2}) : '-';
+        var fmtPct = v => { var text = String(v ?? '').trim(); if (!text) return '-'; return text.includes('.') ? text.replace(/0+$/, '').replace(/\.$/, '') + '%' : text + '%'; };
         var fields = [
             ["Developer's Name", fmt(d.developer_name)],
             ['Project Name', fmt(d.project_name)],
@@ -386,7 +387,7 @@ function lcViewRow(id) {
             ['Lot Area', d.lot_area ? parseFloat(d.lot_area).toFixed(2) + ' sqm' : '-'],
             ['Price Per SQM', fmtP(d.price_sqm)],
             ['TCP', fmtP(d.tcp)],
-            ['Discount', d.discount ? parseFloat(d.discount).toFixed(2) + '%' : '-'],
+            ['Discount', fmtPct(d.discount)],
             ['Net TCP', fmtP(d.net_tcp)],
             ['Terms of Payment', fmt(d.terms_of_payment)],
             ['Reservation Date', fmtD(d.reservation_date)],

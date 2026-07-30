@@ -20,52 +20,59 @@ class AgentTrainingCourseService
     /** A module is marked "completed" the first time its quiz score reaches this percentage. */
     public const PASSING_SCORE = 70;
 
-    public const TOTAL_MODULES = 6;
+    public const TOTAL_MODULES = 7;
 
     /**
-     * Course outline. `implemented` = false means the module has no lesson
-     * content or quiz yet (Modules 3-6) — it always renders as a locked
-     * "coming soon" card regardless of prior-module completion.
+     * Course outline. Module 1 (Sales & Lead-Generation Toolkit) is a
+     * standalone digital-sales primer; Modules 2-7 are the core Real Estate
+     * Agent Training curriculum.
      */
     public static function modules(): array
     {
         return [
             1 => [
+                'title'       => 'Sales & Lead-Generation Toolkit',
+                'summary'     => 'Read a lot plan, compute payment terms, run a professional Facebook page, and turn inquiries into booked site visits.',
+                'minutes'     => 50,
+                'lessons'     => 4,
+                'implemented' => true,
+            ],
+            2 => [
                 'title'       => 'Real Estate Sales Fundamentals',
                 'summary'     => "Understand the agent's role, the full sales cycle, buyer expectations, and professional conduct.",
                 'minutes'     => 35,
                 'lessons'     => 3,
                 'implemented' => true,
             ],
-            2 => [
+            3 => [
                 'title'       => 'Property and Market Knowledge',
                 'summary'     => 'Present developments clearly, explain value drivers, and match properties to client goals.',
                 'minutes'     => 45,
                 'lessons'     => 3,
                 'implemented' => true,
             ],
-            3 => [
+            4 => [
                 'title'       => 'Client Discovery and Qualification',
                 'summary'     => 'Ask better questions, identify priorities, qualify leads, and prepare relevant recommendations.',
                 'minutes'     => 40,
                 'lessons'     => 3,
                 'implemented' => true,
             ],
-            4 => [
+            5 => [
                 'title'       => 'Site Visits and Property Presentation',
                 'summary'     => 'Prepare professional site visits and communicate features, benefits, and investment potential.',
                 'minutes'     => 50,
                 'lessons'     => 3,
                 'implemented' => true,
             ],
-            5 => [
+            6 => [
                 'title'       => 'Documentation and Ethical Selling',
                 'summary'     => 'Follow responsible documentation practices and protect the client through transparent communication.',
                 'minutes'     => 45,
                 'lessons'     => 3,
                 'implemented' => true,
             ],
-            6 => [
+            7 => [
                 'title'       => 'Closing and After-Sales Service',
                 'summary'     => 'Handle objections, guide the decision, complete the handoff, and maintain long-term relationships.',
                 'minutes'     => 45,
@@ -84,6 +91,108 @@ class AgentTrainingCourseService
     {
         return [
             1 => [
+                [
+                    'question' => "In a lot plan legend, what does a yellow/gold marker typically indicate?",
+                    'options' => [
+                        'Sold',
+                        'Reserved',
+                        'Not for sale',
+                        'Regular corner lot',
+                    ],
+                    'correct' => 2,
+                ],
+                [
+                    'question' => "What is the correct formula for computing a lot's Total Contract Price (TCP)?",
+                    'options' => [
+                        'Price per sqm + lot area',
+                        'Price per sqm x lot area',
+                        'Reservation fee x lot area',
+                        'Down payment ÷ lot area',
+                    ],
+                    'correct' => 1,
+                ],
+                [
+                    'question' => 'When posting a property on the company Facebook page, which of these is a recommended practice?',
+                    'options' => [
+                        'Post the exact price per sqm publicly',
+                        'Use the monthly payment instead of the full Total Contract Price to make the property more approachable',
+                        'Post the Lot Plan publicly',
+                        'Share the exact address publicly',
+                    ],
+                    'correct' => 1,
+                ],
+                [
+                    'question' => 'According to the "Golden Rule," what happens to a lead if you reply after 2 minutes?',
+                    'options' => [
+                        "Nothing changes, response time doesn't matter",
+                        'It is considered a cold inquiry with a lower chance of the client responding',
+                        'The client is automatically disqualified',
+                        'The lead moves to a different agent',
+                    ],
+                    'correct' => 1,
+                ],
+                [
+                    'question' => 'What is the recommended order of a proper inquiry conversation flow?',
+                    'options' => [
+                        'Computation, then intro, then details',
+                        'Intro, then details, then computation — each with room for Q&A',
+                        'Details only, skipping intro and computation',
+                        'Computation immediately, followed by intro',
+                    ],
+                    'correct' => 1,
+                ],
+                [
+                    'question' => 'Which of these are considered "must-have" materials to send an inquiring client?',
+                    'options' => [
+                        'Property details, lot plan, vicinity map, and computation',
+                        'Only the price per sqm',
+                        'Only a verbal description of the property',
+                        "The developer's internal financial reports",
+                    ],
+                    'correct' => 0,
+                ],
+                [
+                    'question' => 'When a client says "Kausapin ko muna asawa ko" (I\'ll ask my spouse first), what is a recommended response?',
+                    'options' => [
+                        'End the conversation and wait for them to come back',
+                        'Offer to create a group chat or online meeting so both spouses can see the details together',
+                        'Immediately send a lower price to close faster',
+                        'Stop replying to avoid pressuring them',
+                    ],
+                    'correct' => 1,
+                ],
+                [
+                    'question' => "When following up with an OFW client who says they'll wait until they're back in the country, what should you avoid doing?",
+                    'options' => [
+                        'Simply accepting "no problem" and waiting passively with no further engagement',
+                        'Offering a video call or asking if a trusted relative can view the property on their behalf',
+                        'Giving an honest update about availability or upcoming price changes',
+                        "Politely explaining that availability isn't guaranteed",
+                    ],
+                    'correct' => 0,
+                ],
+                [
+                    'question' => 'What distinguishes a "strong" follow-up message from a "weak" one?',
+                    'options' => [
+                        'A strong follow-up is engaging and shows a real sense of urgency or a new option; a weak one is a generic "Interested pa po kayo?"',
+                        'A strong follow-up should always be shorter than a weak one',
+                        'A strong follow-up avoids mentioning promos or updates',
+                        "There's no real difference; both are equally effective",
+                    ],
+                    'correct' => 0,
+                ],
+                [
+                    'question' => 'When boosting a post on Facebook, what should be monitored closely to keep the ad cost-effective?',
+                    'options' => [
+                        'The number of comments only',
+                        "CPM (Cost Per 1,000 Impressions) — if it keeps rising, it's time to refresh the ad",
+                        'The time zone of the page admin',
+                        'The font used in the ad caption',
+                    ],
+                    'correct' => 1,
+                ],
+            ],
+            2 => [
                 [
                     'question' => 'What is the primary value a modern real estate agent provides, beyond being a "tour guide"?',
                     'options' => [
@@ -135,7 +244,7 @@ class AgentTrainingCourseService
                     'correct' => 3,
                 ],
             ],
-            2 => [
+            3 => [
                 [
                     'question' => 'When presenting a master-planned development, condo, or subdivision, what should an agent sell first?',
                     'options' => [
@@ -187,7 +296,7 @@ class AgentTrainingCourseService
                     'correct' => 1,
                 ],
             ],
-            3 => [
+            4 => [
                 [
                     'question' => 'Which type of question best exemplifies the "Discovery Phase" approach taught in this module?',
                     'options' => [
@@ -289,7 +398,7 @@ class AgentTrainingCourseService
                     'correct' => 1,
                 ],
             ],
-            4 => [
+            5 => [
                 [
                     'question' => 'According to Lesson 4.1, roughly how early should an agent arrive before a scheduled site visit?',
                     'options' => [
@@ -391,7 +500,7 @@ class AgentTrainingCourseService
                     'correct' => 1,
                 ],
             ],
-            5 => [
+            6 => [
                 [
                     'question' => 'What can happen if a real estate contract has a missing initial or an incorrectly typed deadline?',
                     'options' => [
@@ -493,7 +602,7 @@ class AgentTrainingCourseService
                     'correct' => 1,
                 ],
             ],
-            6 => [
+            7 => [
                 [
                     'question' => 'What does the LAER method stand for in handling final-hour objections?',
                     'options' => [

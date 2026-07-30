@@ -156,7 +156,7 @@
                 data-net-tcp="{{ $r->net_tcp ?? 0 }}"
                 data-commission-terms="{{ $r->payment_type ?? '' }}"
                 data-dp-stage="{{ $r->commission_stage ? $r->commission_stage.'/'.($r->commission_stage_total ?: 1) : '' }}"
-                data-arc-percent="{{ $rate ? $rate->arkcrest_percent : '' }}"
+                data-arc-percent="{{ $rate ? \App\Support\ExactFinancialMath::normalizePercentage($rate->arkcrest_percent) : '' }}"
                 data-arc-commission="{{ $rate ? $rate->arkcrest_commission : '' }}"
                 data-date-added="{{ $r->created_at?->timestamp }}"
                 data-date-modified="{{ $r->updated_at?->timestamp }}">
@@ -182,8 +182,8 @@
                 <td>
                     <div style="display:flex;align-items:center;gap:6px;">
                         <input type="number" class="arc-pct-input" id="pct-{{ $r->id }}"
-                            value="{{ $rate ? $rate->arkcrest_percent : '' }}"
-                            placeholder="0.00" step="0.01" min="0" max="100">
+                            value="{{ $rate ? \App\Support\ExactFinancialMath::normalizePercentage($rate->arkcrest_percent) : '' }}"
+                            placeholder="0.00" step="any" min="0" max="100">
                         <span style="font-size:12px;color:#94a3b8;">%</span>
                         <button class="arc-save-btn" onclick="saveRate({{ $r->id }}, {{ $r->net_tcp ?? 0 }})">Save</button>
                     </div>
@@ -220,7 +220,7 @@ arcTotals[{{ $r->id }}] = {{ $rate ? $rate->arkcrest_commission : 0 }};
 function onTermsChange(id, netTcp) {
     const terms = document.getElementById('terms-' + id).value;
     if (!terms) return;
-    const pct = parseFloat(document.getElementById('pct-' + id).value) || 0;
+    const pct = (document.getElementById('pct-' + id).value || '0').trim();
     fetch('/api/arkcrest-sales/' + id + '/rate', {
         method: 'POST',
         headers: {'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content},
@@ -242,7 +242,7 @@ function onTermsChange(id, netTcp) {
 }
 
 function saveRate(id, netTcp) {
-    const pct   = parseFloat(document.getElementById('pct-' + id).value) || 0;
+    const pct   = (document.getElementById('pct-' + id).value || '0').trim();
     const terms = document.getElementById('terms-' + id)?.value || '';
     fetch('/api/arkcrest-sales/' + id + '/rate', {
         method: 'POST',

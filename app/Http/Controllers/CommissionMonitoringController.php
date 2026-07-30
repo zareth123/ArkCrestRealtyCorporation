@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\CommissionRequest;
 use App\Models\CommissionRequestSales;
 use App\Models\CommissionStageRequest;
+use App\Models\SystemNotification;
 use App\Services\CommissionStageService;
+use App\Support\ExactFinancialMath;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class CommissionMonitoringController extends Controller
@@ -38,30 +41,279 @@ class CommissionMonitoringController extends Controller
         return view('commission-dashboard');
     }
 
+    private function nextControlNumber(): string
+    {
+        $month = now()->format('m');
+        $year = now()->format('y');
+        $count = 1;
+
+        do {
+            $controlNumber = sprintf('CM-%s-%03d-%s', $month, $count, $year);
+            $count++;
+        } while (CommissionRequest::withTrashed()
+            ->where('control_number', $controlNumber)
+            ->exists());
+
+        return $controlNumber;
+    }
+
+    private function releaseDateFor(?string $dateRequested, ?string $modeOfPayment): ?string
+    {
+        if (!$dateRequested || !$modeOfPayment) {
+            return null;
+        }
+
+        $mode = strtoupper(trim($modeOfPayment));
+        $sevenDayModes = ['BANK TRANSFER', 'CASH PAYMENT', "MANAGER'S CHECK", 'BANK DEPOSIT'];
+        $tenDayModes = ['PERSONAL CHECK', 'POST-DATED CHECK'];
+
+        $days = in_array($mode, $sevenDayModes, true)
+            ? 7
+            : (in_array($mode, $tenDayModes, true) ? 10 : null);
+
+        return $days === null
+            ? null
+            : Carbon::parse($dateRequested)->addDays($days)->format('Y-m-d');
+    }
+
+    private function normalizeFinancialFields(array $validated): array
+    {
+        $discountSource = $validated['discount_calculation_source'] ?? 'percent';
+        $commissionSource = $validated['commission_calculation_source'] ?? 'percent';
+
+        $tcp = ExactFinancialMath::multiplyToMoney(
+            $validated['price_sqm'] ?? 0,
+            $validated['lot_area'] ?? 0
+        );
+
+        if ($tcp !== '0.00') {
+            if ($discountSource === 'value') {
+                $discountValue = ExactFinancialMath::clampMoney(
+                    $validated['discount_value'] ?? 0,
+                    '0.00',
+                    $tcp
+                );
+                $discountPercent = ExactFinancialMath::percentageFromAmount(
+                    $discountValue,
+                    $tcp
+                );
+            } else {
+                $discountPercent = ExactFinancialMath::normalizePercentage(
+                    $validated['discount'] ?? 0
+                );
+                $discountValue = ExactFinancialMath::moneyFromPercentage(
+                    $tcp,
+                    $discountPercent
+                );
+            }
+
+            $validated['discount'] = $discountPercent;
+            $validated['discount_value'] = $discountValue;
+            $validated['net_tcp'] = ExactFinancialMath::subtractMoney($tcp, $discountValue);
+        } else {
+            $validated['discount'] = ExactFinancialMath::normalizePercentage($validated['discount'] ?? 0);
+            $validated['discount_value'] = '0.00';
+            $validated['net_tcp'] = '0.00';
+        }
+
+        if ($validated['net_tcp'] !== '0.00') {
+            if ($commissionSource === 'value') {
+                $commission = ExactFinancialMath::normalizeMoney($validated['commission'] ?? 0);
+                $commissionPercent = ExactFinancialMath::percentageFromAmount(
+                    $commission,
+                    $validated['net_tcp']
+                );
+            } else {
+                $commissionPercent = ExactFinancialMath::normalizePercentage(
+                    $validated['commission_percent'] ?? 0
+                );
+                $commission = ExactFinancialMath::moneyFromPercentage(
+                    $validated['net_tcp'],
+                    $commissionPercent
+                );
+            }
+
+            $validated['commission_percent'] = $commissionPercent;
+            $validated['commission'] = $commission;
+
+            $termDivisor = match ($validated['payment_type'] ?? '') {
+                '2 Months Commission' => 2,
+                '3 Months Commission' => 3,
+                default => 1,
+            };
+
+            $validated['value_of_payment_terms'] = ExactFinancialMath::divideMoney(
+                $commission,
+                $termDivisor
+            );
+        }
+
+        $validated['date_released'] = $this->releaseDateFor(
+            $validated['date_requested'] ?? null,
+            $validated['mode_of_payment'] ?? null
+        );
+
+        unset(
+            $validated['discount_calculation_source'],
+            $validated['commission_calculation_source']
+        );
+
+        return $validated;
+    }
+
+    public function processCommissionNotification(Request $request, int $notificationId)
+    {
+        try {
+            $result = DB::transaction(function () use ($notificationId) {
+                $notification = SystemNotification::where('id', $notificationId)
+                    ->where('user_id', auth()->id())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($notification->type !== 'commission_request_submitted' || !$notification->note_id) {
+                    abort(422, 'This notification is not a commission request.');
+                }
+
+                $stageRequest = CommissionStageRequest::lockForUpdate()
+                    ->findOrFail($notification->note_id);
+
+                if ($stageRequest->commission_request_id) {
+                    $existing = CommissionRequest::find($stageRequest->commission_request_id);
+
+                    if (!$existing) {
+                        abort(409, 'The linked commission request is no longer available.');
+                    }
+
+                    $notification->update(['is_read' => true]);
+
+                    return $existing;
+                }
+
+                $source = CommissionRequestSales::lockForUpdate()
+                    ->findOrFail($stageRequest->source_client_record_id);
+
+                $existing = CommissionRequest::withTrashed()
+                    ->where('source_client_record_id', $source->id)
+                    ->where('commission_stage', $stageRequest->commission_stage)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existing?->trashed()) {
+                    abort(409, 'This commission stage was previously deleted. Restore it from Deleted Records before continuing.');
+                }
+
+                if ($existing) {
+                    $stageRequest->update([
+                        'commission_request_id' => $existing->id,
+                        'status' => $existing->status,
+                        'processed_at' => $stageRequest->processed_at ?: now(),
+                    ]);
+                    $notification->update(['is_read' => true]);
+
+                    return $existing;
+                }
+
+                $record = CommissionRequest::create([
+                    'control_number' => $this->nextControlNumber(),
+                    'requestor_name' => $stageRequest->requested_by_name ?: 'Sales & Marketing',
+                    'department' => 'Commission',
+                    'category' => 'Commission',
+                    'date_requested' => $stageRequest->requested_at?->format('Y-m-d') ?: now()->format('Y-m-d'),
+                    'requested_amount' => $source->net_tcp ?? 0,
+                    'status' => 'Requested',
+                    'date_released' => null,
+                    'project_name' => $source->project_name,
+                    'property_details' => $source->block_lot_number ?: $source->property_details,
+                    'client_name' => $source->client_name,
+                    'terms_of_payment' => $source->terms_of_payment,
+                    'agent_name' => $source->agent_name,
+                    'number_of_units' => $source->number_of_units ?: 1,
+                    'net_tcp' => $source->net_tcp,
+                    'commission' => null,
+                    'commission_percent' => null,
+                    'mode_of_payment' => null,
+                    'reservation_date' => $source->reservation_date?->format('Y-m-d'),
+                    'price_sqm' => $source->price_sqm,
+                    'lot_area' => $source->lot_area,
+                    'discount' => $source->discount,
+                    'discount_value' => $source->discount_value,
+                    'remarks' => $source->remarks,
+                    'payment_type' => null,
+                    'value_of_payment_terms' => null,
+                    'source_client_record_id' => $source->id,
+                    'commission_stage' => $stageRequest->commission_stage,
+                    'commission_stage_total' => $stageRequest->commission_stage_total,
+                    'stage_threshold_amount' => $stageRequest->stage_threshold_amount,
+                ]);
+
+                $stageRequest->update([
+                    'commission_request_id' => $record->id,
+                    'status' => 'Requested',
+                    'processed_at' => now(),
+                ]);
+
+                $source->update([
+                    'status' => $this->stageService->getSourceCommissionStatus($source, 'Requested'),
+                ]);
+
+                $notification->update(['is_read' => true]);
+
+                \App\Models\ActivityLog::log(
+                    'create',
+                    'Commission Monitoring',
+                    "Automatically created commission request for '{$source->client_name}' DP stage {$stageRequest->commission_stage}/{$stageRequest->commission_stage_total}"
+                );
+
+                return $record;
+            });
+
+            return response()->json([
+                'success' => true,
+                'commission_request_id' => $result->id,
+                'url' => route('commission-monitoring', ['open_request' => $result->id]),
+            ]);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'Unable to process the commission notification.',
+            ], $exception->getStatusCode());
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to create the commission request. Please try again.',
+            ], 500);
+        }
+    }
+
     private function validationRules(
         bool $updating = false,
         ?CommissionRequest $record = null
     ): array {
         return [
             'project_name' => 'required|string|max:255',
-            'property_details' => 'nullable|string|max:255',
+            'property_details' => 'required|string|max:255',
             'client_name' => 'required|string|max:255',
             'terms_of_payment' => 'required|string|max:255',
             'agent_name' => 'required|string|max:255',
             'number_of_units' => 'required|integer|min:1',
             'price_sqm' => 'required|numeric|min:0',
             'lot_area' => 'required|numeric|min:0',
-            'discount' => 'nullable|numeric|min:0',
-            'net_tcp' => 'nullable|numeric|min:0',
-            'commission_percent' => 'nullable|numeric|min:0|max:100',
-            'commission' => ($updating ? 'nullable' : 'required') . '|numeric|min:0',
+            'discount' => ['nullable', 'regex:/^(?:100(?:\.0{1,30})?|(?:\d{1,2})(?:\.\d{1,30})?)$/'],
+            'discount_value' => 'nullable|numeric|min:0',
+            'discount_calculation_source' => 'nullable|in:percent,value',
+            'net_tcp' => 'required|numeric|min:0',
+            'commission_percent' => ['required', 'regex:/^(?:100(?:\.0{1,30})?|(?:\d{1,2})(?:\.\d{1,30})?)$/'],
+            'commission' => 'required|numeric|min:0',
+            'commission_calculation_source' => 'nullable|in:percent,value',
             'mode_of_payment' => 'required|string|max:255',
             'date_requested' => 'required|date',
             'reservation_date' => 'nullable|date',
             'date_released' => 'nullable|date',
             'status' => 'required|in:Not Yet Released,Released',
             'payment_type' => 'required|string|max:50',
-            'value_of_payment_terms' => ($updating ? 'nullable' : 'required') . '|numeric|min:0',
+            'value_of_payment_terms' => 'required|numeric|min:0',
             'remarks' => 'nullable|string',
             'source_client_record_id' => 'nullable|integer|exists:commission_requests_sales,id',
             'commission_stage_request_id' => 'nullable|integer|exists:commission_stage_requests,id',
@@ -74,7 +326,9 @@ class CommissionMonitoringController extends Controller
     public function store(Request $request)
     {
         try {
-            $validated = $request->validate($this->validationRules());
+            $validated = $this->normalizeFinancialFields(
+                $request->validate($this->validationRules())
+            );
 
             return DB::transaction(function () use ($validated) {
                 $source = null;
@@ -147,17 +401,7 @@ class CommissionMonitoringController extends Controller
 
                 unset($validated['commission_stage_request_id']);
 
-                $month = now()->format('m');
-                $year = now()->format('y');
-                $count = 1;
-
-                while (CommissionRequest::withTrashed()
-                    ->where('control_number', sprintf('CM-%s-%03d-%s', $month, $count, $year))
-                    ->exists()) {
-                    $count++;
-                }
-
-                $validated['control_number'] = sprintf('CM-%s-%03d-%s', $month, $count, $year);
+                $validated['control_number'] = $this->nextControlNumber();
                 $validated['requestor_name'] = auth()->user()->name;
                 $validated['department'] = 'Commission';
                 $validated['category'] = 'Commission';
@@ -234,7 +478,40 @@ class CommissionMonitoringController extends Controller
     {
         try {
             $record = CommissionRequest::findOrFail($id);
-            $validated = $request->validate($this->validationRules(true, $record));
+
+            // Client-settled fields must always come from the linked client
+            // record. This prevents an Edit/Save cycle from recalculating a
+            // precise discount from a previously shortened percentage value.
+            if ($record->source_client_record_id) {
+                $source = CommissionRequestSales::findOrFail($record->source_client_record_id);
+
+                $request->merge([
+                    'project_name' => $source->project_name,
+                    'property_details' => $source->block_lot_number ?: $source->property_details,
+                    'client_name' => $source->client_name,
+                    'terms_of_payment' => $source->terms_of_payment,
+                    'agent_name' => $source->agent_name,
+                    'number_of_units' => $source->number_of_units ?: 1,
+                    'price_sqm' => $source->price_sqm,
+                    'lot_area' => $source->lot_area,
+                    'discount' => $source->discount,
+                    'discount_value' => $source->discount_value,
+                    // The actual money amount is authoritative. Derive and
+                    // store the full percentage from it without rounding.
+                    'discount_calculation_source' => 'value',
+                    'net_tcp' => $source->net_tcp,
+                    'reservation_date' => $source->reservation_date?->format('Y-m-d'),
+                ]);
+            } else {
+                // Terms of payment remains settled even for older/manual rows.
+                $request->merge([
+                    'terms_of_payment' => $record->terms_of_payment,
+                ]);
+            }
+
+            $validated = $this->normalizeFinancialFields(
+                $request->validate($this->validationRules(true, $record))
+            );
 
             // Stage ownership is server-controlled and cannot be changed by editing.
             unset(

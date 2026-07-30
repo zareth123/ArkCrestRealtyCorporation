@@ -14,6 +14,7 @@ use App\Models\Property;
 use App\Models\SystemNotification;
 use App\Models\User;
 use App\Services\CommissionStageService;
+use App\Support\ExactFinancialMath;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
@@ -801,6 +802,7 @@ class SalesMarketingController extends Controller
             'price_sqm' => $record->price_sqm ?? '',
             'lot_area' => $record->lot_area ?? '',
             'discount' => $record->discount ?? '',
+            'discount_value' => $record->discount_value ?? '',
             'mode_of_payment' => $record->mode_of_payment ?? '',
         ]);
     }
@@ -848,6 +850,7 @@ class SalesMarketingController extends Controller
             'price_sqm' => $record->price_sqm ?? '',
             'lot_area' => $record->lot_area ?? '',
             'discount' => $record->discount ?? '',
+            'discount_value' => $record->discount_value ?? '',
             'mode_of_payment' => $record->mode_of_payment ?? '',
         ]);
     }
@@ -935,13 +938,14 @@ class SalesMarketingController extends Controller
             'lot_area'            => 'required|numeric|min:0',
             'price_sqm'           => 'nullable|numeric|min:0',
             'tcp'                 => 'nullable|numeric',
-            'discount'            => 'nullable|numeric|min:0|max:100',
-            'discount_value'      => 'nullable|numeric',
+            'discount'            => ['nullable', 'regex:/^(?:100(?:\.0{1,30})?|(?:\d{1,2})(?:\.\d{1,30})?)$/'],
+            'discount_value'      => 'nullable|numeric|min:0',
+            'discount_calculation_source' => 'nullable|in:percent,value',
             'net_tcp'             => 'nullable|numeric',
             'terms_of_payment'    => 'required|string|max:255',
             'agent_name'          => 'required|string|max:255',
             'number_of_units'     => 'required|integer|min:1',
-            'commission_percent'  => 'nullable|numeric|min:0|max:100',
+            'commission_percent'  => ['nullable', 'regex:/^(?:100(?:\.0{1,30})?|(?:\d{1,2})(?:\.\d{1,30})?)$/'],
             'commission'          => 'nullable|numeric',
             'mode_of_payment'     => 'nullable|string|max:255',
             'remarks'             => 'nullable|string',
@@ -951,6 +955,57 @@ class SalesMarketingController extends Controller
             // downpayment_per_term, downpayment_date are managed separately
             // via the downpayment modal — never overwritten by the edit form
         ];
+    }
+
+    /**
+     * Recalculate TCP, discount percentage/value, and Net TCP with exact
+     * base-10 arithmetic. Percentage strings are preserved up to MySQL's
+     * maximum DECIMAL scale of 30 and are never converted to FLOAT/DOUBLE.
+     */
+    private function normalizeClientFinancialFields(array $validated): array
+    {
+        $tcp = ExactFinancialMath::multiplyToMoney(
+            $validated['price_sqm'] ?? 0,
+            $validated['lot_area'] ?? 0
+        );
+
+        $source = $validated['discount_calculation_source'] ?? 'percent';
+
+        if ($tcp !== '0.00') {
+            if ($source === 'value') {
+                $discountValue = ExactFinancialMath::clampMoney(
+                    $validated['discount_value'] ?? 0,
+                    '0.00',
+                    $tcp
+                );
+                $discountPercent = ExactFinancialMath::percentageFromAmount(
+                    $discountValue,
+                    $tcp
+                );
+            } else {
+                $discountPercent = ExactFinancialMath::normalizePercentage(
+                    $validated['discount'] ?? 0
+                );
+                $discountValue = ExactFinancialMath::moneyFromPercentage(
+                    $tcp,
+                    $discountPercent
+                );
+            }
+
+            $validated['tcp'] = $tcp;
+            $validated['discount'] = $discountPercent;
+            $validated['discount_value'] = $discountValue;
+            $validated['net_tcp'] = ExactFinancialMath::subtractMoney($tcp, $discountValue);
+        } else {
+            $validated['tcp'] = '0.00';
+            $validated['discount'] = ExactFinancialMath::normalizePercentage($validated['discount'] ?? 0);
+            $validated['discount_value'] = '0.00';
+            $validated['net_tcp'] = '0.00';
+        }
+
+        unset($validated['discount_calculation_source']);
+
+        return $validated;
     }
 
     public function checkDuplicate(Request $request)
@@ -986,6 +1041,7 @@ class SalesMarketingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate($this->validationRules());
+        $validated = $this->normalizeClientFinancialFields($validated);
         if (empty($validated['status'])) {
             $validated['status'] = 'Not Yet Released';
         }
@@ -1048,6 +1104,8 @@ class SalesMarketingController extends Controller
                 'errors' => $allMessages,
             ], 422);
         }
+
+        $validated = $this->normalizeClientFinancialFields($validated);
 
         // Preserve downpayment fields — never overwrite from the edit form
         unset(

@@ -535,7 +535,7 @@
         </div>
 
         <nav class="course-navigation">
-            @php $navShortTitles = [1=>'Sales Fundamentals',2=>'Property Knowledge',3=>'Client Qualification',4=>'Site Visits',5=>'Documentation & Ethics',6=>'Closing']; @endphp
+            @php $navShortTitles = [1=>'Sales Toolkit',2=>'Sales Fundamentals',3=>'Property Knowledge',4=>'Client Qualification',5=>'Site Visits',6=>'Documentation & Ethics',7=>'Closing']; @endphp
             @foreach (($academyProgress ?? []) as $m)
                 <a href="{{ $m['unlocked'] ? route('agent-training') . '#module-0' . $m['number'] : 'javascript:void(0)' }}"
                    class="course-link {{ request()->routeIs('agent-training') && $m['number'] === 1 ? 'active' : '' }} {{ !$m['unlocked'] ? 'course-link-disabled' : '' }}">

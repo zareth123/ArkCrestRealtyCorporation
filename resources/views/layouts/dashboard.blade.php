@@ -1001,12 +1001,29 @@
         const panel = document.getElementById('notificationPanel');
         if (panel) panel.classList.remove('show');
 
-        fetch('/notifications/' + notifId + '/read', {
+        fetch('/api/commission-notifications/' + encodeURIComponent(notifId) + '/process', {
             method: 'POST',
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
-        }).catch(() => {});
-
-        window.location.href = '/commission-monitoring?stage_request=' + encodeURIComponent(stageRequestId);
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ stage_request_id: stageRequestId })
+        })
+        .then(async function(response) {
+            const data = await response.json().catch(function() { return {}; });
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Unable to create the commission request.');
+            }
+            window.location.href = data.url;
+        })
+        .catch(function(error) {
+            if (typeof showToast === 'function') {
+                showToast(error.message, 'error', 'Commission Request');
+            } else {
+                alert(error.message);
+            }
+        });
     }
 
     function handleClientDoneNotifClick(notifId, recordId) {

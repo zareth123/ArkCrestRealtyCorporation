@@ -233,9 +233,10 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                     <input type="text" id="f_tcp_display" placeholder="0.00" readonly style="background:#f3f4f6;cursor:not-allowed;color:#374151;">
                     <input type="hidden" name="tcp" id="f_tcp">
                 </div>
+                <input type="hidden" name="discount_calculation_source" id="f_discount_source" value="percent">
                 <div class="form-group">
                     <label>DISCOUNT (%)</label>
-                    <input type="number" name="discount" id="f_discount_pct" placeholder="0.00" step="0.0000000001" min="0" max="100" oninput="computeDiscount()">
+                    <input type="number" name="discount" id="f_discount_pct" placeholder="0.00" step="any" min="0" max="100" oninput="computeDiscount('f', 'percent')">
                 </div>
                 <div class="form-group">
                     <label>DISCOUNT VALUE <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label>
@@ -363,7 +364,6 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                 </thead>
                 <tbody id="cdTableBody">
                     @forelse($commissionRequests ?? [] as $req)
-                    @php $discVal = $req->tcp && $req->discount ? $req->tcp * ($req->discount / 100) : null; @endphp
                     <tr data-id="{{ $req->id }}"
                         data-search="{{ strtolower($req->control_number ?? '') }} {{ strtolower($req->client_name ?? '') }} {{ strtolower($req->agent_name ?? '') }} {{ strtolower($req->project_name ?? '') }} {{ strtolower($req->developer_name ?? '') }} {{ strtolower($req->block_lot_number ?? '') }}"
                         data-control="{{ strtolower($req->control_number ?? '') }}"
@@ -375,7 +375,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                         data-price-sqm="{{ $req->price_sqm ?? '' }}"
                         data-tcp="{{ $req->tcp ?? '' }}"
                         data-discount="{{ $req->discount ?? '' }}"
-                        data-discount-value="{{ $discVal ?? '' }}"
+                        data-discount-value="{{ $req->discount_value ?? '' }}"
                         data-net-tcp="{{ $req->net_tcp ?? '' }}"
                         data-terms="{{ $req->terms_of_payment ?? '' }}"
                         data-reservation-date="{{ $req->reservation_date ? $req->reservation_date->format('Y-m-d') : '' }}"
@@ -400,10 +400,9 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->lot_area ? number_format($req->lot_area,2).' sqm' : '-' }}</td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->price_sqm ? '₱'.number_format($req->price_sqm,2) : '-' }}</td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->tcp ? '₱'.number_format($req->tcp,2) : '-' }}</td>
-                        <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->discount !== null ? number_format($req->discount, 2).'%' : '-' }}</td>
+                        <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->discount !== null ? \App\Support\ExactFinancialMath::normalizePercentage($req->discount).'%' : '-' }}</td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">
-                            @php $discVal = $req->tcp && $req->discount ? $req->tcp * ($req->discount / 100) : null; @endphp
-                            {{ $discVal ? '₱'.number_format($discVal, 2) : '-' }}
+                            {{ $req->discount_value !== null ? '₱'.number_format($req->discount_value, 2) : '-' }}
                         </td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->net_tcp ? '₱'.number_format($req->net_tcp,2) : '-' }}</td>
                         <td style="padding:14px 12px;color:#374151;white-space:nowrap">{{ $req->terms_of_payment ?? '-' }}</td>
@@ -564,6 +563,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
             @csrf @method('PUT')
             <input type="hidden" id="edit_id" name="id">
             <input type="hidden" id="edit_date_requested" name="date_requested">
+            <input type="hidden" id="edit_discount_source" name="discount_calculation_source" value="percent">
             <div class="cd-modal-grid" style="padding:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
                 <div style="display:flex;flex-direction:column;gap:4px">
                     <label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Developer's Name</label>
@@ -585,7 +585,7 @@ tbody tr:hover .cd-sticky-col{background:#f8fafc}
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Lot Area</label><input type="number" id="edit_lot_area" name="lot_area" step="0.0001" min="0" oninput="computeTCP('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Price Per SQM</label><input type="number" id="edit_price_sqm" name="price_sqm" step="0.01" min="0" oninput="computeTCP('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label><input type="number" id="edit_tcp" name="tcp" step="0.01" readonly style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;"></div>
-                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount (%)</label><input type="number" id="edit_discount" name="discount" step="0.01" min="0" max="100" oninput="computeDiscount('edit')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount (%)</label><input type="number" id="edit_discount" name="discount" step="any" min="0" max="100" oninput="computeDiscount('edit', 'percent')" style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Discount Value <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label><input type="number" id="edit_discount_value" name="discount_value" step="0.01" min="0" readonly style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;"></div>
                 <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:700;color:#1e4575;text-transform:uppercase">Net TCP <span style="font-size:11px;color:#9ca3af;font-weight:400">(auto)</span></label><input type="number" id="edit_net_tcp" name="net_tcp" step="0.01" readonly style="padding:10px 14px;border:2px solid #d0d5dd;border-radius:8px;font-size:14px;background:#f3f4f6;cursor:not-allowed;color:#374151;"></div>
                 <div style="display:flex;flex-direction:column;gap:4px">
@@ -812,6 +812,106 @@ function highlightSelectedOption(dropdownId, value) {
     }
 }
 
+const EXACT_PERCENT_SCALE = 30;
+
+function normalizePlainDecimal(value, maxScale) {
+    var raw = String(value ?? '').replace(/,/g, '').trim();
+    if (!/^\d*(?:\.\d*)?$/.test(raw) || raw === '' || raw === '.') return '';
+    var parts = raw.split('.');
+    var whole = (parts[0] || '0').replace(/^0+(?=\d)/, '');
+    var fraction = parts[1] || '';
+    if (typeof maxScale === 'number') fraction = fraction.slice(0, maxScale);
+    return fraction.length ? whole + '.' + fraction : whole;
+}
+
+function exactDecimalParts(value, maxScale) {
+    var normalized = normalizePlainDecimal(value, maxScale);
+    if (normalized === '') return { valid:false, digits:0n, scale:0 };
+    var parts = normalized.split('.');
+    var fraction = parts[1] || '';
+    return {
+        valid: true,
+        digits: BigInt((parts[0] || '0') + fraction),
+        scale: fraction.length
+    };
+}
+
+function exactPow10(scale) {
+    return 10n ** BigInt(scale);
+}
+
+function exactRoundDivide(numerator, denominator) {
+    if (denominator <= 0n) return 0n;
+    var quotient = numerator / denominator;
+    var remainder = numerator % denominator;
+    return remainder * 2n >= denominator ? quotient + 1n : quotient;
+}
+
+function exactFormatScaled(value, scale, trimTrailingZeros) {
+    var text = value.toString().padStart(scale + 1, '0');
+    if (scale === 0) return text;
+    var whole = text.slice(0, -scale);
+    var fraction = text.slice(-scale);
+    if (trimTrailingZeros) fraction = fraction.replace(/0+$/, '');
+    return fraction ? whole + '.' + fraction : whole;
+}
+
+function exactMoneyString(value) {
+    var parts = exactDecimalParts(value, 30);
+    if (!parts.valid) return '0.00';
+    var cents;
+    if (parts.scale <= 2) {
+        cents = parts.digits * exactPow10(2 - parts.scale);
+    } else {
+        cents = exactRoundDivide(parts.digits, exactPow10(parts.scale - 2));
+    }
+    return exactFormatScaled(cents, 2, false);
+}
+
+function exactMultiplyToMoney(left, right) {
+    var a = exactDecimalParts(left, 30);
+    var b = exactDecimalParts(right, 30);
+    if (!a.valid || !b.valid) return '0.00';
+    var product = a.digits * b.digits;
+    var scale = a.scale + b.scale;
+    var cents = scale <= 2
+        ? product * exactPow10(2 - scale)
+        : exactRoundDivide(product, exactPow10(scale - 2));
+    return exactFormatScaled(cents, 2, false);
+}
+
+function exactMoneyFromPercentage(baseAmount, percentage) {
+    var base = exactDecimalParts(exactMoneyString(baseAmount), 2);
+    var pct = exactDecimalParts(percentage, EXACT_PERCENT_SCALE);
+    if (!base.valid || !pct.valid || base.digits === 0n || pct.digits === 0n) return '0.00';
+    var denominator = 100n * exactPow10(pct.scale);
+    var cents = exactRoundDivide(base.digits * pct.digits, denominator);
+    return exactFormatScaled(cents, 2, false);
+}
+
+function exactPercentageFromMoney(amount, baseAmount) {
+    var amountParts = exactDecimalParts(exactMoneyString(amount), 2);
+    var baseParts = exactDecimalParts(exactMoneyString(baseAmount), 2);
+    if (!amountParts.valid || !baseParts.valid || amountParts.digits === 0n || baseParts.digits === 0n) return '';
+    var scaled = (amountParts.digits * 100n * exactPow10(EXACT_PERCENT_SCALE)) / baseParts.digits;
+    return exactFormatScaled(scaled, EXACT_PERCENT_SCALE, true);
+}
+
+function exactSubtractMoney(left, right) {
+    var leftParts = exactDecimalParts(exactMoneyString(left), 2);
+    var rightParts = exactDecimalParts(exactMoneyString(right), 2);
+    var cents = leftParts.digits >= rightParts.digits ? leftParts.digits - rightParts.digits : 0n;
+    return exactFormatScaled(cents, 2, false);
+}
+
+function formatExactPercentage(value) {
+    var normalized = normalizePlainDecimal(value, EXACT_PERCENT_SCALE);
+    if (normalized === '') return '0';
+    var parts = normalized.split('.');
+    var fraction = (parts[1] || '').replace(/0+$/, '');
+    return fraction ? parts[0] + '.' + fraction : parts[0];
+}
+
 function fmtComma(n) {
     if (!n && n !== 0) return '';
     return parseFloat(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:10});
@@ -822,7 +922,7 @@ function onPriceSqmInput(el) {
     var raw = el.value.replace(/,/g, '');
     var num = parseFloat(raw);
     // Store raw numeric in hidden field
-    document.getElementById('f_price_sqm').value = isNaN(num) ? '' : num;
+    document.getElementById('f_price_sqm').value = isNaN(num) ? '' : normalizePlainDecimal(raw, 10);
     el.setCustomValidity((!isNaN(num) && num < 0) ? 'Price per SQM cannot be negative.' : '');
     // Format display with commas (only if user has finished typing a valid number)
     // Use a small delay so cursor doesn't jump while typing
@@ -884,47 +984,62 @@ function validateEditDownpaymentDate() {
 function computeTCP(ctx){
     ctx = ctx || 'f';
     if (ctx === 'edit') {
-        var area = parseFloat(document.getElementById('edit_lot_area').value) || 0;
-        var psqm = parseFloat(document.getElementById('edit_price_sqm').value) || 0;
-        var tcp  = area * psqm;
-        document.getElementById('edit_tcp').value = tcp ? tcp.toFixed(2) : '';
-        computeDiscount('edit');
+        var area = document.getElementById('edit_lot_area').value;
+        var psqm = document.getElementById('edit_price_sqm').value;
+        var tcp = exactMultiplyToMoney(area, psqm);
+        document.getElementById('edit_tcp').value = tcp !== '0.00' ? tcp : '';
+        computeDiscount('edit', document.getElementById('edit_discount_source').value || 'percent');
         return;
     }
-    var area = parseFloat(document.getElementById('f_lot_area').value) || 0;
-    var psqm = parseFloat(document.getElementById('f_price_sqm').value) || 0;
-    var tcp  = area * psqm;
-    document.getElementById('f_tcp').value = tcp ? tcp.toFixed(2) : '';
-    document.getElementById('f_tcp_display').value = tcp ? fmtComma(tcp) : '';
-    computeDiscount('f');
+
+    var area = document.getElementById('f_lot_area').value;
+    var psqm = document.getElementById('f_price_sqm').value;
+    var tcp = exactMultiplyToMoney(area, psqm);
+    document.getElementById('f_tcp').value = tcp !== '0.00' ? tcp : '';
+    document.getElementById('f_tcp_display').value = tcp !== '0.00' ? fmtComma(tcp) : '';
+    computeDiscount('f', document.getElementById('f_discount_source').value || 'percent');
 }
-function computeDiscount(ctx){
+
+function computeDiscount(ctx, source){
     ctx = ctx || 'f';
+    source = source || 'percent';
+
     if (ctx === 'edit') {
-        var tcp = parseFloat(document.getElementById('edit_tcp').value) || 0;
-        var pct = parseFloat(document.getElementById('edit_discount').value) || 0;
-        var val = tcp * (pct / 100);
-        var net = tcp - val;
-        document.getElementById('edit_discount_value').value = val ? val.toFixed(2) : '';
-        document.getElementById('edit_net_tcp').value = net ? net.toFixed(2) : '';
+        document.getElementById('edit_discount_source').value = source;
+        var tcp = document.getElementById('edit_tcp').value || '0.00';
+        var pct = document.getElementById('edit_discount').value || '0';
+        var val = exactMoneyFromPercentage(tcp, pct);
+        var net = exactSubtractMoney(tcp, val);
+        document.getElementById('edit_discount_value').value = val !== '0.00' ? val : '';
+        document.getElementById('edit_net_tcp').value = net !== '0.00' ? net : '';
         return;
     }
-    var tcp  = parseFloat(document.getElementById('f_tcp').value) || 0;
-    var pct  = parseFloat(document.getElementById('f_discount_pct').value) || 0;
-    var val  = tcp * (pct / 100);
-    var net  = tcp - val;
-    document.getElementById('f_discount_val').value = val ? val.toFixed(2) : '';
-    document.getElementById('f_net_tcp').value = net ? net.toFixed(2) : '';
-    document.getElementById('f_net_tcp_display').value = net ? fmtComma(net) : '';
+
+    document.getElementById('f_discount_source').value = source;
+    var tcp = document.getElementById('f_tcp').value || '0.00';
+    var pct = document.getElementById('f_discount_pct').value || '0';
+    var val = exactMoneyFromPercentage(tcp, pct);
+    var net = exactSubtractMoney(tcp, val);
+    document.getElementById('f_discount_val').value = val !== '0.00' ? val : '';
+    document.getElementById('f_net_tcp').value = net !== '0.00' ? net : '';
+    document.getElementById('f_net_tcp_display').value = net !== '0.00' ? fmtComma(net) : '';
 }
+
 function computeDiscountFromValue(){
-    var tcp = parseFloat(document.getElementById('f_tcp').value) || 0;
-    var val = parseFloat(document.getElementById('f_discount_val').value) || 0;
-    var pct = tcp > 0 ? (val / tcp) * 100 : 0;
-    var net = tcp - val;
-    document.getElementById('f_discount_pct').value = pct ? pct.toFixed(10).replace(/\.?0+$/, '') : '';
-    document.getElementById('f_net_tcp').value = net ? net.toFixed(2) : '';
-    document.getElementById('f_net_tcp_display').value = net ? fmtComma(net) : '';
+    document.getElementById('f_discount_source').value = 'value';
+    var tcp = document.getElementById('f_tcp').value || '0.00';
+    var val = exactMoneyString(document.getElementById('f_discount_val').value || '0');
+    var tcpParts = exactDecimalParts(exactMoneyString(tcp), 2);
+    var valParts = exactDecimalParts(val, 2);
+    if (valParts.digits > tcpParts.digits) {
+        val = exactMoneyString(tcp);
+        document.getElementById('f_discount_val').value = val;
+    }
+    var pct = exactPercentageFromMoney(val, tcp);
+    var net = exactSubtractMoney(tcp, val);
+    document.getElementById('f_discount_pct').value = pct;
+    document.getElementById('f_net_tcp').value = net !== '0.00' ? net : '';
+    document.getElementById('f_net_tcp_display').value = net !== '0.00' ? fmtComma(net) : '';
 }
 
 function viewRow(id){
@@ -939,7 +1054,7 @@ function viewRow(id){
             ['Lot Area',d.lot_area?parseFloat(d.lot_area).toFixed(2)+' sqm':'-'],
             ['Price Per SQM',fmtP(d.price_sqm)],
             ['TCP',fmtP(d.tcp)],
-            ['Discount',d.discount?parseFloat(d.discount).toFixed(2)+'%':'-'],
+            ['Discount',d.discount!==null&&d.discount!==undefined&&d.discount!==''?formatExactPercentage(d.discount)+'%':'-'],
             ['Net TCP',fmtP(d.net_tcp)],
             ['Terms of Payment',fmt(d.terms_of_payment)],
             ['Reservation Date',fmtD(d.reservation_date)],
@@ -966,7 +1081,8 @@ function editRow(id){
         document.getElementById('edit_client_name').value=d.client_name??'';
         document.getElementById('edit_lot_area').value=d.lot_area??'';
         document.getElementById('edit_price_sqm').value=d.price_sqm??'';
-        document.getElementById('edit_discount').value=d.discount??'';
+        document.getElementById('edit_discount').value=(d.discount!==null&&d.discount!==undefined)?formatExactPercentage(d.discount):'';
+        document.getElementById('edit_discount_source').value='percent';
         // TCP, Discount Value, and Net TCP are read-only/derived fields — recompute
         // them from Lot Area, Price/SQM, and Discount % instead of trusting the
         // stored tcp/net_tcp columns, so the modal never opens showing figures
