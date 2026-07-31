@@ -14,7 +14,7 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         $salesPositions = ['sales agent', 'sales manager', 'sales person', 'salesperson', 'sales team leader', 'sales personnel'];
@@ -35,16 +35,34 @@ class DashboardController extends Controller
             }
         }
 
-        $currentMonth = now()->format('F');
-        $currentYear = now()->format('Y');
-        $currentMonthNumber = now()->month;
+        // Month/year being viewed — defaults to today, but can be overridden
+        // via ?month=&year= (see the filter dropdown in dashboard.blade.php).
+        // "Today" / "Tomorrow" items below (notifications, today's pills)
+        // intentionally stay tied to the real current date regardless of
+        // this filter, since those are live operational indicators rather
+        // than historical reporting.
+        $selectedMonth = (int) $request->query('month', now()->month);
+        $selectedYear  = (int) $request->query('year', now()->year);
+        if ($selectedMonth < 1 || $selectedMonth > 12) {
+            $selectedMonth = now()->month;
+        }
+        $viewDate = Carbon::createFromDate($selectedYear, $selectedMonth, 1);
+        $isCurrentMonth = $viewDate->isSameMonth(now());
 
-        $monthStart = now()->startOfMonth()->toDateString();
-        $monthEnd   = now()->endOfMonth()->toDateString();
+        $currentMonth = $viewDate->format('F');
+        $currentYear = $viewDate->format('Y');
+        $currentMonthNumber = $viewDate->month;
 
-        $units = \App\Models\ArkcrestCommissionRate::whereHas('commissionRequest', function($q) use ($monthStart, $monthEnd) {
-            $q->where('status', 'Released')->whereBetween('date_released', [$monthStart, $monthEnd]);
-        })->count();
+        $monthStart = $viewDate->copy()->startOfMonth()->toDateString();
+        $monthEnd   = $viewDate->copy()->endOfMonth()->toDateString();
+
+        // Sums number_of_units directly off CommissionRequest — matching
+        // ArkcrestSalesController's $totalUnits — rather than counting rows
+        // in arkcrest_commission_rates, which undercounts any released sale
+        // that doesn't have its ArkCrest commission % entered yet.
+        $units = \App\Models\CommissionRequest::where('status', 'Released')
+            ->whereBetween('date_released', [$monthStart, $monthEnd])
+            ->sum('number_of_units');
 
         $grossSales = \App\Models\ArkcrestCommissionRate::whereHas('commissionRequest', function($q) use ($monthStart, $monthEnd) {
             $q->where('status', 'Released')->whereBetween('date_released', [$monthStart, $monthEnd]);
@@ -67,8 +85,8 @@ class DashboardController extends Controller
 
         $totalReservation = $units + $pendingReservation - $cancelledReservation;
 
-        $yearStart = now()->startOfYear()->toDateString();
-        $yearEnd   = now()->endOfYear()->toDateString();
+        $yearStart = $viewDate->copy()->startOfYear()->toDateString();
+        $yearEnd   = $viewDate->copy()->endOfYear()->toDateString();
         $yearlySales = \App\Models\ArkcrestCommissionRate::whereHas('commissionRequest', function($q) use ($yearStart, $yearEnd) {
             $q->where('status', 'Released')->whereBetween('date_released', [$yearStart, $yearEnd]);
         })->sum('arkcrest_commission');
@@ -88,13 +106,22 @@ class DashboardController extends Controller
         $expenseBreakdown = [];
         
         foreach ($departments as $dept) {
-            $deptExpenses = DepartmentalExpense::whereRaw('LOWER(TRIM(department)) = ?', [strtolower(trim($dept->name))])
+            // Same formula as the "Departments Expenses" cards on the
+            // Departmental Expenses page (DepartmentalExpensesController::
+            // remainingBudget) — only LIQUIDATED requests count, using the
+            // verified total_expenses amount. Not-yet-liquidated requests
+            // are excluded entirely so the two pages always agree. This is
+            // scoped to the current month here (that page is all-time).
+            $requests = DepartmentalExpense::whereRaw('LOWER(TRIM(department)) = ?', [strtolower(trim($dept->name))])
+                ->where('status', 'LIQUIDATED')
                 ->whereMonth('date_released', $currentMonthNumber)
                 ->whereYear('date_released', $currentYear)
-                ->sum('requested_amount');
-            
+                ->get();
+
+            $deptExpenses = $requests->sum(fn($r) => (float) $r->total_expenses);
+
             $remaining = $dept->allowable_budget - $deptExpenses;
-            
+
             $departmentData[] = [
                 'name' => $dept->name,
                 'budget' => $dept->allowable_budget,
@@ -104,21 +131,18 @@ class DashboardController extends Controller
             ];
 
             $categories = [];
-            $requests = DepartmentalExpense::whereRaw('LOWER(TRIM(department)) = ?', [strtolower(trim($dept->name))])
-                ->whereMonth('date_released', $currentMonthNumber)
-                ->whereYear('date_released', $currentYear)
-                ->whereNotNull('requested_amount')
-                ->where('requested_amount', '>', 0)
-                ->get();
-            
             foreach ($requests as $request) {
+                $amount = (float) $request->total_expenses;
+                if ($amount <= 0) {
+                    continue;
+                }
                 $catName = $request->category;
                 if (!isset($categories[$catName])) {
                     $categories[$catName] = 0;
                 }
-                $categories[$catName] += $request->requested_amount;
+                $categories[$catName] += $amount;
             }
-            
+
             $expenseBreakdown[$dept->name] = $categories;
             $totalExpenses += $deptExpenses;
         }
@@ -136,6 +160,14 @@ class DashboardController extends Controller
               ->orWhereDate('date_of_downpayment', $today);
         })->count();
 
-        return view('dashboard', compact('departmentData', 'totalExpenses', 'expenseBreakdown', 'currentMonth', 'currentYear', 'units', 'grossSales', 'yearlySales', 'receivables', 'monthlySales', 'tomorrowReleases', 'todayTrips', 'todayReleases', 'todayEvents', 'pendingReservation', 'cancelledReservation', 'totalReservation'));
+        $availableYears = collect([now()->year])
+            ->merge(SummaryReport::pluck('year'))
+            ->merge(DepartmentalExpense::whereNotNull('date_released')->selectRaw('YEAR(date_released) as year')->pluck('year'))
+            ->map(fn($y) => (int) $y)
+            ->unique()
+            ->sortDesc()
+            ->values();
+
+        return view('dashboard', compact('departmentData', 'totalExpenses', 'expenseBreakdown', 'currentMonth', 'currentYear', 'units', 'grossSales', 'yearlySales', 'receivables', 'monthlySales', 'tomorrowReleases', 'todayTrips', 'todayReleases', 'todayEvents', 'pendingReservation', 'cancelledReservation', 'totalReservation', 'selectedMonth', 'selectedYear', 'isCurrentMonth', 'availableYears'));
     }
 }

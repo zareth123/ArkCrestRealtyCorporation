@@ -54,9 +54,63 @@
    FRIENDLY DATE PICKER (readonly formatted display + hidden
    native date input opened via .showPicker()/click passthrough)
    ============================================================ */
-.friendly-date-wrap{position:relative;display:inline-block;width:100%}
-.friendly-date-display{cursor:pointer;background:transparent}
-.friendly-date-hidden{position:absolute;top:0;left:0;opacity:0;width:1px;height:1px;padding:0;margin:0;border:none;pointer-events:none}
+.friendly-date-wrap{
+    position:relative;
+    display:inline-block;
+    width:100%;
+}
+
+/* Desktop/laptop: the visible field handles the click and opens
+   the hidden native date picker through openDatePicker(). */
+.friendly-date-display{
+    width:100%;
+    cursor:pointer;
+    background:transparent;
+}
+
+.friendly-date-hidden{
+    position:absolute;
+    top:0;
+    left:0;
+    width:1px;
+    height:1px;
+    opacity:0;
+    padding:0;
+    margin:0;
+    border:none;
+    pointer-events:none;
+}
+
+/* Mobile/touch devices: place the real native date input over the
+   visible field so the browser receives a direct user tap. */
+@media (hover:none) and (pointer:coarse){
+    .friendly-date-display{
+        pointer-events:none;
+    }
+
+    .friendly-date-hidden{
+        inset:0;
+        z-index:2;
+        width:100%;
+        height:100%;
+        cursor:pointer;
+        pointer-events:auto;
+        -webkit-appearance:auto;
+        appearance:auto;
+        touch-action:manipulation;
+    }
+
+    .friendly-date-hidden::-webkit-calendar-picker-indicator{
+        position:absolute;
+        inset:0;
+        width:100%;
+        height:100%;
+        margin:0;
+        padding:0;
+        opacity:0;
+        cursor:pointer;
+    }
+}
 
 /* ============================================================
    Hide the native scrollbar on the tables (info-tbl, liq-tbl,

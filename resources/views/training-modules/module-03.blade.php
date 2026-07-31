@@ -29,6 +29,12 @@
 <article class="crs-lesson">
     <h3><span class="crs-lesson-num">Lesson 3.1</span> Asking Better Questions (The Discovery Phase)</h3>
 
+    <div class="crs-video-wrap">
+        <div class="crs-video-frame">
+            <iframe src="https://www.youtube.com/embed/2CRq2jQKYKM" title="Lesson 3.1 Video" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+    </div>
+
     <span class="crs-sub-label">3.1.1 Checklist Questions vs. Discovery Questions</span>
     <p>It's tempting to jump straight into close-ended questions like "Do you want 3 bedrooms?" — but questions like that only confirm a checklist, they don't tell you why. Tap each card to compare the two approaches.</p>
     <div class="crs-compare-grid">
@@ -51,6 +57,12 @@
 
 <article class="crs-lesson">
     <h3><span class="crs-lesson-num">Lesson 3.2</span> Identifying Priorities &amp; Qualifying Leads</h3>
+
+    <div class="crs-video-wrap">
+        <div class="crs-video-frame">
+            <iframe src="https://www.youtube.com/embed/9A2ZyVXaHRY" title="Lesson 3.2 Video" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+    </div>
 
     <span class="crs-sub-label">3.2.1 From "Why" to "Can They, and When"</span>
     <p>Once you understand the "why," you need to confirm the "can they, and when." Chasing an enthusiastic but unqualified lead can quietly eat an entire month of your time — the <strong>BANT</strong> framework gives you a fast, repeatable way to catch that early.</p>
@@ -100,3 +112,25 @@
         <li>Build a tight shortlist of 3 to 4 properties and justify each recommendation against the client's actual needs.</li>
     </ul>
 </div>
+
+<style>
+    .crs-video-wrap { margin: 4px 0 28px; }
+    .crs-video-frame {
+        position: relative;
+        width: 100%;
+        padding-bottom: 56.25%; /* 16:9 */
+        height: 0;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        background: #000;
+    }
+    .crs-video-frame iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+</style>

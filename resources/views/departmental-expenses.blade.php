@@ -63,7 +63,7 @@
             body: JSON.stringify({name: name, categories: cats})
         }).then(r => r.json()).then(d => {
             if (d.success) { location.reload(); }
-            else { alert(d.message || 'Error adding department'); }
+            else { showToast(d.message || 'Error adding department', 'error', 'Add Department'); }
         });
     });
 
@@ -115,8 +115,11 @@
                     $totalExpenses = $commitments[$dept->name]['liquidated'] ?? 0;
                 @endphp
                 <div class="budget-card-compact" onclick="selectDepartmentFromCard('{{ $dept->name }}')" style="cursor:pointer;" title="Click to select {{ $dept->name }}">
-                    <div class="budget-card-header-compact" style="padding-bottom:8px;border-bottom:1px solid #e5e7eb;margin-bottom:10px;">
+                    <div class="budget-card-header-compact" style="padding-bottom:8px;border-bottom:1px solid #e5e7eb;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:6px;">
                         <h4 style="font-size:13px;font-weight:700;color:#fff;margin:0;white-space:normal;word-break:break-word;">{{ $dept->name }}</h4>
+                        @if(auth()->user()->isAdmin())
+                        <button type="button" onclick="event.stopPropagation();deleteDepartment({{ $dept->id }}, '{{ addslashes($dept->name) }}')" title="Delete department" style="flex-shrink:0;background:rgba(255,255,255,.15);border:none;color:#fff;width:18px;height:18px;border-radius:5px;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">&times;</button>
+                        @endif
                     </div>
                     <div class="budget-card-body-compact">
                         <div style="display:flex;justify-content:space-between;font-size:12px;">

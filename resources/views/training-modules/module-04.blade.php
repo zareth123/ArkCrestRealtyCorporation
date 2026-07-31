@@ -3,6 +3,13 @@
 
 <p class="crs-module-intro">By the time you're standing in front of a property with a qualified buyer, most of the hard diagnostic work from Module 3 is done. This module is about execution: making the environment work for you instead of against you, translating specs into feelings, and quietly reinforcing that this is also a sound financial decision.</p>
 
+<span class="crs-sub-label">Watch: Module 4 Overview</span>
+<div class="crs-video-wrap">
+    <div class="crs-video-frame">
+        <iframe src="https://www.youtube.com/embed/BfIrK2BE4II" title="Module 4 Overview" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+</div>
+
 <span class="crs-sub-label">Module 4 at a Glance</span>
 <p>Tap each icon for a one-line preview of what's ahead.</p>
 <div class="crs-pin-grid" data-group="m4-glance">
@@ -66,6 +73,12 @@
 <article class="crs-lesson">
     <h3><span class="crs-lesson-num">Lesson 4.2</span> Communicating Features vs. Benefits</h3>
 
+    <div class="crs-video-wrap">
+        <div class="crs-video-frame">
+            <iframe src="https://www.youtube.com/embed/L6FfJNSOiAU" title="Lesson 4.2 Video" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+    </div>
+
     <span class="crs-sub-label">4.2.1 A Feature Is a Spec. A Benefit Is a Feeling.</span>
     <p>A <strong>feature</strong> is a spec. A <strong>benefit</strong> is what that spec actually does for the client's life. Your job on a tour is to translate one into the other, every single time you point something out. Tap each card below to see the difference in practice.</p>
     <div class="crs-compare-grid">
@@ -88,6 +101,12 @@
 
 <article class="crs-lesson">
     <h3><span class="crs-lesson-num">Lesson 4.3</span> Highlighting Investment Potential</h3>
+
+    <div class="crs-video-wrap">
+        <div class="crs-video-frame">
+            <iframe src="https://www.youtube.com/embed/l0hVIH3EnlQ" title="Lesson 4.3 Video" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+    </div>
 
     <span class="crs-sub-label">4.3.1 Even Primary Homebuyers Want Reassurance</span>
     <p>Even buyers purchasing a primary home want reassurance they're making a sound financial decision — not just a comfortable one. Weaving the investment angle into a tour doesn't have to feel like a sales pitch; it can be as simple as a passing comment while walking through the unit.</p>
@@ -136,3 +155,25 @@
         <li>Practice the "Silent Tour": highlight the key points, then step back and let the buyer connect with the space on their own.</li>
     </ul>
 </div>
+
+<style>
+    .crs-video-wrap { margin: 4px 0 28px; }
+    .crs-video-frame {
+        position: relative;
+        width: 100%;
+        padding-bottom: 56.25%; /* 16:9 */
+        height: 0;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        background: #000;
+    }
+    .crs-video-frame iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+</style>

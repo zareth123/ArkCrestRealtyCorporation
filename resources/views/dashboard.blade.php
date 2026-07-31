@@ -33,6 +33,21 @@
             </svg>
             {{ $currentMonth }} {{ $currentYear }} Overview
         </p>
+        <form method="GET" action="{{ route('dashboard') }}" style="display:flex;align-items:center;gap:8px;margin-top:14px;position:relative;z-index:2;flex-wrap:wrap;">
+            <select name="month" onchange="this.form.submit()" style="background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.3);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;">
+                @foreach(['January','February','March','April','May','June','July','August','September','October','November','December'] as $i => $mName)
+                <option value="{{ $i+1 }}" {{ ($i+1) == $selectedMonth ? 'selected' : '' }} style="color:#1e4575;background:white;">{{ $mName }}</option>
+                @endforeach
+            </select>
+            <select name="year" onchange="this.form.submit()" style="background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.3);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;">
+                @foreach($availableYears as $y)
+                <option value="{{ $y }}" {{ $y == $selectedYear ? 'selected' : '' }} style="color:#1e4575;background:white;">{{ $y }}</option>
+                @endforeach
+            </select>
+            @if(!$isCurrentMonth)
+            <a href="{{ route('dashboard') }}" style="padding:6px 14px;background:rgba(255,255,255,.2);color:white;border:1.5px solid rgba(255,255,255,.3);border-radius:8px;text-decoration:none;font-size:12px;font-weight:600;">Today</a>
+            @endif
+        </form>
         <div class="today-pills">
             <span class="today-pill">
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -152,8 +167,20 @@
         </div>
         <div class="card-body-modern">
             <div class="department-list-modern">
-                @foreach($departmentData as $index => $dept)
-                @php $pct = min($dept['percentage'], 100); $color = $pct < 70 ? '#059669' : ($pct < 90 ? '#d97706' : '#dc2626'); @endphp
+                @php
+                    $sortedDeptData = collect($departmentData)->sortByDesc('expenses')->values();
+                    $maxDeptExpense = $sortedDeptData->max('expenses') ?: 1;
+                @endphp
+                @foreach($sortedDeptData as $index => $dept)
+                @php
+                    $barPct = 0;
+                    if ($dept['expenses'] > 0 && $maxDeptExpense > 0) {
+                        // Floor of 4% so departments with real (but comparatively tiny)
+                        // expenses still show a visible sliver instead of vanishing next
+                        // to one huge outlier department.
+                        $barPct = max(4, min(100, ($dept['expenses'] / $maxDeptExpense) * 100));
+                    }
+                @endphp
                 <div class="dept-item-modern fade-in-up gpu-accelerated">
                     <div style="flex:1;min-width:0;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -173,15 +200,10 @@
                             </div>
                             <div style="text-align:right;flex-shrink:0;">
                                 <div class="dept-amount-modern">₱{{ number_format($dept['expenses'], 0) }}</div>
-                                <div style="font-size:10px;color:#94a3b8;">of ₱{{ number_format($dept['budget'], 0) }}</div>
                             </div>
                         </div>
                         <div style="background:#f1f5f9;border-radius:999px;height:5px;overflow:hidden;">
-                            <div style="height:100%;width:{{ $pct }}%;background:{{ $color }};border-radius:999px;transition:width .6s;"></div>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;margin-top:4px;">
-                            <span style="font-size:10px;color:#94a3b8;">{{ number_format($pct, 1) }}% used</span>
-                            <span style="font-size:10px;font-weight:600;color:{{ $dept['remaining'] >= 0 ? '#059669' : '#dc2626' }};">₱{{ number_format($dept['remaining'], 0) }} left</span>
+                            <div style="height:100%;width:{{ $barPct }}%;background:linear-gradient(90deg,#1e4575,#2563eb);border-radius:999px;transition:width .6s;"></div>
                         </div>
                     </div>
                 </div>
@@ -190,61 +212,9 @@
         </div>
     </div>
     @endif
-</div>
+    </div>
 @endif
 
-<!-- Budget Table Section -->
-@if(!in_array('dashboard.budget-table', $hiddenSections))
-<div class="dashboard-card budget-card">
-    <div class="card-header-modern">
-        <div class="header-icon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-            </svg>
-        </div>
-        <div>
-            <h3 class="card-title-modern">Budget Overview</h3>
-            <p class="card-subtitle-modern">Remaining Fund per Department - {{ $currentMonth }} {{ $currentYear }}</p>
-        </div>
-    </div>
-    <div class="card-body-modern">
-        <div class="table-container">
-            <table class="modern-table">
-                <thead>
-                    <tr>
-                        <th>Department</th>
-                        <th>Total Budget</th>
-                        <th>Used</th>
-                        <th>Remaining</th>
-                        <th>Usage</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($departmentData as $dept)
-                    <tr>
-                        <td>
-                            <div class="table-dept">{{ $dept['name'] }}</div>
-                        </td>
-                        <td>₱{{ number_format($dept['budget'], 2) }}</td>
-                        <td>₱{{ number_format($dept['expenses'], 2) }}</td>
-                        <td class="remaining-amount">₱{{ number_format($dept['remaining'], 2) }}</td>
-                        <td>
-                            <div class="progress-container">
-                                <div class="progress-bar">
-                                    <div class="progress-fill progress-{{ $dept['percentage'] < 70 ? 'success' : ($dept['percentage'] < 90 ? 'warning' : 'danger') }}" 
-                                         style="width: {{ min($dept['percentage'], 100) }}%"></div>
-                                </div>
-                                <span class="progress-text">{{ number_format($dept['percentage'], 1) }}%</span>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-@endif
 
 <style>
 /* ===== WELCOME BANNER ===== */
@@ -441,35 +411,6 @@
 .dept-icon-5 { background: linear-gradient(135deg,#A37929,#d4a03a); }
 .dept-name-modern { font-weight: 600; color: #334155; font-size: 13px; }
 .dept-amount-modern { font-weight: 700; color: #0f172a; font-size: 14px; }
-
-/* ===== BUDGET TABLE ===== */
-.budget-card { margin-bottom: 0; }
-.table-container { overflow-x: auto; }
-.modern-table { width: 100%; border-collapse: collapse; }
-.modern-table thead tr { background: linear-gradient(135deg,#1e4575,#2563eb); }
-.modern-table th {
-    padding: 14px 16px;
-    text-align: left;
-    font-weight: 600;
-    font-size: 12px;
-    color: white;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    white-space: nowrap;
-}
-.modern-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .15s; }
-.modern-table tbody tr:last-child { border-bottom: none; }
-.modern-table tbody tr:hover { background: #f8fafc; }
-.modern-table td { padding: 14px 16px; font-size: 13px; color: #334155; }
-.table-dept { font-weight: 600; color: #1e4575; }
-.remaining-amount { font-weight: 700; color: #059669; }
-.progress-container { display: flex; align-items: center; gap: 10px; }
-.progress-bar { flex: 1; height: 7px; background: #e2e8f0; border-radius: 4px; overflow: hidden; min-width: 80px; }
-.progress-fill { height: 100%; border-radius: 4px; transition: width .6s ease; }
-.progress-success { background: linear-gradient(90deg,#A37929,#d4a03a); }
-.progress-warning { background: linear-gradient(90deg,#f59e0b,#d97706); }
-.progress-danger { background: linear-gradient(90deg,#ef4444,#dc2626); }
-.progress-text { font-weight: 600; font-size: 12px; color: #64748b; min-width: 40px; text-align: right; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {

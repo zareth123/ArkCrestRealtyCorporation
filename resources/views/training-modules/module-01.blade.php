@@ -3,6 +3,13 @@
 
 <p class="crs-module-intro">Before you sell a single unit, you need a clear picture of what the job actually is day to day — not the version people imagine, but the version that keeps deals from falling apart. This module lays that foundation: the roles you play, the full arc of a transaction, what buyers expect from you today, and the habits that separate agents who last from agents who burn out in their first year.</p>
 
+<span class="crs-sub-label">Watch: Module 1 Overview</span>
+<div class="crs-video-wrap">
+    <div class="crs-video-frame">
+        <iframe src="https://www.youtube.com/embed/XsmxoPHMJug" title="Module 1 Overview" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+</div>
+
 <span class="crs-sub-label">Module 1 at a Glance</span>
 <p>Tap each icon for a one-line preview of what's ahead.</p>
 <div class="crs-pin-grid" data-group="m1-glance">
@@ -153,3 +160,25 @@
         <li>Time blocking, CRM discipline, and standardized communication are what separate consistent professionals from amateurs.</li>
     </ul>
 </div>
+
+<style>
+    .crs-video-wrap { margin: 4px 0 28px; }
+    .crs-video-frame {
+        position: relative;
+        width: 100%;
+        padding-bottom: 56.25%; /* 16:9 */
+        height: 0;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        background: #000;
+    }
+    .crs-video-frame iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+</style>

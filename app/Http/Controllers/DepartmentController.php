@@ -95,15 +95,36 @@ class DepartmentController extends Controller
     {
         if (!auth()->user()->isAdmin()) abort(403);
         $dept = Department::findOrFail($id);
+
+        \App\Models\ActivityLog::log('delete', 'Department', "Deleted department '{$dept->name}'", [
+            'model_class' => Department::class,
+            'record_id'   => $dept->id,
+            'id'          => $dept->id,
+            'name'        => $dept->name,
+            'slug'        => $dept->slug,
+            'allowable_budget' => $dept->allowable_budget,
+        ]);
+
         $dept->delete();
         return response()->json(['success' => true]);
     }
 
+    
     public function addDepartment(Request $request)
     {
         if (!auth()->user()->isAdmin()) abort(403);
         $name = trim($request->name);
         if (!$name) return response()->json(['success' => false, 'message' => 'Name is required.']);
+
+        // Check by name first (case-insensitive) — catches cases where a
+        // legacy/seeded department has a manually-assigned slug that doesn't
+        // match what would be auto-generated from its name (e.g. "Human
+        // Resource" is seeded with slug "hr", not "human_resource").
+        $nameExists = Department::whereRaw('LOWER(TRIM(name)) = ?', [strtolower($name)])->exists();
+        if ($nameExists) {
+            return response()->json(['success' => false, 'message' => 'Department already exists.']);
+        }
+
         $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '_', $name));
         if (Department::where('slug', $slug)->exists()) {
             return response()->json(['success' => false, 'message' => 'Department already exists.']);
@@ -116,10 +137,10 @@ class DepartmentController extends Controller
                     ExpenseCategory::create(['department_id' => $dept->id, 'name' => trim($catName)]);
                 }
             }
-        }
-        
-        return response()->json(['success' => true]);
     }
+    
+    return response()->json(['success' => true]);
+}
 
     public function updateBudget(Request $request, $id)
     {

@@ -3,6 +3,13 @@
 
 <p class="crs-module-intro">Module 1 covered who you are in a transaction. This module covers what you need to know cold about the properties themselves — how to present a development so it sells the lifestyle first, how to explain why a property's value will move over time, and how to match a shortlist to the buyer standing in front of you instead of showing everything in your inventory.</p>
 
+<span class="crs-sub-label">Watch: Module 2 Overview</span>
+<div class="crs-video-wrap">
+    <div class="crs-video-frame">
+        <iframe src="https://www.youtube.com/embed/wvx6S3wAl2Y" title="Module 2 Overview" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+</div>
+
 <span class="crs-sub-label">Module 2 at a Glance</span>
 <p>Tap each icon for a one-line preview of what's ahead.</p>
 <div class="crs-pin-grid" data-group="m2-glance">
@@ -122,3 +129,25 @@
         <li>Match a small number of highly relevant properties to the client's actual goals instead of showing everything available.</li>
     </ul>
 </div>
+
+<style>
+    .crs-video-wrap { margin: 4px 0 28px; }
+    .crs-video-frame {
+        position: relative;
+        width: 100%;
+        padding-bottom: 56.25%; /* 16:9 */
+        height: 0;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        background: #000;
+    }
+    .crs-video-frame iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+</style>

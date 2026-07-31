@@ -3,6 +3,13 @@
 
 <p class="crs-module-intro">This final module covers the two moments most agents underinvest in: the tense last stretch before signing, and everything that happens after the commission clears. Handled well, both of these turn a single transaction into a career-long source of referrals.</p>
 
+<span class="crs-sub-label">Watch: Module 6 Overview</span>
+<div class="crs-video-wrap">
+    <div class="crs-video-frame">
+        <iframe src="https://www.youtube.com/embed/8Gza89-8gXk" title="Module 6 Overview" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+</div>
+
 <span class="crs-sub-label">Module 6 at a Glance</span>
 <p>Tap each icon for a one-line preview of what's ahead.</p>
 <div class="crs-pin-grid" data-group="m6-glance">
@@ -28,6 +35,12 @@
 
 <article class="crs-lesson">
     <h3><span class="crs-lesson-num">Lesson 6.1</span> Handling Objections &amp; Guiding the Decision</h3>
+
+    <div class="crs-video-wrap">
+        <div class="crs-video-frame">
+            <iframe src="https://www.youtube.com/embed/9jNdyq-jkhI" title="Lesson 6.1 Video" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+    </div>
 
     <span class="crs-sub-label">6.1.1 Final-Hour Jitters Are Normal</span>
     <p>Final objections about price, inspection results, or market timing are rarely about the property itself — they're usually rooted in the fear of making a massive financial commitment. Arguing against the objection almost never works, because you'd be arguing against the wrong thing.</p>
@@ -72,6 +85,12 @@
 <article class="crs-lesson">
     <h3><span class="crs-lesson-num">Lesson 6.2</span> Completing the Handoff (The Closing Process)</h3>
 
+    <div class="crs-video-wrap">
+        <div class="crs-video-frame">
+            <iframe src="https://www.youtube.com/embed/nkia30I2i0Q" title="Lesson 6.2 Video" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+    </div>
+
     <span class="crs-sub-label">6.2.1 The Job Intensifies, Not Ends</span>
     <p>The agent's job intensifies, not ends, once the contract is signed. Think of yourself as the conductor of the deal: no single party is tracking every deadline across every other party — that's your job, and missing one can delay or even collapse the closing.</p>
 
@@ -92,6 +111,12 @@
 
 <article class="crs-lesson">
     <h3><span class="crs-lesson-num">Lesson 6.3</span> Maintaining Long-Term Relationships</h3>
+
+    <div class="crs-video-wrap">
+        <div class="crs-video-frame">
+            <iframe src="https://www.youtube.com/embed/Sov2IOOUDDw" title="Lesson 6.3 Video" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+    </div>
 
     <span class="crs-sub-label">6.3.1 From "Agent on This Deal" to "Lifelong Advisor"</span>
     <p>The best agents transition from "active agent on this deal" to "lifelong real estate advisor." That shift doesn't happen by accident — it happens because they build a system for staying in touch long after the commission is paid.</p>
@@ -141,3 +166,25 @@
         <li>Build a systematic post-close check-in habit — most repeat business is lost to silence, not dissatisfaction.</li>
     </ul>
 </div>
+
+<style>
+    .crs-video-wrap { margin: 4px 0 28px; }
+    .crs-video-frame {
+        position: relative;
+        width: 100%;
+        padding-bottom: 56.25%; /* 16:9 */
+        height: 0;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        background: #000;
+    }
+    .crs-video-frame iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+</style>

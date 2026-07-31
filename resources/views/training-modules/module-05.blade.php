@@ -3,6 +3,13 @@
 
 <p class="crs-module-intro">The first four modules build rapport and momentum. This module is where that momentum either gets protected or quietly destroyed by a sloppy paragraph in a contract. Documentation accuracy, honest disclosure, and fiduciary duty aren't the exciting parts of the job — but they're the parts that determine whether a deal actually survives to closing, and whether your license survives with it.</p>
 
+<span class="crs-sub-label">Watch: Module 5 Overview</span>
+<div class="crs-video-wrap">
+    <div class="crs-video-frame">
+        <iframe src="https://www.youtube.com/embed/JZrILXItUnA" title="Module 5 Overview" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+</div>
+
 <span class="crs-sub-label">Module 5 at a Glance</span>
 <p>Tap each icon for a one-line preview of what's ahead.</p>
 <div class="crs-pin-grid" data-group="m5-glance">
@@ -66,6 +73,12 @@
 <article class="crs-lesson">
     <h3><span class="crs-lesson-num">Lesson 5.2</span> Transparent Communication &amp; Disclosures</h3>
 
+    <div class="crs-video-wrap">
+        <div class="crs-video-frame">
+            <iframe src="https://www.youtube.com/embed/cBeG6qJ1ZwE" title="Lesson 5.2 Video" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+    </div>
+
     <span class="crs-sub-label">5.2.1 You're Legally Required to Disclose</span>
     <p>You have a legal and ethical obligation to disclose known material facts about a property — past flood damage, roof leaks, or upcoming zoning changes nearby — even when disclosing them makes the sale harder. This isn't optional or a matter of personal judgment; it's part of the job.</p>
 
@@ -91,6 +104,12 @@
 
 <article class="crs-lesson">
     <h3><span class="crs-lesson-num">Lesson 5.3</span> Protecting the Client (Fiduciary Duty)</h3>
+
+    <div class="crs-video-wrap">
+        <div class="crs-video-frame">
+            <iframe src="https://www.youtube.com/embed/pNoKMffph3o" title="Lesson 5.3 Video" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+    </div>
 
     <span class="crs-sub-label">5.3.1 What "Fiduciary" Actually Means for You</span>
     <p>As a fiduciary, you owe your client three things in practice, not just in theory. Tap each one to see what it looks like at the negotiating table.</p>
@@ -136,3 +155,25 @@
         <li>As a fiduciary, protect your client's confidentiality and financial interests above your own desire to close quickly.</li>
     </ul>
 </div>
+
+<style>
+    .crs-video-wrap { margin: 4px 0 28px; }
+    .crs-video-frame {
+        position: relative;
+        width: 100%;
+        padding-bottom: 56.25%; /* 16:9 */
+        height: 0;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        background: #000;
+    }
+    .crs-video-frame iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+</style>
