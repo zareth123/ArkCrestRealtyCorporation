@@ -153,6 +153,7 @@
                 data-project="{{ $r->project_name ?? '' }}"
                 data-agent="{{ $r->agent_name ?? '' }}"
                 data-units="{{ $r->number_of_units ?? 0 }}"
+                data-source-id="{{ $r->source_client_record_id ?: 'standalone-'.$r->id }}"
                 data-net-tcp="{{ $r->net_tcp ?? 0 }}"
                 data-commission-terms="{{ $r->payment_type ?? '' }}"
                 data-dp-stage="{{ $r->commission_stage ? $r->commission_stage.'/'.($r->commission_stage_total ?: 1) : '' }}"
@@ -530,9 +531,14 @@ function applyArcFilters() {
     });
 
     var visibleUnits = 0;
+    var seenSourceIds = new Set();
     document.querySelectorAll('.arc-table tbody tr').forEach(function (row) {
         if (row.style.display !== 'none') {
-            visibleUnits += parseInt(row.dataset.units || 0, 10);
+            var sourceId = row.dataset.sourceId;
+            if (!seenSourceIds.has(sourceId)) {
+                seenSourceIds.add(sourceId);
+                visibleUnits += parseInt(row.dataset.units || 0, 10);
+            }
         }
     });
     var unitsEl = document.getElementById('arcUnitsFooterTotal');

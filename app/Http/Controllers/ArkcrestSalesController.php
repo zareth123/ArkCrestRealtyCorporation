@@ -21,7 +21,15 @@ class ArkcrestSalesController extends Controller
         $totalReleasedCommission = $released->sum('commission');
         $totalNetTcp = $released->sum('net_tcp');
         $totalArkcrestCommission = $rates->sum('arkcrest_commission');
-        $totalUnits = $released->sum('number_of_units');
+        // Multi-stage sales create one CommissionRequest row per DP stage
+        // (all sharing the same source_client_record_id), each carrying a
+        // copy of the same number_of_units. Summing every row double/triple
+        // counts the same physical units. Dedupe to one row per underlying
+        // sale before summing — standalone requests with no
+        // source_client_record_id are each their own unique sale.
+        $totalUnits = $released
+            ->unique(fn($r) => $r->source_client_record_id ?: 'standalone-' . $r->id)
+            ->sum('number_of_units');
 
         return view('arkcrest-sales', compact(
             'released', 'rates',

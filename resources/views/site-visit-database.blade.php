@@ -789,7 +789,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function toggleSection(id) {
-    var allSections = ['section-confirmed','section-cancelled','section-done','section-rejected'];
+    var allSections = ['section-confirmed','section-cancelled','section-done','section-rejected','section-reserved'];
     var el = document.getElementById(id);
     if (!el) return;
     var isAlreadyOpen = el.style.display === 'block';

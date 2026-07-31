@@ -609,8 +609,8 @@ class SalesMarketingController extends Controller
         \App\Models\Client::create([
             'name'    => $request->name,
             'address' => $request->address,
-            'emails'  => array_filter($request->input('emails', [])),
-            'phones'  => array_filter($request->input('phones', [])),
+            'emails'  => $this->splitCommaList($request->input('email')),
+            'phones'  => $this->splitCommaList($request->input('phone')),
             'notes'   => $request->notes,
         ]);
         return redirect()->route('reserved-clients')->with('success', 'Client added.');
@@ -622,11 +622,20 @@ class SalesMarketingController extends Controller
         $client->update([
             'name'    => $request->name,
             'address' => $request->address,
-            'emails'  => array_filter($request->input('emails', [])),
-            'phones'  => array_filter($request->input('phones', [])),
+            'emails'  => $this->splitCommaList($request->input('email')),
+            'phones'  => $this->splitCommaList($request->input('phone')),
             'notes'   => $request->notes,
         ]);
         return redirect()->route('reserved-clients')->with('success', 'Client updated.');
+    }
+
+    // "john@a.com, john@b.com" -> ['john@a.com', 'john@b.com']
+    private function splitCommaList(?string $value): array
+    {
+        if (!$value) {
+            return [];
+        }
+        return array_values(array_filter(array_map('trim', explode(',', $value))));
     }
 
     public function destroyClient($id)

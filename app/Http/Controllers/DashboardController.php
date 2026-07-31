@@ -56,17 +56,15 @@ class DashboardController extends Controller
         $monthStart = $viewDate->copy()->startOfMonth()->toDateString();
         $monthEnd   = $viewDate->copy()->endOfMonth()->toDateString();
 
-        // Sums number_of_units directly off CommissionRequest — matching
-        // ArkcrestSalesController's $totalUnits — rather than counting rows
-        // in arkcrest_commission_rates, which undercounts any released sale
-        // that doesn't have its ArkCrest commission % entered yet.
-        $units = \App\Models\CommissionRequest::where('status', 'Released')
-            ->whereBetween('date_released', [$monthStart, $monthEnd])
-            ->sum('number_of_units');
-
-        $grossSales = \App\Models\ArkcrestCommissionRate::whereHas('commissionRequest', function($q) use ($monthStart, $monthEnd) {
-            $q->where('status', 'Released')->whereBetween('date_released', [$monthStart, $monthEnd]);
-        })->sum('arkcrest_commission');
+        // Units and Gross Sales are whatever was manually entered on the
+        // Summary Report page for this month/year — not computed from
+        // ArkcrestCommissionRate/CommissionRequest anymore, since Summary
+        // Report is the source of truth the Finance team actually fills in.
+        $summaryReportForMonth = SummaryReport::where('month', $currentMonthNumber)
+            ->where('year', $currentYear)
+            ->first();
+        $units = $summaryReportForMonth ? (float) $summaryReportForMonth->units : 0;
+        $grossSales = $summaryReportForMonth ? (float) $summaryReportForMonth->gross_sales : 0;
 
         $pendingReservation = CommissionRequestSales::whereBetween('reservation_date', [$monthStart, $monthEnd])
             ->where(function($q) {
@@ -97,7 +95,7 @@ class DashboardController extends Controller
             $monthlySales[] = $report ? (float)$report->gross_sales : 0;
         }
 
-        $receivables = CommissionRequest::whereIn('status', ['Requested', 'Not Yet Released', 'Not Released'])->sum('commission');
+        $receivables = CommissionRequest::where('status', 'Not Yet Released')->sum('commission');
 
         $departments = Department::where('slug', '!=', 'capex')->get();
 

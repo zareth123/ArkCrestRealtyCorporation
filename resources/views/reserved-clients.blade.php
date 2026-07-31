@@ -149,10 +149,19 @@
             @foreach($clients as $i => $c)
             @php
                 $trips = $tripData->get($c->client_name, collect());
-                $emails = $trips->pluck('client_email')->filter()->unique()->values();
-                $phones = $trips->map(fn($t) => trim(($t->client_phone_code ?? '+63').' '.ltrim($t->client_phone ?? '','0')))->filter()->unique()->values();
                 $contact = $contactMap->get($c->client_name);
                 $address = $contact?->address ?? '';
+                // If this client has ever been edited/saved (a Client
+                // record exists with a value), that saved value fully
+                // replaces what was auto-derived from trips — it does not
+                // merge with it. Trip-derived values are only used as a
+                // fallback for clients that have never been edited yet.
+                $emails = ($contact && !empty($contact->emails))
+                    ? collect($contact->emails)
+                    : $trips->pluck('client_email')->filter()->unique()->values();
+                $phones = ($contact && !empty($contact->phones))
+                    ? collect($contact->phones)
+                    : $trips->map(fn($t) => trim(($t->client_phone_code ?? '+63').' '.ltrim($t->client_phone ?? '','0')))->filter()->unique()->values();
             @endphp
             <tr
                 data-client="{{ strtolower($c->client_name ?? '') }}"
@@ -179,7 +188,7 @@
                 <td>
                     <div style="display:flex;gap:6px;align-items:center;">
                         <button type="button" class="lc-btn lc-btn-view" onclick="lcViewRow({{ $c->id }})">View</button>
-                        <button class="lc-btn lc-btn-edit" onclick="openEdit('{{ addslashes($c->client_name) }}', '{{ addslashes($address) }}')">Edit</button>
+                        <button class="lc-btn lc-btn-edit" onclick="openEdit({{ $contact?->id ?? 'null' }}, '{{ addslashes($c->client_name) }}', '{{ addslashes($address) }}', '{{ addslashes(implode(', ', $contact?->emails ?? [])) }}', '{{ addslashes(implode(', ', $contact?->phones ?? [])) }}')">Edit</button>
                         <form method="POST" action="{{ route('client-database.destroy', $c->id) }}" onsubmit="return confirm('Delete {{ addslashes($c->client_name) }}?')" style="display:inline;">
                             @csrf @method('DELETE')
                             <button type="submit" class="lc-btn lc-btn-del">Delete</button>
@@ -225,6 +234,14 @@
                 <div style="margin-bottom:14px;">
                     <label class="lc-label">Client Name</label>
                     <input class="lc-input" type="text" id="lc_name_display" readonly style="background:#f8fafc;color:#64748b;">
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label class="lc-label">Email</label>
+                    <input class="lc-input" type="text" name="email" id="lc_email" placeholder="Enter email(s), comma-separated...">
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label class="lc-label">Phone</label>
+                    <input class="lc-input" type="text" name="phone" id="lc_phone" placeholder="Enter phone number(s), comma-separated...">
                 </div>
                 <div style="margin-bottom:18px;">
                     <label class="lc-label">Address</label>
@@ -404,11 +421,22 @@ function lcViewRow(id) {
     });
 }
 
-function openEdit(name, address) {
+function openEdit(id, name, address, email, phone) {
     document.getElementById('lc_name').value = name;
     document.getElementById('lc_name_display').value = name;
+    document.getElementById('lc_email').value = email || '';
+    document.getElementById('lc_phone').value = phone || '';
     document.getElementById('lc_address').value = address;
-    // Check if client record exists
+
+    var form = document.getElementById('lcEditForm');
+    if (id) {
+        form.action = '/clients/' + id;
+        document.getElementById('lcMethod').value = 'PUT';
+    } else {
+        form.action = '{{ route("clients.store") }}';
+        document.getElementById('lcMethod').value = 'POST';
+    }
+
     document.getElementById('lcEditModal').classList.add('open');
 }
 </script>
