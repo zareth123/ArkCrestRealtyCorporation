@@ -8,9 +8,9 @@ use App\Models\User;
 use Illuminate\Http\Request;
 
 /**
- * Dedicated, Administrator-only controller for the Edit History (Audit Trail) page.
- * Route access is additionally hard-gated by the `admin` middleware (see routes/web.php),
- * and this controller double-checks so it is safe even if ever wired up without it.
+ * Dedicated controller for the Edit History (Audit Trail) page. Admins always
+ * have access; staff can view it only if granted via Page Visibility
+ * ('settings.edit-history' not in their hidden_pages) — see routes/web.php.
  */
 class EditHistoryController extends Controller
 {
@@ -25,7 +25,8 @@ class EditHistoryController extends Controller
 
     public function index(Request $request)
     {
-        if (!auth()->user() || !auth()->user()->isAdmin()) {
+        $user = auth()->user();
+        if (!$user || (!$user->isAdmin() && in_array('settings.edit-history', $user->hidden_pages ?? []))) {
             abort(403, 'You do not have permission to view Edit History.');
         }
 

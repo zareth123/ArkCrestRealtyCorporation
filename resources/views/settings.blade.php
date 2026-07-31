@@ -907,9 +907,11 @@
               'dashboard'                        => 'Finance Dashboard',
               'departments'                      => 'Departments',
               'summary-report'                   => 'Summary Report',
+              'arkcrest-sales'                   => 'ARC Sales',
               'commission-monitoring'            => 'Commission Monitoring',
               'commission-monitoring.dashboard'  => '↳ Commission Dashboard',
               'cash-advance'                     => 'Cash Advance',
+              'agent-cash-advance'               => '↳ Agent Cash Advance',
               'calendar'                         => 'Calendar',
             ],
             'Sales & Marketing' => [
@@ -931,9 +933,12 @@
             'Settings' => [
               'settings.users'                   => 'User Management',
               'settings.visibility'              => 'Page Visibility',
+              'settings.practice-scenarios'       => 'Practice Scenarios',
               'settings.activity'                => 'Activity Log',
+              'settings.edit-history'             => 'Edit History',
               'settings.deleted'                 => 'Deleted Records',
               'settings.teams'                   => 'Team Management',
+              'settings.properties'              => 'Property Management',
               'settings.period-lock'             => 'Period Lock',
               'settings.backup'                  => 'Backup & Restore',
               'settings.export'                  => 'Export Records',
@@ -1461,7 +1466,7 @@
 
     @endif
 
-    @if($isAdmin || $canSeeS('settings.period-lock'))
+    @if($isAdmin || $canSeeS('settings.properties'))
 
     {{-- PROPERTIES PANEL --}}
     <div class="{{ $panelClass('properties') }}" id="panel-properties">
@@ -1506,6 +1511,10 @@
         </div>
       </div>
     </div>
+
+    @endif
+
+    @if($isAdmin || $canSeeS('settings.period-lock'))
 
     {{-- PERIOD LOCK PANEL --}}
 

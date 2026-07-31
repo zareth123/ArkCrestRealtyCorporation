@@ -18,6 +18,7 @@ class SettingsController extends Controller
     'dashboard',
     'departments',
     'summary-report',
+    'arkcrest-sales',
     'commission-monitoring',
     'commission-monitoring.dashboard',
     'cash-advance',
@@ -30,6 +31,9 @@ class SettingsController extends Controller
     'settings.period-lock',
     'settings.backup',
     'settings.export',
+    'settings.practice-scenarios',
+    'settings.edit-history',
+    'settings.properties',
 ];
 
     public function index()
@@ -1006,13 +1010,14 @@ private function getDeletedExpenses()
         $user = User::findOrFail($userId);
 
         $allPages = [
-            'dashboard','departments','summary-report','commission-monitoring','commission-monitoring.dashboard',
-            'cash-advance','calendar','sales-marketing','client-database','client-database.list',
+            'dashboard','departments','summary-report','arkcrest-sales','commission-monitoring','commission-monitoring.dashboard',
+            'cash-advance','agent-cash-advance','calendar','sales-marketing','client-database','client-database.list',
             'client-database.property','site-visit-database','sales-calendar','forms',
             'human-resource','human-resource.employee-data','human-resource.contact-list',
             'settings.users','settings.teams',
             'settings.period-lock','settings.visibility','settings.activity','settings.deleted',
             'settings.backup','settings.export',
+            'settings.practice-scenarios','settings.edit-history','settings.properties',
         ];
 
         $visiblePages = $request->input('visible_pages', []);

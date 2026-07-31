@@ -516,24 +516,33 @@
                 $hiddenPages = [];
                 if (auth()->check() && !auth()->user()->isAdmin()) {
                     $allHidden = array_values(auth()->user()->hidden_pages ?? []);
-                    $hiddenPages = array_filter($allHidden, fn($k) => strpos($k, '.') === false);
+                    $hiddenPages = $allHidden;
                 }
                 $canSee = fn($key) => !in_array($key, $hiddenPages);
                 @endphp
                 <ul class="nav-list">
                     <!-- Finance with Dropdown -->
                     @php
-                    $financeChildren = array_filter(['departments','summary-report','commission-monitoring','cash-advance','agent-cash-advance'], fn($k) => $canSee($k));
+                    $financeChildren = array_filter(['departments','summary-report','arkcrest-sales','commission-monitoring','cash-advance','agent-cash-advance'], fn($k) => $canSee($k));
                     @endphp
                     @if(count($financeChildren) > 0)
                     <li class="nav-item-wrapper">
                         <div class="nav-item-container">
+                            @if($canSee('dashboard'))
                             <a href="{{ route('dashboard') }}" class="nav-item nav-item-with-dropdown" data-page="dashboard" onclick="event.stopPropagation();">
                                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                                 <span class="sidebar-text">Finance</span>
                             </a>
+                            @else
+                            <span class="nav-item nav-item-with-dropdown" data-page="dashboard" onclick="event.stopPropagation();" style="cursor:default;">
+                                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="sidebar-text">Finance</span>
+                            </span>
+                            @endif
                             <button class="dropdown-toggle-btn" id="financeDropdownToggle" type="button" onclick="toggleFinanceDropdown(event)">
                                 <svg class="dropdown-arrow" id="financeArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -561,6 +570,7 @@
                                 </a>
                             </li>
                             @endif
+                            @if($canSee('arkcrest-sales'))
                             <li>
                                 <a href="{{ route('arkcrest-sales') }}" class="nav-subitem" data-page="arkcrest-sales">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -569,6 +579,7 @@
                                     <span class="sidebar-text">ARC Sales</span>
                                 </a>
                             </li>
+                            @endif
                             @if($canSee('commission-monitoring'))
                             <li class="nav-item-wrapper">
                                 <div class="nav-item-container">
@@ -585,6 +596,7 @@
                                     </button>
                                 </div>
                                 <ul class="nav-submenu" id="commissionSubmenu" style="padding-left:12px;">
+                                    @if($canSee('commission-monitoring.dashboard'))
                                     <li>
                                         <a href="{{ route('commission-dashboard') }}" class="nav-subitem" data-page="commission-dashboard" style="font-size:11px;">
                                             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:13px;height:13px;">
@@ -593,6 +605,7 @@
                                             <span class="sidebar-text" style="font-size:10px;">Commission Dashboard</span>
                                         </a>
                                     </li>
+                                    @endif
                                 </ul>
                             </li>
                             @endif
@@ -602,12 +615,21 @@
                             @if(count($cashAdvanceChildren) > 0)
                             <li class="nav-item-wrapper">
                                 <div class="nav-item-container">
+                                    @if($canSee('cash-advance'))
                                     <a href="{{ route('cash-advance') }}" class="nav-subitem nav-item-with-dropdown" data-page="cash-advance" onclick="event.stopPropagation();">
                                         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
                                         </svg>
                                         <span class="sidebar-text" style="font-size:11px;">Cash Advance</span>
                                     </a>
+                                    @else
+                                    <span class="nav-subitem nav-item-with-dropdown" data-page="cash-advance" onclick="event.stopPropagation();" style="cursor:default;">
+                                        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                        </svg>
+                                        <span class="sidebar-text" style="font-size:11px;">Cash Advance</span>
+                                    </span>
+                                    @endif
                                     <button class="dropdown-toggle-btn" type="button" onclick="toggleCashAdvanceDropdown(event)">
                                         <svg class="dropdown-arrow" id="cashAdvanceArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -644,15 +666,27 @@
                     @endif {{-- end finance --}}
                     
                     <!-- Sales & Marketing with Dropdown -->
-                    @if($canSee('sales-marketing'))
+                    @php
+                    $salesMarketingChildren = array_filter(['sales-marketing','client-database','client-database.list','client-database.property','site-visit-database','sales-calendar'], fn($k) => $canSee($k));
+                    @endphp
+                    @if(count($salesMarketingChildren) > 0)
                     <li class="nav-item-wrapper">
                         <div class="nav-item-container">
+                            @if($canSee('sales-marketing'))
                             <a href="{{ route('sales-marketing') }}" class="nav-item nav-item-with-dropdown" data-page="sales-marketing" onclick="event.stopPropagation();">
                                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                 </svg>
                                 <span class="sidebar-text">Sales & Marketing</span>
                             </a>
+                            @else
+                            <span class="nav-item nav-item-with-dropdown" data-page="sales-marketing" onclick="event.stopPropagation();" style="cursor:default;">
+                                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span class="sidebar-text">Sales & Marketing</span>
+                            </span>
+                            @endif
                             <button class="dropdown-toggle-btn" id="salesDropdownToggle" type="button" onclick="toggleSalesDropdown(event)">
                                 <svg class="dropdown-arrow" id="salesArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -660,14 +694,27 @@
                             </button>
                         </div>
                         <ul class="nav-submenu" id="salesSubmenu">
+                            @php
+                            $clientDbChildren = array_filter(['client-database', 'client-database.list', 'client-database.property'], fn($k) => $canSee($k));
+                            @endphp
+                            @if(count($clientDbChildren) > 0)
                             <li class="nav-item-wrapper">
                                 <div class="nav-item-container">
+                                    @if($canSee('client-database'))
                                     <a href="{{ route('client-database') }}" class="nav-subitem nav-item-with-dropdown" data-page="client-database" onclick="event.stopPropagation();">
                                         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                                         </svg>
                                         <span class="sidebar-text">Clients</span>
                                     </a>
+                                    @else
+                                    <span class="nav-subitem nav-item-with-dropdown" data-page="client-database" onclick="event.stopPropagation();" style="cursor:default;">
+                                        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                        <span class="sidebar-text">Clients</span>
+                                    </span>
+                                    @endif
                                     <button class="dropdown-toggle-btn" id="clientDbDropdownToggle" type="button" onclick="toggleClientDbDropdown(event)">
                                         <svg class="dropdown-arrow" id="clientDbArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -675,20 +722,26 @@
                                     </button>
                                 </div>
                                 <ul class="nav-submenu" id="clientDbSubmenu" style="padding-left:12px;">
+                                    @if($canSee('client-database.list'))
                                     <li>
                                         <a href="{{ route('reserved-clients') }}" class="nav-subitem" data-page="cd-clients" style="font-size:11px;">
                                             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:13px;height:13px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                                             <span class="sidebar-text">List of Clients</span>
                                         </a>
                                     </li>
+                                    @endif
+                                    @if($canSee('client-database.property'))
                                     <li>
                                         <a href="{{ route('property-list') }}" class="nav-subitem" data-page="cd-properties" style="font-size:11px;">
                                             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:13px;height:13px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                                             <span class="sidebar-text">List of Properties</span>
                                         </a>
                                     </li>
+                                    @endif
                                 </ul>
                             </li>
+                            @endif
+                            @if($canSee('site-visit-database'))
                             <li>
                                 <a href="{{ route('site-visit-database') }}" class="nav-subitem" data-page="site-visit-database">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -697,6 +750,8 @@
                                     <span class="sidebar-text">Site Visits</span>
                                 </a>
                             </li>
+                            @endif
+                            @if($canSee('sales-calendar'))
                             <li>
                                 <a href="{{ route('sales-calendar') }}" class="nav-subitem" data-page="sm-calendar">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -705,20 +760,33 @@
                                     <span class="sidebar-text">Calendar</span>
                                 </a>
                             </li>
+                            @endif
                         </ul>
                     </li>
                     @endif
                     
                     <!-- Human Resource -->
-                    @if($canSee('human-resource'))
+                    @php
+                    $hrChildren = array_filter(['human-resource','human-resource.employee-data','human-resource.contact-list'], fn($k) => $canSee($k));
+                    @endphp
+                    @if(count($hrChildren) > 0)
                     <li class="nav-item-wrapper">
                         <div class="nav-item-container">
+                            @if($canSee('human-resource'))
                             <a href="{{ route('human-resource') }}" class="nav-item nav-item-with-dropdown" data-page="human-resource" onclick="event.stopPropagation();">
                                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 </svg>
                                 <span class="sidebar-text">Human Resource</span>
                             </a>
+                            @else
+                            <span class="nav-item nav-item-with-dropdown" data-page="human-resource" onclick="event.stopPropagation();" style="cursor:default;">
+                                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                <span class="sidebar-text">Human Resource</span>
+                            </span>
+                            @endif
                             <button class="dropdown-toggle-btn" type="button" onclick="toggleHRDropdown(event)">
                                 <svg class="dropdown-arrow" id="hrArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -726,6 +794,7 @@
                             </button>
                         </div>
                         <ul class="nav-submenu" id="hrSubmenu">
+                            @if($canSee('human-resource.employee-data'))
                             <li>
                                 <a href="{{ route('hr.employee-data') }}" class="nav-subitem" data-page="hr-employee-data">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -734,6 +803,8 @@
                                     <span class="sidebar-text">Employee Data</span>
                                 </a>
                             </li>
+                            @endif
+                            @if($canSee('human-resource.contact-list'))
                             <li>
                                 <a href="{{ route('hr.contact-list') }}" class="nav-subitem" data-page="hr-contact-list">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -742,6 +813,7 @@
                                     <span class="sidebar-text">ARC Contact List</span>
                                 </a>
                             </li>
+                            @endif
                         </ul>
                     </li>
                     @endif
@@ -836,7 +908,7 @@
                                 $userHiddenSettings = $isAdminUser ? [] : ($allHidden ?? []);
                                 $canSeeSetting = fn($k) => $isAdminUser || !in_array($k, $userHiddenSettings);
                             @endphp
-                            @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.activity','settings.deleted','settings.teams','settings.period-lock','settings.backup','settings.export'], fn($k) => !in_array($k, $userHiddenSettings)))
+                            @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.practice-scenarios','settings.activity','settings.edit-history','settings.deleted','settings.teams','settings.properties','settings.period-lock','settings.backup','settings.export'], fn($k) => !in_array($k, $userHiddenSettings)))
                             <li class="nav-submenu-label">Admin</li>
                             @endif
                             @if($canSeeSetting('settings.users'))
@@ -855,7 +927,7 @@
                                 </a>
                             </li>
                             @endif
-                            @if($isAdminUser)
+                            @if($canSeeSetting('settings.practice-scenarios'))
                             <li>
                                 <a href="{{ route('practice.admin') }}" class="nav-subitem" data-page="practice-admin">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8-1.284 0-2.503-.24-3.605-.671L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
@@ -871,7 +943,7 @@
                                 </a>
                             </li>
                             @endif
-                            @if($isAdminUser)
+                            @if($canSeeSetting('settings.edit-history'))
                             <li>
                                 <a href="{{ route('settings.edit-history') }}" class="nav-subitem" data-page="settings-edit-history">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -911,7 +983,7 @@
                                 </a>
                             </li>
                             @endif
-                            @if($isAdminUser)
+                            @if($canSeeSetting('settings.properties'))
                             <li>
                                 <a href="{{ route('settings') }}?panel=properties" class="nav-subitem" data-page="settings-properties">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
@@ -1304,6 +1376,24 @@
                 document.querySelectorAll('#settingsSubmenu .nav-subitem').forEach(a => {
                     a.classList.toggle('active', a.getAttribute('data-page') === 'settings-' + activePanel);
                 });
+            }
+
+            // Practice Scenarios (/practice/admin) and Edit History (/settings/edit-history)
+            // live on their own routes rather than a ?panel= query, so they fall outside
+            // the ?panel= highlighting above — light them up directly by path instead.
+            const practiceAdminLink = document.querySelector('#settingsSubmenu .nav-subitem[data-page="practice-admin"]');
+            if (practiceAdminLink) {
+                practiceAdminLink.classList.toggle('active', currentPage.includes('/practice/admin'));
+            }
+            const editHistoryLink = document.querySelector('#settingsSubmenu .nav-subitem[data-page="settings-edit-history"]');
+            if (editHistoryLink) {
+                editHistoryLink.classList.toggle('active', currentPage.includes('/settings/edit-history'));
+            }
+            if (currentPage.includes('/practice/admin') || currentPage.includes('/settings/edit-history')) {
+                if (settingsSubmenu && settingsArrow) {
+                    settingsSubmenu.classList.add('open');
+                    settingsArrow.classList.add('open');
+                }
             }
         });
         

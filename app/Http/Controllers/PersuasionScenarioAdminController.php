@@ -10,6 +10,11 @@ class PersuasionScenarioAdminController extends Controller
     /** List + manage all scenarios (active and inactive). */
     public function index(Request $request)
     {
+        $user = $request->user();
+        if (!$user->isAdmin() && in_array('settings.practice-scenarios', $user->hidden_pages ?? [])) {
+            abort(403, 'You do not have permission to view Practice Scenarios.');
+        }
+
         $scenarios = PersuasionScenario::orderByRaw("FIELD(difficulty, 'EASY','MEDIUM','HARD')")
             ->orderBy('name')
             ->get();
@@ -19,6 +24,8 @@ class PersuasionScenarioAdminController extends Controller
 
     public function store(Request $request)
     {
+        if (!$request->user()->isAdmin()) abort(403);
+
         $data = $this->validated($request);
         $data['created_by'] = $request->user()->id;
 
@@ -29,6 +36,8 @@ class PersuasionScenarioAdminController extends Controller
 
     public function update(Request $request, PersuasionScenario $scenario)
     {
+        if (!$request->user()->isAdmin()) abort(403);
+
         $scenario->update($this->validated($request));
 
         return redirect()->route('practice.admin')->with('success', 'Scenario updated.');
@@ -36,6 +45,8 @@ class PersuasionScenarioAdminController extends Controller
 
     public function destroy(PersuasionScenario $scenario)
     {
+        if (!auth()->user()->isAdmin()) abort(403);
+
         // Soft delete only — keeps historical sessions/scores intact for
         // any agent who already practiced against this scenario.
         $scenario->delete();
