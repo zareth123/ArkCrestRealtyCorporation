@@ -31,6 +31,13 @@ table.ph-table { width:100%;border-collapse:collapse; }
 .ph-diff { font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b; }
 .ph-score { font-weight:700;color:#1e4575; }
 .ph-empty { text-align:center;color:#94a3b8;font-size:13px;padding:40px; }
+
+@media (max-width: 768px) {
+    .ph-topbar { flex-direction:column;align-items:flex-start;gap:12px;padding:20px; }
+    .ph-back-btn { width:100%;text-align:center;box-sizing:border-box; }
+    .ph-table-wrap { overflow-x:auto !important; }
+    table.ph-table { min-width:520px; }
+}
 </style>
 
 <div class="ph-page">

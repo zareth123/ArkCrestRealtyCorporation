@@ -35,7 +35,23 @@ class AgentCashAdvanceController extends Controller
         // Rejected requests no longer count toward money committed.
         $totalRequested = $records->where('status', '!=', 'REJECTED')->sum('amount');
 
-        return view('agent-cash-advance', compact('records', 'agents', 'teams', 'totalRecords', 'pendingCount', 'totalRequested'));
+        // Total Released: only Approved/Completed requests ever had funds
+        // actually handed out (Pending hasn't been released, Rejected never
+        // will be).
+        $totalReleased = $records->whereIn('status', ['APPROVED', 'COMPLETED'])->sum('amount');
+
+        // Total Returned: sum of every repayment that's actually been paid.
+        // A repayment row only exists once a term is paid, so summing all
+        // of them across all records gives the total amount returned so far.
+        $totalReturned = $records->flatMap(function ($record) {
+            return $record->repayments;
+        })->sum('amount');
+
+        // Total Remaining: what's left to be paid back out of what's been
+        // released so far.
+        $totalRemaining = $totalReleased - $totalReturned;
+
+        return view('agent-cash-advance', compact('records', 'agents', 'teams', 'totalRecords', 'pendingCount', 'totalRequested', 'totalReleased', 'totalRemaining', 'totalReturned'));
     }
 
     public function store(Request $request)

@@ -104,8 +104,178 @@
             <div class="metric-subtitle">Year-to-date — {{ $currentYear }}</div>
         </div>
     </div>
+    {{-- 4th: Today's Commission Releases (PR #177) --}}
+    <div class="metric-card card-gold metric-card-clickable" onclick="openTodayReleasesModal()" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openTodayReleasesModal()">
+        <div class="metric-icon" style="background:linear-gradient(135deg,#A37929,#d4a03a);">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div class="metric-content">
+            <div class="metric-label">Today's Releases</div>
+            <div class="metric-value">{{ $todayReleases }} <span style="font-size:14px;font-weight:500;color:#64748b;">release{{ $todayReleases != 1 ? 's' : '' }}</span></div>
+            <div style="font-size:13px;font-weight:700;color:#1e4575;">&#8369;{{ number_format($todayReleasesTotal, 0) }}</div>
+            <div class="metric-subtitle">Commission releases — {{ \Carbon\Carbon::today()->format('F j, Y') }}</div>
+        </div>
+    </div>
+    {{-- 5th: Today's Expense Releases --}}
+    <div class="metric-card card-gold metric-card-clickable" onclick="openTodayExpensesModal()" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openTodayExpensesModal()">
+        <div class="metric-icon" style="background:linear-gradient(135deg,#A37929,#d4a03a);">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        </div>
+        <div class="metric-content">
+            <div class="metric-label">Today's Expense Releases</div>
+            <div class="metric-value">{{ $todayExpenseReleases }} <span style="font-size:14px;font-weight:500;color:#64748b;">release{{ $todayExpenseReleases != 1 ? 's' : '' }}</span></div>
+            <div style="font-size:13px;font-weight:700;color:#1e4575;">&#8369;{{ number_format($todayExpenseReleasesTotal, 0) }}</div>
+            <div class="metric-subtitle">Expense releases — {{ \Carbon\Carbon::today()->format('F j, Y') }}</div>
+        </div>
+    </div>
 </div>
 @endif
+
+<!-- Today's Commission Releases Modal (PR #177) -->
+<div id="todayReleasesModalOverlay" class="modal-overlay" onclick="if(event.target===this)closeTodayReleasesModal()">
+    <div class="modal-box" style="max-width:760px;">
+        <div class="modal-header">
+            <div>
+                <h3 style="margin:0;font-size:16px;color:#ffffff;">Releases Today</h3>
+                <p style="margin:3px 0 0;font-size:12px;color:#dbeafe;">{{ \Carbon\Carbon::today()->format('F j, Y') }}</p>
+            </div>
+            <button class="modal-close" onclick="closeTodayReleasesModal()">&#10005;</button>
+        </div>
+        <div class="modal-body" style="padding:0;">
+            @if($todayReleaseRecords->count() > 0)
+            <div>
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead>
+                        <tr style="background:#f8fafc;border-bottom:1.5px solid #e2e8f0;">
+                            <th style="text-align:left;padding:12px 20px;color:#64748b;font-weight:600;">Agent</th>
+                            <th style="text-align:left;padding:12px 20px;color:#64748b;font-weight:600;">Client</th>
+                            <th style="text-align:left;padding:12px 20px;color:#64748b;font-weight:600;">Project</th>
+                            <th style="text-align:right;padding:12px 20px;color:#64748b;font-weight:600;">Commission</th>
+                            <th style="text-align:left;padding:12px 20px;color:#64748b;font-weight:600;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($todayReleaseRecords as $release)
+                        <tr
+                            style="border-bottom:1px solid #f1f5f9;cursor:pointer;"
+                            onclick="window.location.href='{{ route('commission-monitoring') }}?open_request={{ $release->id }}'"
+                            onmouseover="this.style.background='#f8fafc'"
+                            onmouseout="this.style.background=''"
+                        >
+                            <td style="padding:12px 20px;font-weight:600;color:#0f172a;">{{ $release->agent_name }}</td>
+                            <td style="padding:12px 20px;color:#334155;">{{ $release->client_name }}</td>
+                            <td style="padding:12px 20px;color:#334155;">{{ $release->project_name }}</td>
+                            <td style="padding:12px 20px;text-align:right;font-weight:700;color:#1e4575;">&#8369;{{ number_format($release->commission, 2) }}</td>
+                            <td style="padding:12px 20px;">
+                                @if($release->status === 'Released')
+                                    <span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:#dcfce7;color:#166534;">Released</span>
+                                @else
+                                    <span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:#fef3c7;color:#92400e;">{{ $release->status }}</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr style="background:#f8fafc;">
+                            <td colspan="3" style="padding:12px 20px;font-weight:700;color:#0f172a;">Total</td>
+                            <td style="padding:12px 20px;text-align:right;font-weight:800;color:#1e4575;">&#8369;{{ number_format($todayReleasesTotal, 2) }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            @else
+            <div style="padding:40px 20px;text-align:center;color:#94a3b8;">No commission releases scheduled for today.</div>
+            @endif
+        </div>
+        <div style="padding:16px 24px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;">
+            <a href="{{ route('commission-monitoring') }}" style="padding:8px 18px;background:#1e4575;color:white;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700;">Open Commission Monitoring</a>
+        </div>
+    </div>
+</div>
+<script>
+function openTodayReleasesModal() {
+    document.getElementById('todayReleasesModalOverlay').classList.add('active');
+}
+function closeTodayReleasesModal() {
+    document.getElementById('todayReleasesModalOverlay').classList.remove('active');
+}
+</script>
+
+<!-- Today's Expense Releases Modal -->
+<div id="todayExpensesModalOverlay" class="modal-overlay" onclick="if(event.target===this)closeTodayExpensesModal()">
+    <div class="modal-box" style="max-width:800px;">
+        <div class="modal-header">
+            <div>
+                <h3 style="margin:0;font-size:16px;color:#ffffff;">Expense Releases Today</h3>
+                <p style="margin:3px 0 0;font-size:12px;color:#dbeafe;">{{ \Carbon\Carbon::today()->format('F j, Y') }}</p>
+            </div>
+            <button class="modal-close" onclick="closeTodayExpensesModal()">&#10005;</button>
+        </div>
+        <div class="modal-body" style="padding:0;">
+            @if($todayExpenseReleaseRecords->count() > 0)
+            <div>
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead>
+                        <tr style="background:#f8fafc;border-bottom:1.5px solid #e2e8f0;">
+                            <th style="text-align:left;padding:12px 20px;color:#64748b;font-weight:600;">Requestor</th>
+                            <th style="text-align:left;padding:12px 20px;color:#64748b;font-weight:600;">Department</th>
+                            <th style="text-align:left;padding:12px 20px;color:#64748b;font-weight:600;">Category</th>
+                            <th style="text-align:right;padding:12px 20px;color:#64748b;font-weight:600;">Amount</th>
+                            <th style="text-align:left;padding:12px 20px;color:#64748b;font-weight:600;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($todayExpenseReleaseRecords as $expense)
+                        <tr
+                            style="border-bottom:1px solid #f1f5f9;cursor:pointer;"
+                            onclick="window.location.href='{{ route('departments.admin') }}?highlight={{ $expense->id }}'"
+                            onmouseover="this.style.background='#f8fafc'"
+                            onmouseout="this.style.background=''"
+                        >
+                            <td style="padding:12px 20px;font-weight:600;color:#0f172a;">{{ $expense->requestor_name }}</td>
+                            <td style="padding:12px 20px;color:#334155;">{{ $expense->department }}</td>
+                            <td style="padding:12px 20px;color:#334155;">{{ $expense->category }}</td>
+                            <td style="padding:12px 20px;text-align:right;font-weight:700;color:#1e4575;">&#8369;{{ number_format($expense->requested_amount, 2) }}</td>
+                            <td style="padding:12px 20px;">
+                                @if($expense->release_status === 'RELEASED')
+                                    <span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:#dcfce7;color:#166534;">Released</span>
+                                @elseif($expense->release_status === 'REJECTED')
+                                    <span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:#fee2e2;color:#991b1b;">Rejected</span>
+                                @else
+                                    <span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:#fef3c7;color:#92400e;">{{ $expense->release_status }}</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr style="background:#f8fafc;">
+                            <td colspan="3" style="padding:12px 20px;font-weight:700;color:#0f172a;">Total</td>
+                            <td style="padding:12px 20px;text-align:right;font-weight:800;color:#1e4575;">&#8369;{{ number_format($todayExpenseReleasesTotal, 2) }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            @else
+            <div style="padding:40px 20px;text-align:center;color:#94a3b8;">No expense releases scheduled for today.</div>
+            @endif
+        </div>
+        <div style="padding:16px 24px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;">
+            <a href="{{ route('departments.admin') }}" style="padding:8px 18px;background:#1e4575;color:white;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700;">Open Departmental Expenses</a>
+        </div>
+    </div>
+</div>
+<script>
+function openTodayExpensesModal() {
+    document.getElementById('todayExpensesModalOverlay').classList.add('active');
+}
+function closeTodayExpensesModal() {
+    document.getElementById('todayExpensesModalOverlay').classList.remove('active');
+}
+</script>
 
 <!-- Department Expenses Section -->
 @if(!in_array('dashboard.expenses-breakdown', $hiddenSections) || !in_array('dashboard.dept-list', $hiddenSections))
@@ -284,7 +454,7 @@
 /* ===== METRIC CARDS ===== */
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 20px;
     margin-bottom: 28px;
 }
@@ -300,6 +470,14 @@
     transition: transform .2s, box-shadow .2s;
 }
 .metric-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,.1); }
+.metric-card-clickable { cursor: pointer; }
+.metric-card-clickable:hover { border-color: #A37929; }
+.modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center; }
+.modal-overlay.active { display:flex; }
+.modal-box { background:white;border-radius:16px;width:90%;max-height:90vh;overflow-y:auto;overflow-x:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:modalIn 0.25s ease-out; }
+@keyframes modalIn { from{opacity:0;transform:scale(0.95) translateY(-10px);}to{opacity:1;transform:scale(1) translateY(0);} }
+.modal-header { background:#1e4575;color:white;padding:18px 24px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #A37929; }
+.modal-close { background:rgba(255,255,255,.15);border:none;color:white;width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:13px; }
 .metric-icon {
     width: 56px; height: 56px;
     border-radius: 14px;

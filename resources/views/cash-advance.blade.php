@@ -52,6 +52,33 @@
                 <div class="ca-stat-value" id="caStatTotalRequested">₱{{ number_format($totalRequested, 2) }}</div>
             </div>
         </div>
+        <div class="ca-stat-card">
+            <div class="ca-stat-icon ca-stat-icon-released">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            </div>
+            <div>
+                <div class="ca-stat-label">Total Released</div>
+                <div class="ca-stat-value" id="caStatTotalReleased">₱{{ number_format($totalReleased, 2) }}</div>
+            </div>
+        </div>
+        <div class="ca-stat-card">
+            <div class="ca-stat-icon ca-stat-icon-remaining">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <div class="ca-stat-label">Total Remaining Payable</div>
+                <div class="ca-stat-value" id="caStatTotalRemaining">₱{{ number_format($totalRemaining, 2) }}</div>
+            </div>
+        </div>
+        <div class="ca-stat-card">
+            <div class="ca-stat-icon ca-stat-icon-returned">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <div class="ca-stat-label">Total Returned</div>
+                <div class="ca-stat-value" id="caStatTotalReturned">₱{{ number_format($totalReturned, 2) }}</div>
+            </div>
+        </div>
     </div>
 
     <!-- New Request Form (styled like Departmental Expenses → Add New Expense) -->
@@ -152,7 +179,7 @@
                             <option value="5">5</option>
                             <option value="6">6</option>
                         </select>
-                        <input type="number" id="ca_installment_terms_other" class="form-control" min="1" step="1" placeholder="Enter number of terms" style="display:none;">
+                        <input type="number" id="ca_installment_terms_other" class="form-control" min="7" step="1" placeholder="Put in terms more than 6" style="display:none;">
                         <span class="ca-hint" id="ca_terms_hint">Each term is one installment. Maximum of 6 terms.</span>
                         <span class="ca-error" id="err_installment_terms"></span>
                     </div>
@@ -492,6 +519,9 @@
 .ca-stat-icon-records { background: #eef2ff; color: #4338ca; }
 .ca-stat-icon-pending { background: #fff7ed; color: #c2410c; }
 .ca-stat-icon-requested { background: #ecfdf5; color: #059669; }
+.ca-stat-icon-released { background: #eff6ff; color: #1d4ed8; }
+.ca-stat-icon-remaining { background: #fef2f2; color: #b91c1c; }
+.ca-stat-icon-returned { background: #f0fdf4; color: #15803d; }
 .ca-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #8A9BAD; margin-bottom: 4px; }
 .ca-stat-value { font-size: 24px; font-weight: 700; color: #1e2a3a; }
 
@@ -818,6 +848,10 @@ var _caPendingData = null; // holds the validated request data between "Create C
             if (termsEl) termsEl.classList.add('ca-invalid');
             if (termsErrEl) termsErrEl.textContent = 'A maximum of 6 terms is allowed for Installment.';
             valid = false;
+        } else if (data.repayment_type === 'OTHERS' && termsVal <= 6) {
+            if (termsEl) termsEl.classList.add('ca-invalid');
+            if (termsErrEl) termsErrEl.textContent = 'Others requires more than 6 terms — use Installment for 6 or fewer.';
+            valid = false;
         }
 
         return valid;
@@ -869,9 +903,13 @@ var _caPendingData = null; // holds the validated request data between "Create C
         +   '<tr><td style="padding:4px 0;vertical-align:top;color:#555;">Purpose</td><td style="padding:4px 0;">' + escapeHtml(data.purpose) + '</td></tr>'
         +   repaymentRows
         + '</table>'
-        + '<table class="nb" style="font-size:11px;margin-top:12px;width:100%;"><tr>'
-        +   '<td style="width:50%;padding-top:12px;border-top:1px solid #111;">Requested by</td>'
-        +   '<td style="padding-top:12px;border-top:1px solid #111;">Approved by</td>'
+        + '<div style="border-bottom:2px solid #111;margin:2px 0 8px;"></div>'
+        + '<table class="nb" style="font-size:11px;margin-top:0;width:100%;"><tr>'
+        +   '<td style="width:50%;padding-top:6px;">Requested by: <span style="display:inline-block;width:140px;border-bottom:1px solid #111;">&nbsp;</span></td>'
+        +   '<td style="padding-top:6px;">Approved by: <span style="display:inline-block;width:140px;border-bottom:1px solid #111;">&nbsp;</span></td>'
+        + '</tr><tr>'
+        +   '<td style="width:50%;padding-top:20px;">Received by: <span style="display:inline-block;width:140px;border-bottom:1px solid #111;">&nbsp;</span></td>'
+        +   '<td></td>'
         + '</tr></table>'
         + '</div>';
 }
@@ -1124,9 +1162,13 @@ function caCopyBlockView(label, data) {
         +   repaymentRows
         +   '<tr><td style="padding:4px 0;color:#555;">Status</td><td style="padding:4px 0;">' + caEscapeHtml(data.display_status) + '</td></tr>'
         + '</table>'
-        + '<table class="nb" style="font-size:11px;margin-top:12px;width:100%;"><tr>'
-        +   '<td style="width:50%;padding-top:12px;border-top:1px solid #111;">Requested by</td>'
-        +   '<td style="padding-top:12px;border-top:1px solid #111;">Approved by</td>'
+        + '<div style="border-bottom:2px solid #111;margin:2px 0 8px;"></div>'
+        + '<table class="nb" style="font-size:11px;margin-top:0;width:100%;"><tr>'
+        +   '<td style="width:50%;padding-top:6px;">Requested by: <span style="display:inline-block;width:140px;border-bottom:1px solid #111;">&nbsp;</span></td>'
+        +   '<td style="padding-top:6px;">Approved by: <span style="display:inline-block;width:140px;border-bottom:1px solid #111;">&nbsp;</span></td>'
+        + '</tr><tr>'
+        +   '<td style="width:50%;padding-top:20px;">Received by: <span style="display:inline-block;width:140px;border-bottom:1px solid #111;">&nbsp;</span></td>'
+        +   '<td></td>'
         + '</tr></table>'
         + '</div>';
 }

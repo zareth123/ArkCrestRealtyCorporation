@@ -151,9 +151,24 @@ class DashboardController extends Controller
             ->get();
 
         $today = Carbon::today()->toDateString();
-        $todayTrips     = TripSchedule::whereDate('tripping_date', $today)->whereIn('status', ['confirmed', 'pending'])->count();
-        $todayReleases  = CommissionRequestSales::whereDate('date_released', $today)->whereIn('status', ['Not Yet Released', 'Not Released'])->count();
-        $todayEvents    = CommissionRequestSales::where(function($q) use ($today) {
+        $todayTrips = TripSchedule::whereDate('tripping_date', $today)->whereIn('status', ['confirmed', 'pending'])->count();
+
+        // Commission releases due today (PR #177)
+        $todayReleaseRecords = CommissionRequest::whereDate('date_released', $today)
+            ->orderBy('agent_name')
+            ->get();
+        $todayReleases      = $todayReleaseRecords->count();
+        $todayReleasesTotal = $todayReleaseRecords->sum('commission');
+
+        // Expense releases due today
+        $todayExpenseReleaseRecords = DepartmentalExpense::whereDate('date_released', $today)
+            ->orderBy('department')
+            ->orderBy('requestor_name')
+            ->get();
+        $todayExpenseReleases      = $todayExpenseReleaseRecords->count();
+        $todayExpenseReleasesTotal = $todayExpenseReleaseRecords->sum('requested_amount');
+
+        $todayEvents = CommissionRequestSales::where(function($q) use ($today) {
             $q->whereDate('reservation_date', $today)
               ->orWhereDate('date_of_downpayment', $today);
         })->count();
@@ -166,6 +181,6 @@ class DashboardController extends Controller
             ->sortDesc()
             ->values();
 
-        return view('dashboard', compact('departmentData', 'totalExpenses', 'expenseBreakdown', 'currentMonth', 'currentYear', 'units', 'grossSales', 'yearlySales', 'receivables', 'monthlySales', 'tomorrowReleases', 'todayTrips', 'todayReleases', 'todayEvents', 'pendingReservation', 'cancelledReservation', 'totalReservation', 'selectedMonth', 'selectedYear', 'isCurrentMonth', 'availableYears'));
+        return view('dashboard', compact('departmentData', 'totalExpenses', 'expenseBreakdown', 'currentMonth', 'currentYear', 'units', 'grossSales', 'yearlySales', 'receivables', 'monthlySales', 'tomorrowReleases', 'todayTrips', 'todayReleases', 'todayReleaseRecords', 'todayReleasesTotal', 'todayEvents', 'todayExpenseReleaseRecords', 'todayExpenseReleases', 'todayExpenseReleasesTotal', 'pendingReservation', 'cancelledReservation', 'totalReservation', 'selectedMonth', 'selectedYear', 'isCurrentMonth', 'availableYears'));
     }
 }

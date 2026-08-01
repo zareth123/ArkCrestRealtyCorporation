@@ -105,6 +105,27 @@
 }
 .pc-btn-primary { background:linear-gradient(135deg,#1e4575,#2563eb);color:white; }
 .pc-btn-secondary { background:#f1f5f9;color:#374151; }
+
+@media (max-width: 900px) {
+    /* academy-main's own top+bottom padding shrinks from 154px to 130px
+       at this breakpoint (see layouts/academy.blade.php) — match it here
+       so the chat box fills the available height instead of leaving an
+       unnecessary gap at the bottom. */
+    .pc-page { height:calc(100vh - 130px); gap:10px; }
+    .pc-topbar { padding:14px 16px;flex-wrap:wrap;gap:10px; }
+    .pc-buyer-name { font-size:14px; }
+    .pc-bubble { max-width:82%; }
+    .pc-messages { padding:14px; }
+    .pc-inputbar { padding:10px 12px; }
+    .pc-score-rubric { grid-template-columns:1fr !important; }
+    .pc-score-actions { flex-direction:column; }
+}
+@media (max-width: 480px) {
+    .pc-topbar { padding:12px 14px; }
+    .pc-end-btn { padding:7px 10px;font-size:11px; }
+    .pc-bubble { max-width:88%;font-size:13px; }
+    .pc-attach-btn, .pc-send-btn { height:40px; }
+}
 </style>
 
 <div class="pc-page">
@@ -113,7 +134,7 @@
             <div class="pc-buyer-name">{{ $session->scenario->buyer_name }}</div>
             <div class="pc-buyer-sub">{{ $session->scenario->name }}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <span class="pc-diff-pill">{{ ucfirst(strtolower($session->difficulty)) }}</span>
             @if(!$session->is_finished)
             <button type="button" class="pc-end-btn" onclick="ppEndSession()">End Session</button>

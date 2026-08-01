@@ -1,5 +1,3 @@
-
-
 *, *::before, *::after { box-sizing: border-box; }
 html, body { overflow-x: hidden; }
 img, video { max-width: 100%; height: auto; }
@@ -393,6 +391,18 @@ img, video { max-width: 100%; height: auto; }
     .auto-scroll-wrap, .tbl-wrap, .table-wrapper, .table-container, .tbl-scroll {
         overflow-x: auto !important;
     }
+
+    /* ================================================================
+       CASH ADVANCE / AGENT CASH ADVANCE / RESERVED CLIENTS BANNERS
+       (same big hero-banner pattern used elsewhere, just missing its
+       own mobile padding/decoration overrides)
+    ================================================================ */
+    .aca-banner, .ca-banner, .lc-header {
+        padding: 20px 22px !important;
+        border-radius: 16px !important;
+    }
+    .aca-title, .ca-title, .lc-title { font-size: clamp(18px, 5vw, 24px) !important; }
+    .aca-decoration, .ca-decoration { display: none !important; }
 }
 
 /* ================================================================

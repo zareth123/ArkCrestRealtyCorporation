@@ -107,6 +107,9 @@
     .pa-hero { grid-template-columns:1fr; padding:30px 24px; }
     .pa-headline { font-size:28px; }
 }
+@media (max-width: 380px) {
+    .pa-stat-row { grid-template-columns:1fr; gap:6px; }
+}
 </style>
 
 <div class="pa-page">

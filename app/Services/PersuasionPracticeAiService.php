@@ -44,9 +44,11 @@ class PersuasionPracticeAiService
         $systemPrompt = $this->buildSystemPrompt($scenario, $session->difficulty, $agentTurns);
 
         try {
-            $text = $this->provider() === 'gemini'
-                ? $this->callGeminiChat($systemPrompt, $messages)
-                : $this->callAnthropicChat($systemPrompt, $messages);
+            $text = match ($this->provider()) {
+                'openai' => $this->callOpenAIChat($systemPrompt, $messages),
+                'gemini' => $this->callGeminiChat($systemPrompt, $messages),
+                default  => $this->callAnthropicChat($systemPrompt, $messages),
+            };
 
             return $this->extractDecision($text);
         } catch (\Throwable $e) {
@@ -82,9 +84,11 @@ class PersuasionPracticeAiService
         $systemPrompt = $this->buildScoringPrompt($scenario, $session->difficulty);
 
         try {
-            $text = $this->provider() === 'gemini'
-                ? $this->callGeminiScoring($systemPrompt, $transcript)
-                : $this->callAnthropicScoring($systemPrompt, $transcript);
+            $text = match ($this->provider()) {
+                'openai' => $this->callOpenAIScoring($systemPrompt, $transcript),
+                'gemini' => $this->callGeminiScoring($systemPrompt, $transcript),
+                default  => $this->callAnthropicScoring($systemPrompt, $transcript),
+            };
 
             $clean = preg_replace('/```json|```/', '', $text);
             $parsed = json_decode(trim($clean), true);
@@ -161,6 +165,83 @@ class PersuasionPracticeAiService
         }
 
         return collect($response->json('content'))->where('type', 'text')->pluck('text')->implode("\n");
+    }
+
+
+    // ── OpenAI calls ──────────────────────────────────────────────────────
+
+    private function callOpenAIChat(string $systemPrompt, $messages): string
+    {
+        $input = $messages->map(fn ($message) => [
+            'role'    => $message->sender === 'AGENT' ? 'user' : 'assistant',
+            'content' => $this->openAIContentFor($message),
+        ])->values()->all();
+
+        return $this->callOpenAI($systemPrompt, $input, 800);
+    }
+
+    private function callOpenAIScoring(string $systemPrompt, string $transcript): string
+    {
+        return $this->callOpenAI($systemPrompt, [
+            [
+                'role' => 'user',
+                'content' => [
+                    [
+                        'type' => 'input_text',
+                        'text' => "Transcript:\n\n{$transcript}",
+                    ],
+                ],
+            ],
+        ], 1200);
+    }
+
+    private function callOpenAI(string $instructions, array $input, int $maxOutputTokens): string
+    {
+        $apiKey = config('services.openai.key');
+        $model = config('services.openai.model', 'gpt-5.6-luna');
+        $baseUrl = rtrim(
+            config('services.openai.base_url', 'https://api.openai.com/v1'),
+            '/'
+        );
+
+        if (blank($apiKey)) {
+            throw new \RuntimeException('OPENAI_API_KEY is missing.');
+        }
+
+        $response = Http::withToken($apiKey)
+            ->acceptJson()
+            ->asJson()
+            ->timeout(60)
+            ->post($baseUrl . '/responses', [
+                'model'             => $model,
+                'instructions'      => $instructions,
+                'input'             => $input,
+                'max_output_tokens' => $maxOutputTokens,
+            ]);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException(
+                'OpenAI API error ' . $response->status() . ': ' . $response->body()
+            );
+        }
+
+        $text = collect($response->json('output', []))
+            ->where('type', 'message')
+            ->flatMap(fn ($output) => $output['content'] ?? [])
+            ->where('type', 'output_text')
+            ->pluck('text')
+            ->filter()
+            ->implode("\n");
+
+        if (trim($text) === '') {
+            $text = (string) $response->json('output_text', '');
+        }
+
+        if (trim($text) === '') {
+            throw new \RuntimeException('OpenAI returned an empty response.');
+        }
+
+        return $text;
     }
 
     // ── Gemini calls ─────────────────────────────────────────────────────
@@ -315,6 +396,54 @@ class PersuasionPracticeAiService
         }
 
         return $blocks;
+    }
+
+
+    /**
+     * Builds content for an OpenAI Responses API conversation message.
+     *
+     * AGENT messages become user input.
+     * BUYER messages become previous assistant output.
+     */
+    private function openAIContentFor($message): array
+    {
+        if ($message->sender === 'BUYER') {
+            return [
+                [
+                    'type' => 'output_text',
+                    'text' => (string) $message->message,
+                ],
+            ];
+        }
+
+        $content = [];
+        $text = trim((string) $message->message);
+
+        if ($text !== '') {
+            $content[] = [
+                'type' => 'input_text',
+                'text' => (string) $message->message,
+            ];
+        }
+
+        $image = $this->imageDataFor($message);
+
+        if ($image) {
+            $content[] = [
+                'type'      => 'input_image',
+                'image_url' => "data:{$image['mime']};base64,{$image['data']}",
+                'detail'    => 'auto',
+            ];
+        }
+
+        if (empty($content)) {
+            $content[] = [
+                'type' => 'input_text',
+                'text' => '',
+            ];
+        }
+
+        return $content;
     }
 
     /** Builds a Gemini `parts` array (image part first, then text if present). */

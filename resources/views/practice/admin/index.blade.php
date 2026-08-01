@@ -52,6 +52,16 @@ table.pa-table { width:100%;border-collapse:collapse; }
 .pa-modal-actions { padding:16px 24px;border-top:1px solid #f1f5f9;display:flex;gap:10px;justify-content:flex-end; }
 .pa-btn-primary { border:none;background:linear-gradient(135deg,#1e4575,#2563eb);color:white;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer; }
 .pa-btn-secondary { border:1.5px solid #e2e8f0;background:white;color:#374151;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer; }
+
+@media (max-width: 768px) {
+    .pa-topbar { flex-direction:column;align-items:flex-start;gap:14px;padding:20px; }
+    .pa-add-btn { width:100%;text-align:center; }
+    .pa-table-wrap { overflow-x:auto !important; }
+    table.pa-table { min-width:560px; }
+    .pa-field-row { grid-template-columns:1fr !important; }
+    .pa-modal-actions { flex-direction:column-reverse;gap:8px; }
+    .pa-modal-actions button { width:100%; }
+}
 </style>
 
 <div class="pa-page">
