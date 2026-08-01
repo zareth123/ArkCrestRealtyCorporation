@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\AuthController;
-
+use App\Http\Controllers\TrainingCourseController;
 // Auth routes (guests only)
 Route::middleware(['guest', 'no.cache'])->group(function () {
     Route::get('/login',     [AuthController::class, 'showLogin'])->name('login');
@@ -63,6 +63,8 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     Route::post('/agent-training/module/{module}/quiz', [App\Http\Controllers\TrainingCourseController::class, 'submitQuiz'])
         ->name('agent-training.quiz.submit')
         ->middleware('throttle:20,1');
+    Route::get('/agent-training/module/{module}/exam', [TrainingCourseController::class, 'showExam'])->name('agent-training.module.exam');
+    Route::get('/agent-training/module/{module}/exam/results', [TrainingCourseController::class, 'examResults'])->name('agent-training.module.exam.results');
 
     // Summary Report
     Route::get('/summary-report', [App\Http\Controllers\SummaryReportController::class, 'index'])->name('summary-report')->middleware('page.visible');

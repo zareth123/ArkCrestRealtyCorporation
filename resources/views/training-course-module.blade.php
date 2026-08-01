@@ -33,12 +33,24 @@
                 <div class="crs-module-body crs-module-body-standalone">
                     @include('training-modules.module-' . sprintf('%02d', $moduleNumber))
 
-                    @include('training-course-quiz', [
-                        'module' => $moduleNumber,
-                        'questions' => $questions,
-                        'progress' => $module,
-                        'passingScore' => $passingScore,
-                    ])
+                    {{-- Exam entry card — the lesson page never shows quiz questions --}}
+                    {{-- itself; it only opens the dedicated, distraction-free exam page. --}}
+                    <div class="crs-exam-entry">
+                        <div class="crs-exam-entry-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div class="crs-exam-entry-copy">
+                            <h4>Module Exam</h4>
+                            <p>{{ $questionCount }} questions &middot; Score at least {{ $passingScore }}% to pass{{ $nextModule ? ' and unlock Module ' . sprintf('%02d', $nextModule['number']) : '' }}.</p>
+                            @if ($module['completed'])
+                                <span class="crs-exam-entry-badge">✓ Completed — best score {{ $module['best_score'] }}% ({{ $module['attempts'] }} attempt{{ $module['attempts'] === 1 ? '' : 's' }})</span>
+                            @endif
+                        </div>
+                        <a href="{{ route('agent-training.module.exam', $moduleNumber) }}" class="crs-exam-entry-btn">
+                            {{ $module['completed'] ? 'Retake Exam' : 'Start Exam' }}
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </a>
+                    </div>
                 </div>
 
                 <nav class="crs-module-nav">
@@ -103,6 +115,22 @@
     .crs-module-nav-link.is-disabled { opacity: .55; cursor: not-allowed; }
 
     .crs-objective { margin: 0 0 22px; padding: 12px 16px; border-left: 3px solid var(--gold); border-radius: 0 8px 8px 0; color: #536278; background: #fbf8f0; font-size: 12.5px; line-height: 1.6; }
+
+    /* ---- Exam entry card: opens the dedicated, distraction-free exam page ---- */
+    .crs-exam-entry { display: flex; align-items: center; gap: 18px; margin: 30px 0 6px; padding: 22px 24px; border: 1px solid var(--line); border-radius: 16px; background: #fff; box-shadow: 0 3px 14px rgba(20, 36, 58, .05); }
+    .crs-exam-entry-icon { flex-shrink: 0; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; color: #fff; background: var(--blue-700); }
+    .crs-exam-entry-icon svg { width: 22px; height: 22px; }
+    .crs-exam-entry-copy { flex: 1; min-width: 0; }
+    .crs-exam-entry-copy h4 { margin: 0 0 4px; color: #14243a; font-size: 15px; }
+    .crs-exam-entry-copy p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .crs-exam-entry-badge { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 5px 11px; border-radius: 999px; color: #2f8f4e; background: #eafaf0; font-size: 11px; font-weight: 700; }
+    .crs-exam-entry-btn { flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 10px; color: #14243a; background: linear-gradient(120deg, var(--gold), var(--gold-light)); font-size: 12.5px; font-weight: 800; white-space: nowrap; transition: .15s ease; }
+    .crs-exam-entry-btn:hover { filter: brightness(1.03); }
+    .crs-exam-entry-btn svg { width: 15px; height: 15px; }
+    @media (max-width: 620px) {
+        .crs-exam-entry { flex-direction: column; align-items: flex-start; text-align: left; }
+        .crs-exam-entry-btn { width: 100%; justify-content: center; }
+    }
 
     .crs-lesson { margin-bottom: 26px; padding-bottom: 26px; border-bottom: 1px solid #f0f2f5; }
     .crs-lesson:last-of-type { border-bottom: none; }
@@ -171,34 +199,6 @@
     .crs-status-complete { color: #2f8f4e; background: #eafaf0; }
     .crs-module-detail-badge { flex-shrink: 0; padding: 7px 12px; border-radius: 999px; color: #8c6512; background: #fff5d8; font-size: 11px; font-weight: 800; letter-spacing: .5px; }
 
-    .crs-quiz { padding-top: 6px; border-top: 2px dashed #e3e8ef; }
-    .crs-quiz-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 20px 0 4px; flex-wrap: wrap; }
-    .crs-quiz h4 { margin: 0; color: #14243a; font-size: 15px; }
-    .crs-quiz-sub { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
-    .crs-already-passed { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; padding: 8px 12px; border-radius: 999px; color: #2f8f4e; background: #eafaf0; font-size: 11.5px; font-weight: 700; }
-
-    .crs-quiz-question { margin-bottom: 18px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; transition: border-color .15s ease; }
-    .crs-quiz-question.crs-q-missing { border-color: #e0776f; background: #fff6f5; }
-    .crs-quiz-q-text { margin: 0 0 12px; color: #26384f; font-size: 13px; font-weight: 600; line-height: 1.5; }
-    .crs-quiz-options { display: grid; gap: 8px; }
-    .crs-quiz-option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid #e3e8ef; border-radius: 9px; cursor: pointer; font-size: 12.5px; color: #46536a; line-height: 1.5; transition: .15s ease; }
-    .crs-quiz-option:hover { border-color: #cdd6e2; background: #fafbfd; }
-    .crs-quiz-option input { margin-top: 2px; flex-shrink: 0; }
-    .crs-quiz-option.is-correct { border-color: #7fd68a; background: #eafaf0; color: #1f5c31; }
-    .crs-quiz-option.is-wrong { border-color: #e0776f; background: #fff1ef; color: #8c2f26; }
-
-    .crs-quiz-error { margin-bottom: 14px; padding: 10px 14px; border-radius: 9px; color: #8c2f26; background: #fff1ef; font-size: 12px; }
-    .crs-quiz-actions { display: flex; align-items: center; gap: 12px; }
-    .crs-quiz-submit { padding: 11px 22px; border: 0; border-radius: 10px; color: #14243a; background: linear-gradient(120deg, var(--gold), var(--gold-light)); font-size: 12.5px; font-weight: 800; cursor: pointer; }
-    .crs-quiz-submit:disabled { opacity: .6; cursor: default; }
-    .crs-quiz-retake { padding: 10px 18px; border: 1px solid var(--line); border-radius: 10px; color: #26384f; background: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
-
-    .crs-quiz-result { margin-top: 16px; padding: 16px 18px; border-radius: 12px; font-size: 13px; line-height: 1.6; }
-    .crs-quiz-result.is-pass { color: #1f5c31; background: #eafaf0; border: 1px solid #b9e8c4; }
-    .crs-quiz-result.is-fail { color: #8c2f26; background: #fff1ef; border: 1px solid #f3c3bd; }
-    .crs-quiz-result strong { font-size: 18px; }
-    .crs-unlock-note { margin-top: 8px; font-size: 11.5px; opacity: .8; }
-
     @media (max-width: 700px) {
         .crs-module-nav { flex-direction: column; }
         .crs-module-nav-next { justify-content: flex-start; text-align: left; }
@@ -208,8 +208,6 @@
 
 <script>
 (function () {
-    var csrfToken = document.querySelector('meta[name=csrf-token]').content;
-
     // ---- Pin-select visual aids (tap an icon to reveal its detail panel) ----
     document.querySelectorAll('.crs-pin').forEach(function (pin) {
         pin.addEventListener('click', function () {
@@ -235,131 +233,6 @@
         });
     });
 
-    // ---- Quiz submission ----
-    document.querySelectorAll('.crs-quiz-form').forEach(function (form) {
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            var quizEl = form.closest('.crs-quiz');
-            var moduleNum = quizEl.getAttribute('data-module');
-            var questionEls = form.querySelectorAll('.crs-quiz-question');
-            var answers = [];
-            var missing = false;
-
-            questionEls.forEach(function (qEl) {
-                var checked = qEl.querySelector('input[type=radio]:checked');
-                if (!checked) {
-                    missing = true;
-                    qEl.classList.add('crs-q-missing');
-                } else {
-                    qEl.classList.remove('crs-q-missing');
-                    answers.push(parseInt(checked.value, 10));
-                }
-            });
-
-            var errorBox = quizEl.querySelector('.crs-quiz-error');
-
-            if (missing) {
-                errorBox.textContent = 'Please answer every question before submitting.';
-                errorBox.hidden = false;
-                return;
-            }
-            errorBox.hidden = true;
-
-            var submitBtn = form.querySelector('.crs-quiz-submit');
-            submitBtn.disabled = true;
-            var originalLabel = submitBtn.textContent;
-            submitBtn.textContent = 'Grading…';
-
-            fetch('/agent-training/module/' + moduleNum + '/quiz', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ answers: answers })
-            })
-            .then(function (res) {
-                return res.json().then(function (data) { return { ok: res.ok, data: data }; });
-            })
-            .then(function (r) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalLabel;
-
-                if (!r.ok) {
-                    errorBox.textContent = r.data.message || 'Something went wrong. Please try again.';
-                    errorBox.hidden = false;
-                    return;
-                }
-
-                renderQuizResult(quizEl, questionEls, r.data);
-            })
-            .catch(function () {
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalLabel;
-                errorBox.textContent = 'Network error — please check your connection and try again.';
-                errorBox.hidden = false;
-            });
-        });
-    });
-
-    function renderQuizResult(quizEl, questionEls, data) {
-        data.results.forEach(function (r, i) {
-            var qEl = questionEls[i];
-            var optionLabels = qEl.querySelectorAll('.crs-quiz-option');
-            optionLabels.forEach(function (label, oi) {
-                label.classList.remove('is-correct', 'is-wrong');
-                var input = label.querySelector('input');
-                input.disabled = true;
-                if (oi === r.correct) {
-                    label.classList.add('is-correct');
-                } else if (oi === r.selected && !r.is_correct) {
-                    label.classList.add('is-wrong');
-                }
-            });
-        });
-
-        var resultEl = quizEl.querySelector('.crs-quiz-result');
-        resultEl.hidden = false;
-        resultEl.className = 'crs-quiz-result ' + (data.passed ? 'is-pass' : 'is-fail');
-
-        var html = '<strong>' + data.score + '%</strong> — ' + data.correct + '/' + data.total + ' correct.<br>';
-        html += data.passed
-            ? 'Passed! This module is now marked complete.'
-            : 'Not quite — you need ' + data.passing_score + '% to pass. Review the highlighted answers and try again.';
-        resultEl.innerHTML = html;
-
-        if (data.passed) {
-            var note = document.createElement('div');
-            note.className = 'crs-unlock-note';
-            note.textContent = data.next_module ? 'Reloading — the next module will unlock…' : 'Reloading…';
-            resultEl.appendChild(note);
-            setTimeout(function () { window.location.reload(); }, 1600);
-        } else {
-            var retakeBtn = document.createElement('button');
-            retakeBtn.type = 'button';
-            retakeBtn.className = 'crs-quiz-retake';
-            retakeBtn.style.marginTop = '12px';
-            retakeBtn.textContent = 'Retake Quiz';
-            retakeBtn.addEventListener('click', function () { resetQuiz(quizEl, questionEls); });
-            resultEl.appendChild(retakeBtn);
-        }
-    }
-
-    function resetQuiz(quizEl, questionEls) {
-        questionEls.forEach(function (qEl) {
-            qEl.classList.remove('crs-q-missing');
-            qEl.querySelectorAll('.crs-quiz-option').forEach(function (label) {
-                label.classList.remove('is-correct', 'is-wrong');
-                var input = label.querySelector('input');
-                input.disabled = false;
-                input.checked = false;
-            });
-        });
-        var resultEl = quizEl.querySelector('.crs-quiz-result');
-        resultEl.hidden = true;
-        resultEl.innerHTML = '';
-    }
 })();
 </script>
 @endpush

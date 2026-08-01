@@ -296,79 +296,6 @@
   footer .foot-links a{ color:#8b9aab; font-size:12px; letter-spacing:.5px; transition:color .2s; }
   footer .foot-links a:hover{ color:#fff; }
 
-  /* -------- INQUIRY MODAL -------- */
-  .inquiry-overlay{
-    position:fixed; inset:0; z-index:3000; display:none; align-items:center; justify-content:center;
-    padding:24px; background:rgba(8,16,26,0.6); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
-    opacity:0; transition:opacity .3s ease;
-  }
-  .inquiry-overlay.open{ display:flex; }
-  .inquiry-overlay.visible{ opacity:1; }
-  .inquiry-modal{
-    position:relative; width:100%; max-width:520px; max-height:90vh; overflow-y:auto;
-    background:var(--cream); border-radius:6px; box-shadow:0 30px 80px rgba(5,12,20,0.45);
-    transform:translateY(24px) scale(.97); opacity:0;
-    transition:transform .35s cubic-bezier(.16,1,.3,1), opacity .35s cubic-bezier(.16,1,.3,1);
-  }
-  .inquiry-overlay.visible .inquiry-modal{ transform:translateY(0) scale(1); opacity:1; }
-  .inquiry-modal-head{ background:var(--navy-950); color:#fff; padding:32px 36px 26px; border-radius:6px 6px 0 0; position:relative; }
-  .inquiry-modal-head .eyebrow{ margin-bottom:10px; }
-  .inquiry-modal-head h3{ font-family:'Playfair Display',serif; font-style:italic; font-weight:600; font-size:26px; color:#fff; margin-bottom:8px; }
-  .inquiry-modal-head p{ font-size:13px; color:rgba(255,255,255,0.68); max-width:400px; }
-  .inquiry-close{
-    position:absolute; top:20px; right:20px; width:34px; height:34px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16); color:#fff; cursor:pointer;
-    transition:background .2s ease, transform .2s cubic-bezier(.16,1,.3,1);
-  }
-  .inquiry-close:hover{ background:rgba(255,255,255,0.18); transform:rotate(90deg); }
-  .inquiry-close svg{ width:16px; height:16px; }
-  .inquiry-form{ padding:30px 36px 36px; }
-  .inquiry-field{ margin-bottom:18px; }
-  .inquiry-field label{ display:block; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; font-weight:700; color:var(--navy-800); margin-bottom:8px; }
-  .inquiry-field .req{ color:var(--clay); }
-  .inquiry-field input, .inquiry-field select, .inquiry-field textarea{
-    width:100%; font-family:'Inter',sans-serif; font-size:14px; color:var(--ink); background:#fff;
-    border:1px solid var(--parchment-line); border-radius:3px; padding:13px 14px;
-    transition:border-color .2s ease, box-shadow .2s ease;
-  }
-  .inquiry-field input:focus, .inquiry-field select:focus, .inquiry-field textarea:focus{
-    outline:none; border-color:var(--clay); box-shadow:0 0 0 3px rgba(187,90,42,0.14);
-  }
-  .inquiry-field textarea{ resize:vertical; min-height:90px; }
-  .inquiry-row{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  .inquiry-hp{ position:absolute; left:-9999px; top:-9999px; opacity:0; height:0; width:0; }
-  .inquiry-submit{ width:100%; border:none; cursor:pointer; margin-top:6px; padding:15px 18px; }
-  .inquiry-submit:disabled{ opacity:.6; cursor:not-allowed; }
-  .inquiry-submit .spinner{
-    display:none; width:14px; height:14px; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff;
-    border-radius:50%; animation:inquirySpin .7s linear infinite;
-  }
-  .inquiry-submit.loading .spinner{ display:inline-block; }
-  .inquiry-submit.loading .submit-label{ display:none; }
-  @keyframes inquirySpin{ to{ transform:rotate(360deg); } }
-  .inquiry-note{ font-size:12px; color:var(--ink-soft); text-align:center; margin-top:14px; }
-  .inquiry-status{ display:none; align-items:flex-start; gap:10px; font-size:13px; border-radius:4px; padding:12px 14px; margin-bottom:18px; }
-  .inquiry-status.show{ display:flex; }
-  .inquiry-status.success{ background:#eef7ee; color:#2e6b34; border:1px solid #cfe8d0; }
-  .inquiry-status.error{ background:#fdeeec; color:#a33326; border:1px solid #f5cfc9; }
-  .inquiry-success-state{ display:none; padding:56px 36px; text-align:center; }
-  .inquiry-success-state.show{ display:block; }
-  .inquiry-success-state .icon{
-    width:56px; height:56px; margin:0 auto 20px; border-radius:50%; background:#eef7ee; color:#2e8b3d;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .inquiry-success-state .icon svg{ width:28px; height:28px; }
-  .inquiry-success-state h3{ font-family:'Playfair Display',serif; font-style:italic; font-size:24px; color:var(--navy-900); margin-bottom:10px; }
-  .inquiry-success-state p{ font-size:14px; color:var(--ink-soft); max-width:360px; margin:0 auto; }
-
-  @media (max-width:560px){
-    .inquiry-row{ grid-template-columns:1fr; gap:0; }
-    .inquiry-modal-head{ padding:26px 24px 22px; }
-    .inquiry-form{ padding:24px 24px 28px; }
-    .inquiry-modal-head h3{ font-size:22px; }
-  }
-
   /* -------- RESPONSIVE -------- */
   @media (max-width:1200px){
     .nav .wrap{ padding-left:20px; padding-right:20px; gap:16px; }
@@ -497,7 +424,6 @@
             </div>
           @else
             <a href="{{ route('login') }}" class="btn btn-outline">Staff Login</a>
-            <a href="#" class="btn btn-clay js-open-inquiry">Inquire Now</a>
           @endauth
         </div>
       </div>
@@ -542,7 +468,6 @@
           </div>
         @else
           <a href="{{ route('login') }}" class="btn btn-outline">Staff Login</a>
-          <a href="#" class="btn btn-clay js-open-inquiry">Inquire Now</a>
         @endauth
       </div>
 
@@ -564,7 +489,7 @@
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06C2 17.06 5.66 21.2 10.44 21.95v-6.98H7.9v-2.9h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.9h-2.34v6.98C18.34 21.2 22 17.06 22 12.06Z"/></svg>
             See Our Listings
           </a>
-          <a href="#" class="btn btn-outline js-open-inquiry">Inquire Now</a>
+          <a href="https://m.me/ArkCrestRealty" target="_blank" rel="noopener noreferrer" class="btn btn-outline">Inquire Now</a>
         </div>
         <div class="hero-stats mono">
           <span><b>100%</b>Verified Titles</span>
@@ -669,7 +594,7 @@
       <h2 style="margin-top:14px;">Ready to <em>secure your estate?</em></h2>
       <p>Message us on Facebook to browse current listings, or send an inquiry and a consultant will reach out within one business day.</p>
       <div class="cta-buttons">
-        <a href="#" class="btn btn-clay js-open-inquiry">Inquire Now</a>
+        <a href="https://m.me/ArkCrestRealty" target="_blank" rel="noopener noreferrer" class="btn btn-clay">Inquire Now</a>
         <a href="https://facebook.com/ArkCrestRealty" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark">Visit Our Facebook Page</a>
       </div>
     </div>
@@ -686,190 +611,6 @@
       <div>&copy; 2026 ArkCrest Realty Corporation. All rights reserved.</div>
     </div>
   </footer>
-
-  <!-- INQUIRY MODAL -->
-  <div class="inquiry-overlay" id="inquiryOverlay" role="dialog" aria-modal="true" aria-labelledby="inquiryModalTitle">
-    <div class="inquiry-modal">
-      <div class="inquiry-modal-head">
-        <button type="button" class="inquiry-close" id="inquiryClose" aria-label="Close inquiry form">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-        <span class="eyebrow on-dark"><span class="rule"></span>Begin Your Legacy</span>
-        <h3 id="inquiryModalTitle">Let's discuss your estate.</h3>
-        <p>Share a few details and one of our consultants will reach out within one business day.</p>
-      </div>
-
-      <div class="inquiry-success-state" id="inquirySuccess">
-        <div class="icon">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-        </div>
-        <h3>Inquiry Received</h3>
-        <p id="inquirySuccessMessage">Thank you! Your inquiry has been received. Our team will reach out shortly.</p>
-      </div>
-
-      <form class="inquiry-form" id="inquiryForm" novalidate>
-        @csrf
-        <div class="inquiry-status" id="inquiryStatus"></div>
-
-        <!-- Honeypot: left visually hidden; real visitors never fill this in -->
-        <div class="inquiry-hp" aria-hidden="true">
-          <label for="inquiry_website">Website</label>
-          <input type="text" id="inquiry_website" name="website" tabindex="-1" autocomplete="off">
-        </div>
-
-        <div class="inquiry-row">
-          <div class="inquiry-field">
-            <label for="inquiry_name">Full Name <span class="req">*</span></label>
-            <input type="text" id="inquiry_name" name="full_name" required maxlength="255" autocomplete="name" placeholder="Juan Dela Cruz">
-          </div>
-          <div class="inquiry-field">
-            <label for="inquiry_phone">Phone Number</label>
-            <input type="tel" id="inquiry_phone" name="phone" maxlength="30" autocomplete="tel" placeholder="09XX XXX XXXX">
-          </div>
-        </div>
-
-        <div class="inquiry-field">
-          <label for="inquiry_email">Email Address <span class="req">*</span></label>
-          <input type="email" id="inquiry_email" name="email" required maxlength="255" autocomplete="email" placeholder="you@email.com">
-        </div>
-
-        <div class="inquiry-field">
-          <label for="inquiry_interest">What are you looking for?</label>
-          <select id="inquiry_interest" name="property_interest">
-            <option value="">Select an option</option>
-            <option value="Buying">Buying a property</option>
-            <option value="Selling">Selling a property</option>
-            <option value="Investment Consultation">Investment consultation</option>
-            <option value="General Inquiry">General inquiry</option>
-          </select>
-        </div>
-
-        <div class="inquiry-field">
-          <label for="inquiry_message">Message</label>
-          <textarea id="inquiry_message" name="message" maxlength="2000" placeholder="Tell us a bit about what you're looking for..."></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-clay inquiry-submit" id="inquirySubmit">
-          <span class="submit-label">Submit Inquiry</span>
-          <span class="spinner" aria-hidden="true"></span>
-        </button>
-        <div class="inquiry-note">By submitting, you agree to be contacted by ArkCrest Realty regarding your inquiry.</div>
-      </form>
-    </div>
-  </div>
-
-  <script>
-  (function () {
-    var overlay = document.getElementById('inquiryOverlay');
-    var openTriggers = document.querySelectorAll('.js-open-inquiry');
-    var closeBtn = document.getElementById('inquiryClose');
-    var form = document.getElementById('inquiryForm');
-    var submitBtn = document.getElementById('inquirySubmit');
-    var statusBox = document.getElementById('inquiryStatus');
-    var successState = document.getElementById('inquirySuccess');
-    var successMessage = document.getElementById('inquirySuccessMessage');
-    var lastFocused = null;
-
-    function csrfToken() {
-      var meta = document.querySelector('meta[name="csrf-token"]');
-      return meta ? meta.getAttribute('content') : '';
-    }
-
-    function openModal() {
-      lastFocused = document.activeElement;
-      overlay.classList.add('open');
-      document.body.style.overflow = 'hidden';
-      requestAnimationFrame(function () { overlay.classList.add('visible'); });
-      setTimeout(function () {
-        var firstField = document.getElementById('inquiry_name');
-        if (firstField) firstField.focus();
-      }, 320);
-    }
-
-    function closeModal() {
-      overlay.classList.remove('visible');
-      document.body.style.overflow = '';
-      setTimeout(function () {
-        overlay.classList.remove('open');
-        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
-      }, 300);
-    }
-
-    function resetForm() {
-      form.reset();
-      form.style.display = '';
-      successState.classList.remove('show');
-      statusBox.classList.remove('show', 'success', 'error');
-      statusBox.textContent = '';
-    }
-
-    openTriggers.forEach(function (trigger) {
-      trigger.addEventListener('click', function (event) {
-        event.preventDefault();
-        resetForm();
-        openModal();
-      });
-    });
-
-    closeBtn.addEventListener('click', closeModal);
-
-    overlay.addEventListener('click', function (event) {
-      if (event.target === overlay) closeModal();
-    });
-
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && overlay.classList.contains('open')) closeModal();
-    });
-
-    form.addEventListener('submit', function (event) {
-      event.preventDefault();
-
-      statusBox.classList.remove('show', 'success', 'error');
-
-      var formData = new FormData(form);
-      submitBtn.classList.add('loading');
-      submitBtn.disabled = true;
-
-      fetch("{{ route('inquire.store') }}", {
-        method: 'POST',
-        headers: {
-          'X-CSRF-TOKEN': csrfToken(),
-          'Accept': 'application/json',
-        },
-        body: formData,
-      })
-        .then(function (response) {
-          return response.json().then(function (data) {
-            return { ok: response.ok, data: data };
-          });
-        })
-        .then(function (result) {
-          submitBtn.classList.remove('loading');
-          submitBtn.disabled = false;
-
-          if (result.ok && result.data.success) {
-            successMessage.textContent = result.data.message || 'Thank you! Your inquiry has been received.';
-            form.style.display = 'none';
-            successState.classList.add('show');
-            setTimeout(closeModal, 3200);
-          } else if (result.data.errors) {
-            var firstError = Object.values(result.data.errors)[0];
-            statusBox.textContent = Array.isArray(firstError) ? firstError[0] : 'Please check the form and try again.';
-            statusBox.classList.add('show', 'error');
-          } else {
-            statusBox.textContent = 'Something went wrong. Please try again in a moment.';
-            statusBox.classList.add('show', 'error');
-          }
-        })
-        .catch(function () {
-          submitBtn.classList.remove('loading');
-          submitBtn.disabled = false;
-          statusBox.textContent = 'Network error — please check your connection and try again.';
-          statusBox.classList.add('show', 'error');
-        });
-    });
-  })();
-  </script>
 
   <script>
   (function () {
