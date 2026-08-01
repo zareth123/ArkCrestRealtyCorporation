@@ -104,28 +104,39 @@
             <div class="metric-subtitle">Year-to-date — {{ $currentYear }}</div>
         </div>
     </div>
-    {{-- 4th: Today's Commission Releases (PR #177) --}}
-    <div class="metric-card card-gold metric-card-clickable" onclick="openTodayReleasesModal()" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openTodayReleasesModal()">
-        <div class="metric-icon" style="background:linear-gradient(135deg,#A37929,#d4a03a);">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        </div>
-        <div class="metric-content">
-            <div class="metric-label">Today's Releases</div>
-            <div class="metric-value">{{ $todayReleases }} <span style="font-size:14px;font-weight:500;color:#64748b;">release{{ $todayReleases != 1 ? 's' : '' }}</span></div>
-            <div style="font-size:13px;font-weight:700;color:#1e4575;">&#8369;{{ number_format($todayReleasesTotal, 0) }}</div>
-            <div class="metric-subtitle">Commission releases — {{ \Carbon\Carbon::today()->format('F j, Y') }}</div>
-        </div>
+</div>
+
+<!-- Today's Releases (separated from the performance metrics above) -->
+<div class="releases-section">
+    <div class="releases-section-header">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>Today's Releases</span>
+        <span class="releases-section-date">{{ \Carbon\Carbon::today()->format('F j, Y') }}</span>
     </div>
-    {{-- 5th: Today's Expense Releases --}}
-    <div class="metric-card card-gold metric-card-clickable" onclick="openTodayExpensesModal()" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openTodayExpensesModal()">
-        <div class="metric-icon" style="background:linear-gradient(135deg,#A37929,#d4a03a);">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+    <div class="releases-grid">
+        {{-- Today's Commission Releases (PR #177) --}}
+        <div class="metric-card card-gold metric-card-clickable" onclick="openTodayReleasesModal()" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openTodayReleasesModal()">
+            <div class="metric-icon" style="background:linear-gradient(135deg,#6d28d9,#a855f7);">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div class="metric-content">
+                <div class="metric-label">Commission Releases Today</div>
+                <div class="metric-value">{{ $todayReleases }} <span style="font-size:14px;font-weight:500;color:#64748b;">release{{ $todayReleases != 1 ? 's' : '' }}</span></div>
+                <div style="font-size:13px;font-weight:700;color:#1e4575;">&#8369;{{ number_format($todayReleasesTotal, 0) }}</div>
+                <div class="metric-subtitle">Commission releases — {{ \Carbon\Carbon::today()->format('F j, Y') }}</div>
+            </div>
         </div>
-        <div class="metric-content">
-            <div class="metric-label">Today's Expense Releases</div>
-            <div class="metric-value">{{ $todayExpenseReleases }} <span style="font-size:14px;font-weight:500;color:#64748b;">release{{ $todayExpenseReleases != 1 ? 's' : '' }}</span></div>
-            <div style="font-size:13px;font-weight:700;color:#1e4575;">&#8369;{{ number_format($todayExpenseReleasesTotal, 0) }}</div>
-            <div class="metric-subtitle">Expense releases — {{ \Carbon\Carbon::today()->format('F j, Y') }}</div>
+        {{-- Today's Expense Releases --}}
+        <div class="metric-card card-gold metric-card-clickable" onclick="openTodayExpensesModal()" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openTodayExpensesModal()">
+            <div class="metric-icon" style="background:linear-gradient(135deg,#6d28d9,#a855f7);">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            </div>
+            <div class="metric-content">
+                <div class="metric-label">Today's Expense Releases</div>
+                <div class="metric-value">{{ $todayExpenseReleases }} <span style="font-size:14px;font-weight:500;color:#64748b;">release{{ $todayExpenseReleases != 1 ? 's' : '' }}</span></div>
+                <div style="font-size:13px;font-weight:700;color:#1e4575;">&#8369;{{ number_format($todayExpenseReleasesTotal, 0) }}</div>
+                <div class="metric-subtitle">Expense releases — {{ \Carbon\Carbon::today()->format('F j, Y') }}</div>
+            </div>
         </div>
     </div>
 </div>
@@ -454,7 +465,7 @@ function closeTodayExpensesModal() {
 /* ===== METRIC CARDS ===== */
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     margin-bottom: 28px;
 }
@@ -469,9 +480,43 @@ function closeTodayExpensesModal() {
     border: 1.5px solid #f1f5f9;
     transition: transform .2s, box-shadow .2s;
 }
-.metric-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,.1); }
+.metric-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,.1); border-color: #A37929; }
 .metric-card-clickable { cursor: pointer; }
-.metric-card-clickable:hover { border-color: #A37929; }
+
+/* ===== TODAY'S RELEASES SECTION (separated from performance metrics) ===== */
+.releases-section {
+    background: #eef4fb;
+    border: 1.5px solid #d7e6f5;
+    border-radius: 18px;
+    padding: 20px 20px 4px;
+    margin-bottom: 28px;
+}
+.releases-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #1e4575;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 16px;
+}
+.releases-section-date {
+    margin-left: auto;
+    color: #4a6fa5;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+}
+.releases-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
 .modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center; }
 .modal-overlay.active { display:flex; }
 .modal-box { background:white;border-radius:16px;width:90%;max-height:90vh;overflow-y:auto;overflow-x:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:modalIn 0.25s ease-out; }
@@ -597,6 +642,7 @@ function closeTodayExpensesModal() {
 }
 @media (max-width: 640px) {
     .metrics-grid { grid-template-columns: 1fr; }
+    .releases-grid { grid-template-columns: 1fr; }
     .welcome-title { font-size: 22px; }
     .welcome-banner { padding: 24px; }
 }

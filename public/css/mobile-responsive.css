@@ -31,6 +31,7 @@ img, video { max-width: 100%; height: auto; }
     .sidebar-expanded { width: 220px !important; }
     .sidebar-expanded ~ .main-content { margin-left: 220px !important; }
     .metrics-grid { grid-template-columns: repeat(2,1fr) !important; }
+    .releases-grid { grid-template-columns: repeat(2,1fr) !important; }
     .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
     .section-grid { grid-template-columns: 1fr !important; }
 }
@@ -107,6 +108,8 @@ img, video { max-width: 100%; height: auto; }
     .today-pills { flex-wrap: wrap; gap: 6px; }
     .today-pill { font-size: 11px !important; padding: 5px 10px !important; }
     .metrics-grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+    .releases-grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+    .releases-section { padding: 14px 14px 4px !important; border-radius: 14px !important; }
     .metric-card { padding: 14px !important; gap: 12px !important; }
     .metric-value { font-size: clamp(15px, 4vw, 22px) !important; }
     .section-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
@@ -423,6 +426,7 @@ img, video { max-width: 100%; height: auto; }
     .page-content { padding: 8px; }
 
     .metrics-grid { grid-template-columns: 1fr !important; }
+    .releases-grid { grid-template-columns: 1fr !important; }
     .stats-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
     .stat-card { padding: 12px !important; }
 

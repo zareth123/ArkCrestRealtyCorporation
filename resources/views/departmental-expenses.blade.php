@@ -2048,6 +2048,11 @@ function _submitLiquidationUpdate() {
     const hlStatus = params.get('status');
     const hlAction = params.get('action');
     if (!highlightId) return;
+
+    // Strip highlight params from the URL now that we've read them, so a
+    // browser refresh loads a clean URL and the highlight does not reappear.
+    window.history.replaceState({}, '', window.location.pathname);
+
     setTimeout(function() {
         const row = document.querySelector('tr[data-id="' + highlightId + '"]');
         if (!row) return;
@@ -2059,25 +2064,40 @@ function _submitLiquidationUpdate() {
 
         const isApproved = hlStatus === 'approved';
         const isPending  = hlStatus === 'pending';
-        const bgColor    = isApproved ? 'rgba(22,163,74,.15)' : (isPending ? 'rgba(234,179,8,.15)' : 'rgba(220,38,38,.12)');
-        const borderColor= isApproved ? '#16a34a' : (isPending ? '#d97706' : '#dc2626');
-        const badgeColor = isApproved ? '#16a34a' : (isPending ? '#d97706' : '#dc2626');
-        const badgeText  = isApproved ? '✓ Approved — Can ' + (hlAction||'edit')
-                         : (isPending  ? '👁 ' + (hlAction||'edit') + ' requested'
-                         : '✕ Rejected');
+        const isRejected = hlStatus === 'rejected';
+
+        let bgColor, borderColor, badgeColor, badgeText;
+        if (isApproved) {
+            bgColor = 'rgba(22,163,74,.15)'; borderColor = '#16a34a'; badgeColor = '#16a34a';
+            badgeText = '✓ Approved — Can ' + (hlAction || 'edit');
+        } else if (isPending) {
+            bgColor = 'rgba(234,179,8,.15)'; borderColor = '#d97706'; badgeColor = '#d97706';
+            badgeText = '👁 ' + (hlAction || 'edit') + ' requested';
+        } else if (isRejected) {
+            bgColor = 'rgba(220,38,38,.12)'; borderColor = '#dc2626'; badgeColor = '#dc2626';
+            badgeText = '✕ Rejected';
+        } else {
+            // No/unrecognized status — e.g. links that just want to point at a
+            // row (like the dashboard's Today's Expense Releases card) without
+            // implying any approval outcome. Neutral highlight, no badge.
+            bgColor = 'rgba(30,69,117,.12)'; borderColor = '#1e4575'; badgeColor = '#1e4575';
+            badgeText = null;
+        }
 
         row.style.background   = bgColor;
         row.style.outline      = '2px solid ' + borderColor;
         row.style.outlineOffset= '-1px';
         row.style.transition   = 'all .3s';
 
-        const firstTd = row.querySelector('td');
-        if (firstTd && !firstTd.querySelector('.hl-badge')) {
-            const badge = document.createElement('span');
-            badge.className = 'hl-badge';
-            badge.style.cssText = 'display:inline-block;margin-left:6px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:' + badgeColor + ';color:white;vertical-align:middle;';
-            badge.textContent = badgeText;
-            firstTd.appendChild(badge);
+        if (badgeText) {
+            const firstTd = row.querySelector('td');
+            if (firstTd && !firstTd.querySelector('.hl-badge')) {
+                const badge = document.createElement('span');
+                badge.className = 'hl-badge';
+                badge.style.cssText = 'display:inline-block;margin-left:6px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:' + badgeColor + ';color:white;vertical-align:middle;';
+                badge.textContent = badgeText;
+                firstTd.appendChild(badge);
+            }
         }
 
         setTimeout(function() {

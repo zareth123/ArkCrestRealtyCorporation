@@ -155,13 +155,19 @@ class DashboardController extends Controller
 
         // Commission releases due today (PR #177)
         $todayReleaseRecords = CommissionRequest::whereDate('date_released', $today)
+            ->whereIn('status', ['Not Yet Released', 'Not Released'])
             ->orderBy('agent_name')
             ->get();
         $todayReleases      = $todayReleaseRecords->count();
         $todayReleasesTotal = $todayReleaseRecords->sum('commission');
 
-        // Expense releases due today
-        $todayExpenseReleaseRecords = DepartmentalExpense::whereDate('date_released', $today)
+        // Expense releases due today. Unlike commissions, an expense's
+        // date_released is only ever populated once it's actually RELEASED
+        // (normalizeWorkflow() forces it to null while release_status is
+        // NOT YET RELEASED), so we key off date_requested instead to find
+        // today's pending expense releases.
+        $todayExpenseReleaseRecords = DepartmentalExpense::whereDate('date_requested', $today)
+            ->where('release_status', 'NOT YET RELEASED')
             ->orderBy('department')
             ->orderBy('requestor_name')
             ->get();
