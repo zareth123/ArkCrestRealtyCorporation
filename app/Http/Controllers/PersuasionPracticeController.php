@@ -99,15 +99,25 @@ class PersuasionPracticeController extends Controller
         }
 
         $request->validate([
-            'message' => 'required|string|max:2000',
+            'message' => 'required_without:image|nullable|string|max:2000',
+            'image'   => 'nullable|image|mimes:jpg,jpeg,png,gif,bmp,webp|max:8192', // 8MB
         ]);
 
         $nextTurn = ($session->messages()->max('turn_number') ?? 0) + 1;
 
+        $imagePath = $request->hasFile('image')
+            ? $request->file('image')->store('persuasion-images', 'public')
+            : null;
+
         $agentMessage = PersuasionMessage::create([
             'session_id'  => $session->id,
             'sender'      => 'AGENT',
-            'message'     => $request->message,
+            // Laravel's ConvertEmptyStringsToNull middleware turns an
+            // empty "" message (e.g. an image sent with no caption) into
+            // an actual null before it reaches here — the ?? '' guards
+            // against that, since the `message` column is NOT NULL.
+            'message'     => $request->input('message') ?? '',
+            'image_path'  => $imagePath,
             'turn_number' => $nextTurn,
         ]);
 

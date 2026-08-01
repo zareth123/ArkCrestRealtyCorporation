@@ -38,7 +38,40 @@
 .pc-retry-btn:hover { background:#1a2c54; }
 .pc-retry-btn:disabled { opacity:.6; cursor:default; }
 
-.pc-inputbar { flex-shrink:0;border-top:1px solid #f1f5f9;padding:14px 18px;display:flex;gap:10px; }
+.pc-inputbar { flex-shrink:0;border-top:1px solid #f1f5f9;padding:14px 18px;display:flex;flex-direction:column;gap:8px; }
+.pc-inputbar-row { display:flex;gap:10px;align-items:flex-end; }
+.pc-attach-btn {
+    flex-shrink:0;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;
+    width:42px;height:42px;border-radius:10px;font-size:16px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+}
+.pc-attach-btn:hover { background:#eef2f7; }
+.pc-attach-btn:disabled { opacity:.5;cursor:not-allowed; }
+.pc-image-preview { display:none;align-items:center;gap:8px; }
+.pc-image-preview.active { display:flex; }
+.pc-image-preview img { width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0; }
+.pc-image-preview-remove {
+    border:none;background:#fee2e2;color:#b91c1c;width:22px;height:22px;border-radius:50%;
+    font-size:12px;font-weight:700;cursor:pointer;line-height:1;
+}
+.pc-bubble img.pc-msg-image { max-width:220px;max-height:220px;border-radius:10px;display:block;object-fit:cover;cursor:zoom-in; }
+.pc-bubble img.pc-msg-image + div { margin-top:6px; }
+.pc-lightbox-overlay {
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;
+    align-items:center;justify-content:center;cursor:zoom-out;padding:30px;
+}
+.pc-lightbox-overlay img { max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.4); }
+.pc-lightbox-close {
+    position:absolute;top:20px;right:26px;color:white;font-size:28px;background:none;border:none;cursor:pointer;
+    line-height:1;
+}
+.pc-send-fail {
+    margin-top:4px;font-size:11.5px;color:#c2410c;display:flex;align-items:center;gap:8px;justify-content:flex-end;
+}
+.pc-send-fail button {
+    border:none;background:#0f1c3d;color:#f4f6fb;font-size:11px;font-weight:700;
+    padding:3px 10px;border-radius:6px;cursor:pointer;
+}
 .pc-input {
     flex:1;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:13.5px;
     resize:none;font-family:inherit;
@@ -46,7 +79,8 @@
 .pc-input:focus { outline:none;border-color:#2563eb; }
 .pc-send-btn {
     border:none;background:linear-gradient(135deg,#1e4575,#2563eb);color:white;
-    padding:0 20px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
+    padding:0 20px;height:42px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
+    flex-shrink:0;
 }
 .pc-send-btn:disabled { opacity:.5;cursor:not-allowed; }
 .pc-typing { font-size:12px;color:#94a3b8;font-style:italic;padding:0 20px 8px; }
@@ -100,21 +134,41 @@
                             @endif
                         </div>
                     @else
-                        <div class="pc-bubble">{{ $m->message }}</div>
+                        <div class="pc-bubble">
+                            @if($m->image_path)
+                                <img src="{{ $m->image_url }}" class="pc-msg-image" alt="Attached image" onclick="ppOpenLightbox('{{ $m->image_url }}')">
+                            @endif
+                            @if(trim($m->message) !== '')
+                                <div>{{ $m->message }}</div>
+                            @endif
+                        </div>
                     @endif
                 </div>
             @endforeach
         </div>
         <div class="pc-typing" id="ppTyping" style="display:none;">{{ $session->scenario->buyer_name }} is typing…</div>
         <div class="pc-inputbar">
-            <textarea id="ppInput" class="pc-input" rows="1" placeholder="Type your message…" {{ $session->is_finished ? 'disabled' : '' }}></textarea>
-            <button type="button" id="ppSendBtn" class="pc-send-btn" onclick="ppSendMessage()" {{ $session->is_finished ? 'disabled' : '' }}>Send</button>
+            <div class="pc-image-preview" id="ppImagePreview">
+                <img id="ppImagePreviewThumb" src="" alt="Selected image">
+                <button type="button" class="pc-image-preview-remove" onclick="ppClearImage()">✕</button>
+            </div>
+            <div class="pc-inputbar-row">
+                <input type="file" id="ppImageInput" accept="image/png,image/jpeg,image/gif,image/bmp,image/webp" style="display:none;" onchange="ppOnImageSelected(this)">
+                <button type="button" class="pc-attach-btn" id="ppAttachBtn" title="Attach an image" onclick="document.getElementById('ppImageInput').click()" {{ $session->is_finished ? 'disabled' : '' }}>📎</button>
+                <textarea id="ppInput" class="pc-input" rows="1" placeholder="Type your message…" {{ $session->is_finished ? 'disabled' : '' }}></textarea>
+                <button type="button" id="ppSendBtn" class="pc-send-btn" onclick="ppSendMessage()" {{ $session->is_finished ? 'disabled' : '' }}>Send</button>
+            </div>
         </div>
     </div>
 </div>
 
 <div class="pc-score-overlay" id="ppScoreOverlay">
     <div class="pc-score-box" id="ppScoreBox"></div>
+</div>
+
+<div class="pc-lightbox-overlay" id="ppLightboxOverlay" onclick="ppCloseLightbox()">
+    <button type="button" class="pc-lightbox-close" onclick="ppCloseLightbox()">✕</button>
+    <img id="ppLightboxImg" src="" alt="Full-size image" onclick="event.stopPropagation()">
 </div>
 
 <script>
@@ -129,12 +183,35 @@ const ppBuyerName = @json($session->scenario->buyer_name);
 document.addEventListener('DOMContentLoaded', () => ppShowScorecard($session->status ?? 'NOT_SOLD', @json($session->scorecard)));
 @endif
 
-function ppAppendBubble(sender, text, isError = false) {
+function ppOpenLightbox(url) {
+    document.getElementById('ppLightboxImg').src = url;
+    document.getElementById('ppLightboxOverlay').style.display = 'flex';
+}
+
+function ppCloseLightbox() {
+    document.getElementById('ppLightboxOverlay').style.display = 'none';
+    document.getElementById('ppLightboxImg').src = '';
+}
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') ppCloseLightbox();
+});
+
+function ppAppendBubble(sender, text, isError = false, imageUrl = null) {
     const wrap = document.getElementById('ppMessages');
     const row = document.createElement('div');
     row.className = 'pc-bubble-row ' + sender.toLowerCase();
     const bubble = document.createElement('div');
     bubble.className = 'pc-bubble' + (isError ? ' pc-bubble-error' : '');
+
+    if (imageUrl) {
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.className = 'pc-msg-image';
+        img.alt = 'Attached image';
+        img.onclick = () => ppOpenLightbox(imageUrl);
+        bubble.appendChild(img);
+    }
 
     if (isError) {
         const warn = document.createElement('div');
@@ -152,13 +229,51 @@ function ppAppendBubble(sender, text, isError = false) {
         retryBtn.textContent = 'Retry';
         retryBtn.onclick = () => ppRetryMessage(retryBtn, row);
         bubble.appendChild(retryBtn);
-    } else {
-        bubble.textContent = text;
+    } else if (text) {
+        const textEl = document.createElement('div');
+        textEl.textContent = text;
+        bubble.appendChild(textEl);
     }
 
     row.appendChild(bubble);
     wrap.appendChild(row);
     wrap.scrollTop = wrap.scrollHeight;
+    return row;
+}
+
+/** Pulls the most useful human-readable error out of a failed fetch response body. */
+function ppExtractErrorMessage(data) {
+    if (data && data.errors) {
+        const first = Object.values(data.errors)[0];
+        if (Array.isArray(first) && first.length) return first[0];
+    }
+    if (data && data.message) return data.message;
+    if (data && data.error) return data.error;
+    return 'Something went wrong. Please try again.';
+}
+
+/** Marks an agent's own message row as failed-to-send, with the real reason and a Retry action. */
+function ppMarkSendFailed(row, message, onRetry) {
+    const existing = row.querySelector('.pc-send-fail');
+    if (existing) existing.remove();
+
+    const note = document.createElement('div');
+    note.className = 'pc-send-fail';
+
+    const label = document.createElement('span');
+    label.textContent = '⚠ Not sent — ' + message;
+    note.appendChild(label);
+
+    const retryBtn = document.createElement('button');
+    retryBtn.type = 'button';
+    retryBtn.textContent = 'Retry';
+    retryBtn.onclick = () => {
+        note.remove();
+        onRetry();
+    };
+    note.appendChild(retryBtn);
+
+    row.appendChild(note);
 }
 
 async function ppRetryMessage(btn, row) {
@@ -199,32 +314,75 @@ async function ppRetryMessage(btn, row) {
 function ppSetSending(sending) {
     document.getElementById('ppSendBtn').disabled = sending;
     document.getElementById('ppInput').disabled = sending;
+    document.getElementById('ppAttachBtn').disabled = sending;
     document.getElementById('ppTyping').style.display = sending ? 'block' : 'none';
+}
+
+let ppSelectedImage = null;
+
+function ppOnImageSelected(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+        alert('Image is too large — please pick one under 8MB.');
+        input.value = '';
+        return;
+    }
+
+    ppSelectedImage = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById('ppImagePreviewThumb').src = e.target.result;
+        document.getElementById('ppImagePreview').classList.add('active');
+    };
+    reader.readAsDataURL(file);
+}
+
+function ppClearImage() {
+    ppSelectedImage = null;
+    document.getElementById('ppImageInput').value = '';
+    document.getElementById('ppImagePreview').classList.remove('active');
+    document.getElementById('ppImagePreviewThumb').src = '';
 }
 
 async function ppSendMessage() {
     const input = document.getElementById('ppInput');
     const text = input.value.trim();
-    if (!text) return;
+    if (!text && !ppSelectedImage) return;
 
-    ppAppendBubble('AGENT', text);
+    const imageFile = ppSelectedImage;
+    const localImageUrl = imageFile ? URL.createObjectURL(imageFile) : null;
+    const row = ppAppendBubble('AGENT', text, false, localImageUrl);
+
     input.value = '';
+    ppClearImage();
+
+    await ppSubmitMessage(row, text, imageFile);
+}
+
+async function ppSubmitMessage(row, text, imageFile) {
+    const formData = new FormData();
+    formData.append('message', text);
+    if (imageFile) formData.append('image', imageFile);
+
     ppSetSending(true);
 
     try {
         const res = await fetch(ppMessageUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': ppCsrf, 'Accept': 'application/json' },
-            body: JSON.stringify({ message: text }),
+            headers: { 'X-CSRF-TOKEN': ppCsrf, 'Accept': 'application/json' },
+            body: formData,
         });
-        const data = await res.json();
+
+        let data = {};
+        try { data = await res.json(); } catch (e) { /* non-JSON error body, e.g. a raw 429 */ }
 
         if (!res.ok) {
-            if (res.status === 429) {
-                ppAppendBubble('BUYER', "You're sending messages a bit too fast — please wait a moment and try again.", true);
-            } else {
-                ppAppendBubble('BUYER', data.error || 'Something went wrong. Please try again.', true);
-            }
+            const reason = res.status === 429
+                ? "you're sending messages a bit too fast — wait a moment"
+                : ppExtractErrorMessage(data);
+            ppMarkSendFailed(row, reason, () => ppSubmitMessage(row, text, imageFile));
             ppSetSending(false);
             return;
         }
@@ -235,10 +393,11 @@ async function ppSendMessage() {
         if (data.session_ended) {
             document.getElementById('ppSendBtn').disabled = true;
             document.getElementById('ppInput').disabled = true;
+            document.getElementById('ppAttachBtn').disabled = true;
             ppShowScorecard(data.session.status, data.session.scorecard);
         }
     } catch (e) {
-        ppAppendBubble('BUYER', 'Connection error — please try again.');
+        ppMarkSendFailed(row, 'connection error', () => ppSubmitMessage(row, text, imageFile));
         ppSetSending(false);
     }
 }
@@ -262,6 +421,7 @@ async function ppEndSession() {
         const data = await res.json();
         document.getElementById('ppSendBtn').disabled = true;
         document.getElementById('ppInput').disabled = true;
+        document.getElementById('ppAttachBtn').disabled = true;
         ppShowScorecard(data.session.status, data.session.scorecard);
     } catch (e) {
         ppSetSending(false);

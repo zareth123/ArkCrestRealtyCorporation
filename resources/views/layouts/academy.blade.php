@@ -169,6 +169,34 @@
         }
         .sidebar-toggle svg { width: 21px; height: 21px; }
 
+        /* Desktop collapse toggle — mirrors the "<" circle toggle on the main dashboard sidebar */
+        .academy-collapse-btn {
+            position: fixed;
+            top: 50%;
+            left: calc(var(--sidebar-width) - 15px);
+            transform: translateY(-50%);
+            z-index: 1200;
+            width: 30px;
+            height: 30px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 2px solid var(--gold);
+            background: #fff;
+            color: var(--gold);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+            transition: left .25s ease, background .2s ease, color .2s ease;
+        }
+        .academy-collapse-btn svg { width: 15px; height: 15px; transition: transform .25s ease; }
+        .academy-collapse-btn:hover { background: var(--gold); color: #fff; }
+        @media (min-width: 901px) {
+            .academy-collapse-btn { display: flex; }
+        }
+        body.academy-sidebar-desktop-collapsed .academy-collapse-btn { left: -15px; }
+        body.academy-sidebar-desktop-collapsed .academy-collapse-btn svg { transform: rotate(180deg); }
+
         /* Course-only sidebar */
         .academy-sidebar {
             position: fixed;
@@ -180,12 +208,13 @@
             display: flex;
             flex-direction: column;
             padding: 28px 20px 22px;
-            overflow-y: auto;
+            overflow: visible;
             color: #fff;
             background:
                 radial-gradient(circle at 20% 0%, rgba(36, 85, 140, .42), transparent 34%),
                 linear-gradient(180deg, var(--navy-900), var(--navy-950));
             border-right: 1px solid rgba(255, 255, 255, .08);
+            transition: transform .25s ease;
         }
         .sidebar-label {
             margin: 0 10px 8px;
@@ -229,7 +258,20 @@
             border-radius: inherit;
             background: linear-gradient(90deg, var(--gold), var(--gold-light));
         }
-        .course-navigation { display: grid; gap: 7px; }
+        .course-navigation {
+            display: grid;
+            align-content: start;
+            gap: 7px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            margin: 0 -6px;
+            padding: 0 6px;
+        }
+        .course-navigation::-webkit-scrollbar { width: 4px; }
+        .course-navigation::-webkit-scrollbar-track { background: transparent; }
+        .course-navigation::-webkit-scrollbar-thumb { background: rgba(163, 121, 41, .4); border-radius: 2px; }
         .course-link {
             display: grid;
             grid-template-columns: 32px 1fr auto;
@@ -292,6 +334,7 @@
             min-height: 100vh;
             margin-left: var(--sidebar-width);
             padding: calc(var(--navbar-height) + 30px) 34px 48px;
+            transition: margin-left .25s ease;
         }
         .academy-content { max-width: 1370px; margin: 0 auto; }
         .training-hero {
@@ -452,6 +495,10 @@
             .academy-nav-title { display: none; }
             .user-copy { display: none; }
         }
+        @media (min-width: 901px) {
+            body.academy-sidebar-desktop-collapsed .academy-sidebar { transform: translateX(-100%); }
+            body.academy-sidebar-desktop-collapsed .academy-main { margin-left: 0; }
+        }
         @media (max-width: 900px) {
             :root { --navbar-height: 68px; }
             .academy-navbar { padding: 0 16px; }
@@ -524,6 +571,10 @@
             </div>
         </nav>
     </header>
+
+    <button type="button" class="academy-collapse-btn" id="academyCollapseToggle" aria-label="Collapse course navigation" aria-expanded="true">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
 
     <aside class="academy-sidebar" id="academySidebar" aria-label="Course navigation">
         <p class="sidebar-label">Learning Path</p>
@@ -608,6 +659,28 @@
             window.addEventListener('resize', function () {
                 if (window.innerWidth > 900) { setSidebar(false); }
             });
+
+            // Desktop collapse toggle — hides/shows the sidebar on larger screens,
+            // mirroring the "<" collapse button on the main dashboard sidebar.
+            var collapseBtn = document.getElementById('academyCollapseToggle');
+            if (collapseBtn) {
+                function setDesktopCollapsed(collapsed) {
+                    document.body.classList.toggle('academy-sidebar-desktop-collapsed', collapsed);
+                    collapseBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                    collapseBtn.setAttribute('aria-label', collapsed ? 'Expand course navigation' : 'Collapse course navigation');
+                    try { localStorage.setItem('academySidebarCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+                }
+
+                collapseBtn.addEventListener('click', function () {
+                    setDesktopCollapsed(!document.body.classList.contains('academy-sidebar-desktop-collapsed'));
+                });
+
+                try {
+                    if (localStorage.getItem('academySidebarCollapsed') === '1') {
+                        setDesktopCollapsed(true);
+                    }
+                } catch (e) {}
+            }
         })();
     </script>
     @stack('academy-scripts')
