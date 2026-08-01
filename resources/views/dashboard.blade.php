@@ -70,42 +70,6 @@
     </div>
 </div>
 
-<!-- Top Metrics Cards -->
-@if(!in_array('dashboard.budget-cards', $hiddenSections))
-<div class="metrics-grid">
-    <div class="metric-card card-blue">
-        <div class="metric-icon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-        </div>
-        <div class="metric-content">
-            <div class="metric-label">Monthly Performance</div>
-            <div class="metric-value">{{ number_format($units, 0) }} <span style="font-size:14px;font-weight:500;color:#64748b;">units</span></div>
-            <div style="font-size:13px;font-weight:700;color:#1e4575;">&#8369;{{ number_format($grossSales, 0) }}</div>
-            <div class="metric-subtitle">Gross Sales — {{ $currentMonth }} {{ $currentYear }}</div>
-        </div>
-    </div>
-    <div class="metric-card card-gold">
-        <div class="metric-icon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-        </div>
-        <div class="metric-content">
-            <div class="metric-label">Receivables</div>
-            <div class="metric-value">&#8369;{{ number_format($receivables, 0) }}</div>
-            <div class="metric-subtitle">Pending commission releases</div>
-        </div>
-    </div>
-    <div class="metric-card card-blue">
-        <div class="metric-icon" style="background:linear-gradient(135deg,#059669,#10b981);">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-        </div>
-        <div class="metric-content">
-            <div class="metric-label">Total Sales</div>
-            <div class="metric-value">&#8369;{{ number_format($yearlySales, 0) }}</div>
-            <div class="metric-subtitle">Year-to-date — {{ $currentYear }}</div>
-        </div>
-    </div>
-</div>
-
 <!-- Today's Releases (separated from the performance metrics above) -->
 <div class="releases-section">
     <div class="releases-section-header">
@@ -140,7 +104,6 @@
         </div>
     </div>
 </div>
-@endif
 
 <!-- Today's Commission Releases Modal (PR #177) -->
 <div id="todayReleasesModalOverlay" class="modal-overlay" onclick="if(event.target===this)closeTodayReleasesModal()">
@@ -287,6 +250,44 @@ function closeTodayExpensesModal() {
     document.getElementById('todayExpensesModalOverlay').classList.remove('active');
 }
 </script>
+
+
+<!-- Top Metrics Cards -->
+@if(!in_array('dashboard.budget-cards', $hiddenSections))
+<div class="metrics-grid">
+    <div class="metric-card card-blue">
+        <div class="metric-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        </div>
+        <div class="metric-content">
+            <div class="metric-label">Monthly Performance</div>
+            <div class="metric-value">{{ number_format($units, 0) }} <span style="font-size:14px;font-weight:500;color:#64748b;">units</span></div>
+            <div style="font-size:13px;font-weight:700;color:#1e4575;">&#8369;{{ number_format($grossSales, 0) }}</div>
+            <div class="metric-subtitle">Gross Sales — {{ $currentMonth }} {{ $currentYear }}</div>
+        </div>
+    </div>
+    <div class="metric-card card-gold">
+        <div class="metric-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        </div>
+        <div class="metric-content">
+            <div class="metric-label">Receivables</div>
+            <div class="metric-value">&#8369;{{ number_format($receivables, 0) }}</div>
+            <div class="metric-subtitle">Pending commission releases</div>
+        </div>
+    </div>
+    <div class="metric-card card-blue">
+        <div class="metric-icon" style="background:linear-gradient(135deg,#059669,#10b981);">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <div class="metric-content">
+            <div class="metric-label">Total Sales</div>
+            <div class="metric-value">&#8369;{{ number_format($yearlySales, 0) }}</div>
+            <div class="metric-subtitle">Year-to-date — {{ $currentYear }}</div>
+        </div>
+    </div>
+</div>
+@endif
 
 <!-- Department Expenses Section -->
 @if(!in_array('dashboard.expenses-breakdown', $hiddenSections) || !in_array('dashboard.dept-list', $hiddenSections))
