@@ -606,6 +606,13 @@
                 <span><strong>Persuasion Practice</strong><small>AI buyer roleplay</small></span>
                 <span></span>
             </a>
+            @if ($academyCourseCompleted ?? false)
+                <a href="{{ route('agent-training.certificate') }}" class="course-link {{ request()->routeIs('agent-training.certificate') ? 'active' : '' }}">
+                    <span class="course-link-number">🎓</span>
+                    <span><strong>Course Completion Certificate</strong><small>View &amp; download</small></span>
+                    <span></span>
+                </a>
+            @endif
         </nav>
 
         <div class="sidebar-footer">

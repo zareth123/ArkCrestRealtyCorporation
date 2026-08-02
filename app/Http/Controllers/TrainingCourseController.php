@@ -6,6 +6,7 @@ use App\Models\TrainingModuleProgress;
 use App\Services\AgentTrainingCourseService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use setasign\Fpdi\Fpdi;
 
 class TrainingCourseController extends Controller
 {
@@ -290,5 +291,105 @@ class TrainingCourseController extends Controller
             'overall_percent' => AgentTrainingCourseService::overallPercent($updatedProgress),
             'completed_count' => AgentTrainingCourseService::completedCount($updatedProgress),
         ]);
+    }
+
+    /**
+     * Course-complete gate shared by the congratulations page and the
+     * certificate page/streams below — "completed" means every module has
+     * been passed (Module 6's quiz doubles as the course's Final Assessment).
+     */
+    private function courseCompletedFor($user): bool
+    {
+        $progress = AgentTrainingCourseService::progressFor($user);
+
+        return AgentTrainingCourseService::completedCount($progress) === AgentTrainingCourseService::TOTAL_MODULES;
+    }
+
+    /** Dedicated course-completion page, shown right after the last module is passed. */
+    public function congratulations(Request $request)
+    {
+        if (!$this->courseCompletedFor($request->user())) {
+            return redirect()->route('agent-training')->with('error', 'Complete all training modules to view this page.');
+        }
+
+        return view('training-course-congratulations');
+    }
+
+    /** Certificate preview page — the sidebar's "Course Completion Certificate" link. */
+    public function certificate(Request $request)
+    {
+        if (!$this->courseCompletedFor($request->user())) {
+            return redirect()->route('agent-training')->with('error', 'Complete all training modules to unlock your certificate.');
+        }
+
+        return view('training-course-certificate');
+    }
+
+    /** Streams the personalized certificate inline, for the certificate page's preview frame. */
+    public function certificatePreview(Request $request)
+    {
+        return $this->streamCertificate($request, false);
+    }
+
+    /** Streams the personalized certificate as a downloadable attachment. */
+    public function certificateDownload(Request $request)
+    {
+        return $this->streamCertificate($request, true);
+    }
+
+    private function streamCertificate(Request $request, bool $download)
+    {
+        $user = $request->user();
+
+        if (!$this->courseCompletedFor($user)) {
+            abort(403);
+        }
+
+        $pdf = $this->buildCertificatePdf($user);
+        $filename = 'ArkCrest-Certificate-' . str_replace(' ', '-', $user->name) . '.pdf';
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($download ? 'attachment' : 'inline') . '; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * Overlays the learner's name and completion date onto the existing
+     * certificate template (resources/certificates/arkcrest-certificate.pdf)
+     * using FPDI — the template file itself is never modified, only read as
+     * a source page that a new page is built on top of. Coordinates below
+     * were measured directly off the template's "RECIPIENT NAME" and "DATE"
+     * underlines (792x612pt / Letter landscape).
+     */
+    private function buildCertificatePdf($user): Fpdi
+    {
+        $pdf = new Fpdi('L', 'pt');
+        $pdf->setSourceFile(resource_path('certificates/arkcrest-certificate.pdf'));
+        $page = $pdf->importPage(1);
+        $size = $pdf->getTemplateSize($page);
+
+        $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+        $pdf->useTemplate($page);
+
+        // Recipient name, centered above the "RECIPIENT NAME" underline.
+        $fullName = $user->name;
+        $fontSize = 22;
+        $pdf->SetFont('Times', 'B', $fontSize);
+        while ($fontSize > 12 && $pdf->GetStringWidth($fullName) > 440) {
+            $fontSize--;
+            $pdf->SetFont('Times', 'B', $fontSize);
+        }
+        $pdf->SetTextColor(20, 36, 58);
+        $pdf->SetXY(166.08, 250.8);
+        $pdf->Cell(459.36, 24, $fullName, 0, 0, 'C');
+
+        // Completion date, centered above the "DATE" underline.
+        $pdf->SetFont('Times', '', 11);
+        $pdf->SetTextColor(20, 36, 58);
+        $pdf->SetXY(109.92, 505.76);
+        $pdf->Cell(179.52, 16, now()->format('F j, Y'), 0, 0, 'C');
+
+        return $pdf;
     }
 }

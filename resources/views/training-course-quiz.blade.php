@@ -16,6 +16,7 @@
     data-passing="{{ $passingScore }}"
     data-submit-url="{{ url('/agent-training/module/' . $module . '/quiz') }}"
     data-results-url="{{ $resultsUrl }}"
+    data-congrats-url="{{ $congratsUrl ?? '' }}"
 >
     <script type="application/json" class="crs-exam-data">{!! json_encode($questions) !!}</script>
 
@@ -127,6 +128,7 @@
     document.querySelectorAll('.crs-exam').forEach(function (examEl) {
         var submitUrl = examEl.getAttribute('data-submit-url');
         var resultsUrl = examEl.getAttribute('data-results-url');
+        var congratsUrl = examEl.getAttribute('data-congrats-url');
         var questions = JSON.parse(examEl.querySelector('.crs-exam-data').textContent);
         var total = questions.length;
 
@@ -305,6 +307,15 @@
                     // the attempt is "finished", so leaving no longer needs
                     // confirmation. Hand off to the dedicated Exam Results page.
                     if (window.ExamLeaveGuard) window.ExamLeaveGuard.disable();
+
+                    // Passing the last module's exam completes the whole course
+                    // (module_completed + no next module) — go straight to the
+                    // dedicated congratulations page instead of the usual
+                    // per-module results page.
+                    if (r.data.module_completed && !r.data.next_module && congratsUrl) {
+                        window.location.href = congratsUrl;
+                        return;
+                    }
 
                     var skippedCount = r.data.results.filter(function (res) { return res.selected === -1; }).length;
                     var params = new URLSearchParams({

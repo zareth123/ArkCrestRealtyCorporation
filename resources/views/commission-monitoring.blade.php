@@ -1891,6 +1891,18 @@ function editCommission(id) {
                 ? 'Complete Required Commission Information'
                 : 'Edit Commission Request';
 
+            // Date Released stays auto-calculated/locked while completing a
+            // Fill Up (status was still "Requested"). Once a record has
+            // already been filled up, the Edit action lets an admin
+            // manually correct the date instead of it always being derived
+            // from Date Requested + Mode of Payment.
+            const dateReleasedField = document.getElementById('cm_edit_date_released');
+            if (dateReleasedField) {
+                dateReleasedField.readOnly = isPendingInformation;
+                dateReleasedField.style.background = isPendingInformation ? '#f3f4f6' : '';
+                dateReleasedField.style.cursor = isPendingInformation ? 'not-allowed' : '';
+            }
+
             const lockSourceFields = !!data.source_client_record_id;
             [
                 'cm_edit_client_name', 'cm_edit_reservation_date', 'cm_edit_project_name',
@@ -1922,6 +1934,11 @@ function calcCmDateReleased(prefix) {
     const reqEl  = document.getElementById(prefix + '_date_requested');
     const relEl  = document.getElementById(prefix + '_date_released');
     if (!modeEl || !reqEl || !relEl) return;
+    // Only auto-fill while the field is still locked (Fill Up / the Add
+    // form). Once it's editable (a genuine Edit), leave whatever the admin
+    // typed alone — don't silently overwrite it when they tweak Date
+    // Requested or Mode of Payment afterward.
+    if (relEl.readOnly === false) return;
 
     const mode   = modeEl.value;
     const reqVal = reqEl.value;
@@ -2816,7 +2833,7 @@ function submitCmPermRequest() {
                     </div>
                     <div class="modal-field">
                         <label>Date Released</label>
-                        <input type="date" id="cm_edit_date_released" name="date_released" readonly style="background:#f3f4f6;cursor:not-allowed;color:#374151;">
+                        <input type="date" id="cm_edit_date_released" name="date_released">
                     </div>
                     <div class="modal-field">
                         <label>Status <span style="color:#ef4444">*</span></label>

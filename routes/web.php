@@ -65,6 +65,10 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
         ->middleware('throttle:20,1');
     Route::get('/agent-training/module/{module}/exam', [TrainingCourseController::class, 'showExam'])->name('agent-training.module.exam');
     Route::get('/agent-training/module/{module}/exam/results', [TrainingCourseController::class, 'examResults'])->name('agent-training.module.exam.results');
+    Route::get('/agent-training/congratulations', [TrainingCourseController::class, 'congratulations'])->name('agent-training.congratulations');
+    Route::get('/agent-training/certificate', [TrainingCourseController::class, 'certificate'])->name('agent-training.certificate');
+    Route::get('/agent-training/certificate/preview', [TrainingCourseController::class, 'certificatePreview'])->name('agent-training.certificate.preview');
+    Route::get('/agent-training/certificate/download', [TrainingCourseController::class, 'certificateDownload'])->name('agent-training.certificate.download');
 
     // Summary Report
     Route::get('/summary-report', [App\Http\Controllers\SummaryReportController::class, 'index'])->name('summary-report')->middleware('page.visible');
@@ -119,6 +123,15 @@ Route::middleware(['auth', 'no.cache'])->group(function () {
     // View access follows Page Visibility ('settings.practice-scenarios'), checked
     // inside the controller; create/update/delete remain admin-only.
     Route::get('/practice/admin', [App\Http\Controllers\PersuasionScenarioAdminController::class, 'index'])->name('practice.admin');
+
+    // Persuasion Practice — team-wide history (admin/manager view of every
+    // agent's sessions, scores, and transcripts). Both view AND delete access
+    // follow Page Visibility ('settings.practice-history'), checked inside
+    // the controller — any staff granted this page can also delete records.
+    Route::get('/practice/admin/history', [App\Http\Controllers\PersuasionScenarioAdminController::class, 'history'])->name('practice.admin.history');
+    Route::delete('/practice/admin/history/{session}', [App\Http\Controllers\PersuasionScenarioAdminController::class, 'destroySession'])->name('practice.admin.history.destroy');
+    Route::post('/practice/admin/history/bulk-delete', [App\Http\Controllers\PersuasionScenarioAdminController::class, 'bulkDestroySession'])->name('practice.admin.history.bulk-destroy');
+
     Route::middleware('admin')->group(function () {
         Route::post('/practice/admin', [App\Http\Controllers\PersuasionScenarioAdminController::class, 'store'])->name('practice.admin.store');
         Route::put('/practice/admin/{scenario}', [App\Http\Controllers\PersuasionScenarioAdminController::class, 'update'])->name('practice.admin.update');

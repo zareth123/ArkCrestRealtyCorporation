@@ -129,6 +129,13 @@
 </style>
 
 <div class="pc-page">
+@if($scenarioDeleted)
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;gap:14px;">
+        <div style="font-size:40px;">🗑️</div>
+        <div style="font-size:16px;font-weight:700;color:#374151;">You can't view this conversation because this scenario is deleted.</div>
+        <a href="{{ $isAdmin ? route('practice.admin.history') : route('practice.history') }}" style="padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:linear-gradient(135deg,#1e4575,#2563eb);color:white;">Back to Practice History</a>
+    </div>
+@else
     <div class="pc-topbar">
         <div>
             <div class="pc-buyer-name">{{ $session->scenario->buyer_name }}</div>
@@ -136,8 +143,11 @@
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <span class="pc-diff-pill">{{ ucfirst(strtolower($session->difficulty)) }}</span>
-            @if(!$session->is_finished)
+            @if(!$session->is_finished && $isOwner)
             <button type="button" class="pc-end-btn" onclick="ppEndSession()">End Session</button>
+            @endif
+            @if(!$isOwner)
+            <span class="pc-diff-pill" style="background:#fef3c7;color:#92400e;">Viewing another agent's session — read only</span>
             @endif
         </div>
     </div>
@@ -150,7 +160,7 @@
                         <div class="pc-bubble pc-bubble-error">
                             <div class="pc-error-note">⚠ Couldn't reach the buyer — this isn't a real reply.</div>
                             <div>{{ $m->message }}</div>
-                            @if(!$session->is_finished && $m->id === $session->messages->last()->id)
+                            @if(!$session->is_finished && $isOwner && $m->id === $session->messages->last()->id)
                                 <button type="button" class="pc-retry-btn" onclick="ppRetryMessage(this, this.closest('.pc-bubble-row'))">Retry</button>
                             @endif
                         </div>
@@ -175,14 +185,16 @@
             </div>
             <div class="pc-inputbar-row">
                 <input type="file" id="ppImageInput" accept="image/png,image/jpeg,image/gif,image/bmp,image/webp" style="display:none;" onchange="ppOnImageSelected(this)">
-                <button type="button" class="pc-attach-btn" id="ppAttachBtn" title="Attach an image" onclick="document.getElementById('ppImageInput').click()" {{ $session->is_finished ? 'disabled' : '' }}>📎</button>
-                <textarea id="ppInput" class="pc-input" rows="1" placeholder="Type your message…" {{ $session->is_finished ? 'disabled' : '' }}></textarea>
-                <button type="button" id="ppSendBtn" class="pc-send-btn" onclick="ppSendMessage()" {{ $session->is_finished ? 'disabled' : '' }}>Send</button>
+                <button type="button" class="pc-attach-btn" id="ppAttachBtn" title="Attach an image" onclick="document.getElementById('ppImageInput').click()" {{ ($session->is_finished || !$isOwner) ? 'disabled' : '' }}>📎</button>
+                <textarea id="ppInput" class="pc-input" rows="1" placeholder="Type your message…" {{ ($session->is_finished || !$isOwner) ? 'disabled' : '' }}></textarea>
+                <button type="button" id="ppSendBtn" class="pc-send-btn" onclick="ppSendMessage()" {{ ($session->is_finished || !$isOwner) ? 'disabled' : '' }}>Send</button>
             </div>
         </div>
     </div>
+@endif
 </div>
 
+@if(!$scenarioDeleted)
 <div class="pc-score-overlay" id="ppScoreOverlay">
     <div class="pc-score-box" id="ppScoreBox"></div>
 </div>
@@ -480,11 +492,14 @@ function ppShowScorecard(status, scorecard) {
             <ul class="pc-score-suggestions">${suggestions}</ul>
         </div>
         <div class="pc-score-actions">
-            <a href="{{ route('practice') }}" class="pc-btn-secondary">Back to Scenarios</a>
+            <a href="{{ $isOwner ? route('practice') : route('practice.admin.history') }}" class="pc-btn-secondary">{{ $isOwner ? 'Back to Scenarios' : 'Back to Practice History' }}</a>
+            @if($isOwner)
             <a href="{{ route('practice.history') }}" class="pc-btn-primary">View History</a>
+            @endif
         </div>
     `;
     document.getElementById('ppScoreOverlay').style.display = 'flex';
 }
 </script>
+@endif
 @endsection

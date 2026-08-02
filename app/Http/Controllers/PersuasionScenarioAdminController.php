@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\PersuasionScenario;
+use App\Models\PersuasionSession;
 use Illuminate\Http\Request;
 
 class PersuasionScenarioAdminController extends Controller
@@ -21,6 +22,107 @@ class PersuasionScenarioAdminController extends Controller
             ->get();
 
         return view('practice.admin.index', compact('scenarios'));
+    }
+
+    /**
+     * Admin/manager view of every agent's practice sessions — scores and
+     * transcripts across the whole team, with the ability to delete a
+     * session. Separate from the agent-facing 'practice.history' page,
+     * which only ever shows the logged-in agent's own sessions.
+     */
+    public function history(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->isAdmin() && in_array('settings.practice-history', $user->hidden_pages ?? [])) {
+            abort(403, 'You do not have permission to view Practice History.');
+        }
+
+        $sessions = PersuasionSession::with(['scenario', 'user'])
+            ->orderByDesc('created_at')
+            ->paginate(15);
+
+        return view('practice.admin.history', compact('sessions'));
+    }
+
+    /** Permanently removes an agent's practice session (soft delete). Allowed for admins and any staff granted access to the Practice History page. */
+    public function destroySession(Request $request, PersuasionSession $session)
+    {
+        $user = $request->user();
+        if (!$user->isAdmin() && in_array('settings.practice-history', $user->hidden_pages ?? [])) {
+            abort(403, 'You do not have permission to delete Practice History records.');
+        }
+
+        $session->loadMissing(['scenario', 'user']);
+
+        // ?? can't be used inside {$...} string interpolation, so pull it
+        // out first (scenario can be null if it was soft-deleted since).
+        $buyerName = $session->scenario->buyer_name ?? '—';
+
+        // Log to the activity/audit trail BEFORE deleting, same pattern as
+        // scenario deletion — keeps a record and allows restoring later.
+        ActivityLog::log('delete', 'Practice Session', "Deleted practice session for '{$session->user->name}' (Buyer: {$buyerName})", [
+            'model_class'   => PersuasionSession::class,
+            'record_id'     => $session->id,
+            'id'            => $session->id,
+            'user_id'       => $session->user_id,
+            'user_name'     => $session->user->name ?? null,
+            'scenario_id'   => $session->scenario_id,
+            'difficulty'    => $session->difficulty,
+            'status'        => $session->status,
+            'overall_score' => $session->overall_score,
+            'scorecard'     => $session->scorecard,
+            'started_at'    => $session->started_at,
+            'ended_at'      => $session->ended_at,
+        ]);
+
+        $session->delete();
+
+        return redirect()->route('practice.admin.history')->with('success', 'Practice session removed.');
+    }
+
+    /** Bulk-delete multiple practice sessions at once from the checkbox selection on Practice History. */
+    public function bulkDestroySession(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->isAdmin() && in_array('settings.practice-history', $user->hidden_pages ?? [])) {
+            abort(403, 'You do not have permission to delete Practice History records.');
+        }
+
+        $data = $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer|exists:persuasion_sessions,id',
+        ]);
+
+        $sessions = PersuasionSession::with(['scenario', 'user'])->whereIn('id', $data['ids'])->get();
+
+        foreach ($sessions as $session) {
+            $buyerName = $session->scenario->buyer_name ?? '—';
+
+            ActivityLog::log('delete', 'Practice Session', "Deleted practice session for '{$session->user->name}' (Buyer: {$buyerName})", [
+                'model_class'   => PersuasionSession::class,
+                'record_id'     => $session->id,
+                'id'            => $session->id,
+                'user_id'       => $session->user_id,
+                'user_name'     => $session->user->name ?? null,
+                'scenario_id'   => $session->scenario_id,
+                'difficulty'    => $session->difficulty,
+                'status'        => $session->status,
+                'overall_score' => $session->overall_score,
+                'scorecard'     => $session->scorecard,
+                'started_at'    => $session->started_at,
+                'ended_at'      => $session->ended_at,
+            ]);
+
+            $session->delete();
+        }
+
+        $message = count($sessions) . ' practice session(s) removed.';
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
+
+        return redirect()->route('practice.admin.history')->with('success', $message);
     }
 
     public function store(Request $request)

@@ -20,5 +20,6 @@
         'nextModule' => $nextModule,
         'moduleUrl' => $moduleUrl,
         'resultsUrl' => route('agent-training.module.exam.results', $moduleNumber),
+        'congratsUrl' => route('agent-training.congratulations'),
     ])
 @endsection

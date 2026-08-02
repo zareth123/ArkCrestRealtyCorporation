@@ -87,6 +87,7 @@ class AppServiceProvider extends ServiceProvider
                 $view->with('trainingUser', null);
                 $view->with('trainingName', '');
                 $view->with('trainingInitial', 'A');
+                $view->with('academyCourseCompleted', false);
                 return;
             }
             $user = auth()->user();
@@ -123,10 +124,12 @@ class AppServiceProvider extends ServiceProvider
                     $sidebarProgress = \App\Services\AgentTrainingCourseService::progressFor($user);
                     $view->with('academyProgress', $sidebarProgress);
                     $view->with('academyOverallPercent', \App\Services\AgentTrainingCourseService::overallPercent($sidebarProgress));
+                    $view->with('academyCourseCompleted', \App\Services\AgentTrainingCourseService::completedCount($sidebarProgress) === \App\Services\AgentTrainingCourseService::TOTAL_MODULES);
                 } catch (\Exception $e) {
                     // Table may not exist yet (fresh install before migration runs).
                     $view->with('academyProgress', []);
                     $view->with('academyOverallPercent', 0);
+                    $view->with('academyCourseCompleted', false);
                 }
             } else {
                 $view->with('hiddenSections', []);
@@ -137,6 +140,7 @@ class AppServiceProvider extends ServiceProvider
                 $view->with('trainingUser', null);
                 $view->with('trainingName', '');
                 $view->with('trainingInitial', 'A');
+                $view->with('academyCourseCompleted', false);
             }
         });
     }

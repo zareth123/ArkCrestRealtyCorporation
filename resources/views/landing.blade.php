@@ -185,19 +185,38 @@
   .mobile-toggle{ display:none; flex-direction:column; gap:5px; cursor:pointer; background:transparent; border:0; padding:8px; }
   .mobile-toggle span{ width:24px; height:2px; background:#fff; transition:.2s; }
 
-  /* -------- HERO (text-only, no photography) -------- */
+  /* -------- HERO (background cover photo + dark overlay) -------- */
   .hero{
+    position:relative;
     min-height:100vh;
     display:flex; align-items:center; justify-content:center;
-    background:
-      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(156,128,84,0.14), transparent 60%),
-      var(--navy-950);
+    background:var(--navy-950);
     color:#fff;
     padding:150px 24px 100px;
     overflow:hidden;
   }
+  .hero-bg{
+    position:absolute; inset:-20px;
+    background:url('{{ asset('images/background.jpg') }}') center center / cover no-repeat;
+    animation:heroPan 22s ease-in-out infinite alternate;
+    z-index:0;
+  }
+  .hero-overlay{
+    position:absolute; inset:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(156,128,84,0.14), transparent 60%),
+      linear-gradient(180deg, rgba(6,12,24,0.82) 0%, rgba(6,12,24,0.78) 55%, rgba(6,12,24,0.92) 100%);
+    z-index:1;
+  }
+  @keyframes heroPan{
+    0%{ transform:scale(1.08) translate(0,0); }
+    100%{ transform:scale(1.16) translate(-1.5%,-1.5%); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .hero-bg{ animation:none; }
+  }
   .hero-inner{
-    position:relative; max-width:820px; margin:0 auto; text-align:center;
+    position:relative; z-index:2; max-width:820px; margin:0 auto; text-align:center;
     padding:64px 48px;
   }
   .hero-inner::before, .hero-inner::after{
@@ -477,8 +496,10 @@
     </div>
   </nav>
 
-  <!-- HERO (text only) -->
+  <!-- HERO (background photo, slow pan/zoom) -->
   <section class="hero" id="home">
+    <div class="hero-bg"></div>
+    <div class="hero-overlay"></div>
     <div class="hero-inner">
       <div class="hero-content">
         <span class="eyebrow on-dark"><span class="rule"></span>ArkCrest Realty<span class="rule"></span></span>

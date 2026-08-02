@@ -32,6 +32,7 @@ class SettingsController extends Controller
     'settings.backup',
     'settings.export',
     'settings.practice-scenarios',
+    'settings.practice-history',
     'settings.edit-history',
     'settings.properties',
 ];
@@ -1017,7 +1018,7 @@ private function getDeletedExpenses()
             'settings.users','settings.teams',
             'settings.period-lock','settings.visibility','settings.activity','settings.deleted',
             'settings.backup','settings.export',
-            'settings.practice-scenarios','settings.edit-history','settings.properties',
+            'settings.practice-scenarios','settings.practice-history','settings.edit-history','settings.properties',
         ];
 
         $visiblePages = $request->input('visible_pages', []);

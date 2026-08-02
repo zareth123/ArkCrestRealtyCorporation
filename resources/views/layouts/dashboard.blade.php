@@ -908,7 +908,7 @@
                                 $userHiddenSettings = $isAdminUser ? [] : ($allHidden ?? []);
                                 $canSeeSetting = fn($k) => $isAdminUser || !in_array($k, $userHiddenSettings);
                             @endphp
-                            @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.practice-scenarios','settings.activity','settings.edit-history','settings.deleted','settings.teams','settings.properties','settings.period-lock','settings.backup','settings.export'], fn($k) => !in_array($k, $userHiddenSettings)))
+                            @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.practice-scenarios','settings.practice-history','settings.activity','settings.edit-history','settings.deleted','settings.teams','settings.properties','settings.period-lock','settings.backup','settings.export'], fn($k) => !in_array($k, $userHiddenSettings)))
                             <li class="nav-submenu-label">Admin</li>
                             @endif
                             @if($canSeeSetting('settings.users'))
@@ -929,9 +929,17 @@
                             @endif
                             @if($canSeeSetting('settings.practice-scenarios'))
                             <li>
-                                <a href="{{ route('practice.admin') }}" class="nav-subitem" data-page="practice-admin">
+                                <a href="{{ route('practice.admin') }}" class="nav-subitem {{ request()->routeIs('practice.admin') ? 'active' : '' }}" data-page="practice-admin">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8-1.284 0-2.503-.24-3.605-.671L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                                     <span class="sidebar-text">Practice Scenarios</span>
+                                </a>
+                            </li>
+                            @endif
+                            @if($canSeeSetting('settings.practice-history'))
+                            <li>
+                                <a href="{{ route('practice.admin.history') }}" class="nav-subitem {{ request()->routeIs('practice.admin.history') ? 'active' : '' }}" data-page="practice-admin-history">
+                                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span class="sidebar-text">Practice History</span>
                                 </a>
                             </li>
                             @endif
@@ -1378,13 +1386,11 @@
                 });
             }
 
-            // Practice Scenarios (/practice/admin) and Edit History (/settings/edit-history)
-            // live on their own routes rather than a ?panel= query, so they fall outside
-            // the ?panel= highlighting above — light them up directly by path instead.
-            const practiceAdminLink = document.querySelector('#settingsSubmenu .nav-subitem[data-page="practice-admin"]');
-            if (practiceAdminLink) {
-                practiceAdminLink.classList.toggle('active', currentPage.includes('/practice/admin'));
-            }
+            // Practice Scenarios (/practice/admin) and Practice History (/practice/admin/history)
+            // now get their 'active' class rendered server-side via request()->routeIs()
+            // (see the sidebar markup above) — no JS needed for highlighting them.
+            // We still need JS here to auto-open the Settings dropdown when landing
+            // directly on one of these pages (e.g. via a link from elsewhere).
             const editHistoryLink = document.querySelector('#settingsSubmenu .nav-subitem[data-page="settings-edit-history"]');
             if (editHistoryLink) {
                 editHistoryLink.classList.toggle('active', currentPage.includes('/settings/edit-history'));

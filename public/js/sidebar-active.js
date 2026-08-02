@@ -95,7 +95,9 @@
                 isActive = true;
             } else if (page === 'settings-export' && currentPath.includes('/admin/export')) {
                 isActive = true;
-            } else if (page === 'practice-admin' && currentPath.includes('/practice/admin')) {
+            } else if (page === 'practice-admin' && currentPath.includes('/practice/admin') && !currentPath.includes('/practice/admin/history')) {
+                isActive = true;
+            } else if (page === 'practice-admin-history' && currentPath.includes('/practice/admin/history')) {
                 isActive = true;
             }
             

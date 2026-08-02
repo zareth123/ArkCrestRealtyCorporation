@@ -934,6 +934,7 @@
               'settings.users'                   => 'User Management',
               'settings.visibility'              => 'Page Visibility',
               'settings.practice-scenarios'       => 'Practice Scenarios',
+              'settings.practice-history'          => 'Practice History',
               'settings.activity'                => 'Activity Log',
               'settings.edit-history'             => 'Edit History',
               'settings.deleted'                 => 'Deleted Records',

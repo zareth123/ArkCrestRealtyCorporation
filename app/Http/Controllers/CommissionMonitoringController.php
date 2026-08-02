@@ -76,7 +76,7 @@ class CommissionMonitoringController extends Controller
             : Carbon::parse($dateRequested)->addDays($days)->format('Y-m-d');
     }
 
-    private function normalizeFinancialFields(array $validated): array
+    private function normalizeFinancialFields(array $validated, bool $autoCalculateReleaseDate = true): array
     {
         $discountSource = $validated['discount_calculation_source'] ?? 'percent';
         $commissionSource = $validated['commission_calculation_source'] ?? 'percent';
@@ -148,10 +148,14 @@ class CommissionMonitoringController extends Controller
             );
         }
 
-        $validated['date_released'] = $this->releaseDateFor(
-            $validated['date_requested'] ?? null,
-            $validated['mode_of_payment'] ?? null
-        );
+        if ($autoCalculateReleaseDate) {
+            $validated['date_released'] = $this->releaseDateFor(
+                $validated['date_requested'] ?? null,
+                $validated['mode_of_payment'] ?? null
+            );
+        }
+        // When $autoCalculateReleaseDate is false, $validated['date_released']
+        // already holds whatever the Edit form submitted, unchanged.
 
         unset(
             $validated['discount_calculation_source'],
@@ -478,6 +482,12 @@ class CommissionMonitoringController extends Controller
     {
         try {
             $record = CommissionRequest::findOrFail($id);
+            // If the record was still "Requested" before this save, this is
+            // the Fill Up flow completing it for the first time — keep the
+            // auto-calculated Date Released. Any other status means this is
+            // a genuine Edit of an already-processed record, so respect
+            // whatever Date Released the admin typed in the form.
+            $isCompletingFillUp = $record->status === 'Requested';
 
             // Client-settled fields must always come from the linked client
             // record. This prevents an Edit/Save cycle from recalculating a
@@ -510,7 +520,8 @@ class CommissionMonitoringController extends Controller
             }
 
             $validated = $this->normalizeFinancialFields(
-                $request->validate($this->validationRules(true, $record))
+                $request->validate($this->validationRules(true, $record)),
+                $isCompletingFillUp
             );
 
             // Stage ownership is server-controlled and cannot be changed by editing.
