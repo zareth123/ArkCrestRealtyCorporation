@@ -1,22 +1,67 @@
 // Sidebar Active State - Standalone JavaScript
 (function() {
     'use strict';
-    
+
+    function setDropdownState(submenuId, arrowId, storageKey, isOpen) {
+        const submenu = document.getElementById(submenuId);
+        const arrow = document.getElementById(arrowId);
+
+        if (submenu) submenu.classList.toggle('open', isOpen);
+        if (arrow) arrow.classList.toggle('open', isOpen);
+        if (storageKey) localStorage.setItem(storageKey, isOpen ? 'true' : 'false');
+    }
+
     function setActiveSidebar() {
         const currentPath = window.location.pathname;
-        const currentTab = new URLSearchParams(window.location.search).get('tab');
-        const currentPanel = new URLSearchParams(window.location.search).get('panel') || 'profile';
-        
+        const params = new URLSearchParams(window.location.search);
+        const currentTab = params.get('tab');
+        const currentPanel = params.get('panel') || 'profile';
+        const isSettingsIndexPage = /\/settings\/?$/.test(currentPath);
+
+        const accountPanels = ['profile', 'employee-info', 'system', 'notes', 'privacy'];
+        const adminPanels = [
+            'users',
+            'visibility',
+            'activity',
+            'deleted',
+            'teams',
+            'properties',
+            'period-lock',
+            'permission-requests'
+        ];
+
+        const isAccountSettingsPage = isSettingsIndexPage && accountPanels.includes(currentPanel);
+        const isAdminSettingsPage = isSettingsIndexPage && adminPanels.includes(currentPanel);
+        const isPracticeAdminPage = currentPath.includes('/practice/admin');
+        const isEditHistoryPage = currentPath.includes('/settings/edit-history');
+        const isBackupPage = currentPath.includes('/settings/backup');
+        const isExportPage = currentPath.includes('/admin/export');
+        const isNewsUpdatesPostingPage = currentPath.includes('/admin/news-updates');
+        const isAdminPage = isAdminSettingsPage
+            || isPracticeAdminPage
+            || isEditHistoryPage
+            || isBackupPage
+            || isExportPage
+            || isNewsUpdatesPostingPage;
+
         const navItems = document.querySelectorAll('.nav-item[data-page], .nav-subitem[data-page]');
-        
         if (!navItems || navItems.length === 0) return;
-        
+
+        // Prevent the two parent buttons from being active/open at the same time.
+        if (isAdminPage) {
+            setDropdownState('settingsSubmenu', 'settingsArrow', 'settingsDropdownOpen', false);
+        } else if (isAccountSettingsPage) {
+            setDropdownState('adminSubmenu', 'adminArrow', 'adminDropdownOpen', false);
+            const adminTrigger = document.querySelector('[data-page="admin"]');
+            if (adminTrigger) adminTrigger.setAttribute('aria-expanded', 'false');
+        }
+
         navItems.forEach(item => item.classList.remove('active'));
-        
+
         navItems.forEach(item => {
             const page = item.getAttribute('data-page');
             let isActive = false;
-            
+
             if (page === 'dashboard' && currentPath === '/dashboard') {
                 isActive = true;
             } else if (page === 'departments' && currentPath.includes('/departments')) {
@@ -53,33 +98,35 @@
                 isActive = true;
             } else if (page === 'forms' && currentPath === '/forms') {
                 isActive = true;
-            } else if (page === 'settings' && currentPath.includes('/settings')) {
+            } else if (page === 'settings' && isAccountSettingsPage) {
                 isActive = true;
-            } else if (page === 'settings-profile' && currentPath.includes('/settings') && currentPanel === 'profile') {
+            } else if (page === 'admin' && isAdminPage) {
                 isActive = true;
-            } else if (page === 'settings-employee-info' && currentPath.includes('/settings') && currentPanel === 'employee-info') {
+            } else if (page === 'settings-profile' && isAccountSettingsPage && currentPanel === 'profile') {
                 isActive = true;
-            } else if (page === 'settings-system' && currentPath.includes('/settings') && currentPanel === 'system') {
+            } else if (page === 'settings-employee-info' && isAccountSettingsPage && currentPanel === 'employee-info') {
                 isActive = true;
-            } else if (page === 'settings-notes' && currentPath.includes('/settings') && currentPanel === 'notes') {
+            } else if (page === 'settings-system' && isAccountSettingsPage && currentPanel === 'system') {
                 isActive = true;
-            } else if (page === 'settings-privacy' && currentPath.includes('/settings') && currentPanel === 'privacy') {
+            } else if (page === 'settings-notes' && isAccountSettingsPage && currentPanel === 'notes') {
                 isActive = true;
-            } else if (page === 'settings-users' && currentPath.includes('/settings') && currentPanel === 'users') {
+            } else if (page === 'settings-privacy' && isAccountSettingsPage && currentPanel === 'privacy') {
                 isActive = true;
-            } else if (page === 'settings-visibility' && currentPath.includes('/settings') && currentPanel === 'visibility') {
+            } else if (page === 'settings-users' && isAdminSettingsPage && currentPanel === 'users') {
                 isActive = true;
-            } else if (page === 'settings-activity' && currentPath.includes('/settings') && currentPanel === 'activity') {
+            } else if (page === 'settings-visibility' && isAdminSettingsPage && currentPanel === 'visibility') {
                 isActive = true;
-            } else if (page === 'settings-deleted' && currentPath.includes('/settings') && currentPanel === 'deleted') {
+            } else if (page === 'settings-activity' && isAdminSettingsPage && currentPanel === 'activity') {
                 isActive = true;
-            } else if (page === 'settings-permission-requests' && currentPath.includes('/settings') && currentPanel === 'permission-requests') {
+            } else if (page === 'settings-deleted' && isAdminSettingsPage && currentPanel === 'deleted') {
                 isActive = true;
-            } else if (page === 'settings-teams' && currentPath.includes('/settings') && currentPanel === 'teams') {
+            } else if (page === 'settings-permission-requests' && isAdminSettingsPage && currentPanel === 'permission-requests') {
                 isActive = true;
-            } else if (page === 'settings-properties' && currentPath.includes('/settings') && currentPanel === 'properties') {
+            } else if (page === 'settings-teams' && isAdminSettingsPage && currentPanel === 'teams') {
                 isActive = true;
-            } else if (page === 'settings-period-lock' && currentPath.includes('/settings') && currentPanel === 'period-lock') {
+            } else if (page === 'settings-properties' && isAdminSettingsPage && currentPanel === 'properties') {
+                isActive = true;
+            } else if (page === 'settings-period-lock' && isAdminSettingsPage && currentPanel === 'period-lock') {
                 isActive = true;
             } else if (page === 'human-resource' && currentPath === '/human-resource') {
                 isActive = true;
@@ -89,64 +136,69 @@
                 isActive = true;
             } else if (page === 'cd-properties' && currentPath.includes('/property-list')) {
                 isActive = true;
-            } else if (page === 'settings-edit-history' && currentPath.includes('/settings/edit-history')) {
+            } else if (page === 'settings-edit-history' && isEditHistoryPage) {
                 isActive = true;
-            } else if (page === 'settings-backup' && currentPath.includes('/settings/backup')) {
+            } else if (page === 'settings-backup' && isBackupPage) {
                 isActive = true;
-            } else if (page === 'settings-export' && currentPath.includes('/admin/export')) {
+            } else if (page === 'settings-export' && isExportPage) {
                 isActive = true;
-            } else if (page === 'practice-admin' && currentPath.includes('/practice/admin') && !currentPath.includes('/practice/admin/history')) {
+            } else if (page === 'admin-news-updates' && isNewsUpdatesPostingPage) {
+                isActive = true;
+            } else if (page === 'practice-admin' && isPracticeAdminPage && !currentPath.includes('/practice/admin/history')) {
                 isActive = true;
             } else if (page === 'practice-admin-history' && currentPath.includes('/practice/admin/history')) {
                 isActive = true;
             }
-            
-            if (isActive) {
-                item.classList.add('active');
-                
-                // If this is a subitem, open its parent dropdown
-                if (item.classList.contains('nav-subitem')) {
-                    const submenu = item.closest('.nav-submenu');
-                    if (submenu) {
-                        submenu.classList.add('open');
-                        // Determine which dropdown this belongs to
-                        if (submenu.id === 'salesSubmenu') {
-                            const arrow = document.getElementById('salesArrow');
-                            if (arrow) arrow.classList.add('open');
-                            localStorage.setItem('salesDropdownOpen', 'true');
-                        } else if (submenu.id === 'clientDbSubmenu') {
-                            const arrow = document.getElementById('clientDbArrow');
-                            if (arrow) arrow.classList.add('open');
-                        } else if (submenu.id === 'commissionSubmenu') {
-                            const arrow = document.getElementById('commissionArrow');
-                            if (arrow) arrow.classList.add('open');
-                        } else if (submenu.id === 'hrSubmenu') {
-                            const arrow = document.getElementById('hrArrow');
-                            if (arrow) arrow.classList.add('open');
-                        } else if (submenu.id === 'formsSubmenu') {
-                            const arrow = document.getElementById('formsArrow');
-                            if (arrow) arrow.classList.add('open');
-                            localStorage.setItem('formsDropdownOpen', 'true');
-                        } else if (submenu.id === 'settingsSubmenu') {
-                            const arrow = document.getElementById('settingsArrow');
-                            if (arrow) arrow.classList.add('open');
-                            localStorage.setItem('settingsDropdownOpen', 'true');
-                        } else {
-                            const arrow = document.getElementById('financeArrow');
-                            if (arrow) arrow.classList.add('open');
-                            localStorage.setItem('financeDropdownOpen', 'true');
-                        }
+
+            if (!isActive) return;
+
+            item.classList.add('active');
+
+            if (page === 'admin') {
+                setDropdownState('adminSubmenu', 'adminArrow', 'adminDropdownOpen', true);
+                item.setAttribute('aria-expanded', 'true');
+            }
+
+            // If this is a subitem, open its correct parent dropdown.
+            if (item.classList.contains('nav-subitem')) {
+                const submenu = item.closest('.nav-submenu');
+                if (!submenu) return;
+
+                submenu.classList.add('open');
+
+                if (submenu.id === 'salesSubmenu') {
+                    setDropdownState('salesSubmenu', 'salesArrow', 'salesDropdownOpen', true);
+                } else if (submenu.id === 'clientDbSubmenu') {
+                    setDropdownState('clientDbSubmenu', 'clientDbArrow', null, true);
+                } else if (submenu.id === 'commissionSubmenu') {
+                    setDropdownState('commissionSubmenu', 'commissionArrow', null, true);
+                } else if (submenu.id === 'cashAdvanceSubmenu') {
+                    setDropdownState('cashAdvanceSubmenu', 'cashAdvanceArrow', null, true);
+                } else if (submenu.id === 'hrSubmenu') {
+                    setDropdownState('hrSubmenu', 'hrArrow', null, true);
+                } else if (submenu.id === 'formsSubmenu') {
+                    setDropdownState('formsSubmenu', 'formsArrow', 'formsDropdownOpen', true);
+                } else if (submenu.id === 'settingsSubmenu') {
+                    setDropdownState('settingsSubmenu', 'settingsArrow', 'settingsDropdownOpen', true);
+                } else if (submenu.id === 'adminSubmenu') {
+                    setDropdownState('adminSubmenu', 'adminArrow', 'adminDropdownOpen', true);
+                    const adminTrigger = document.querySelector('[data-page="admin"]');
+                    if (adminTrigger) {
+                        adminTrigger.classList.add('active');
+                        adminTrigger.setAttribute('aria-expanded', 'true');
                     }
+                } else {
+                    setDropdownState('financeSubmenu', 'financeArrow', 'financeDropdownOpen', true);
                 }
             }
         });
     }
-    
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', setActiveSidebar);
     } else {
         setActiveSidebar();
     }
-    
+
     setTimeout(setActiveSidebar, 100);
 })();

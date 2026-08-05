@@ -642,7 +642,7 @@
                                     <li>
                                         <a href="{{ route('agent-cash-advance') }}" class="nav-subitem" data-page="agent-cash-advance" style="font-size:11px;">
                                             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:13px;height:13px;">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             </svg>
                                             <span class="sidebar-text" style="font-size:10px;">Agent Cash Advance</span>
                                         </a>
@@ -908,9 +908,34 @@
                                 $userHiddenSettings = $isAdminUser ? [] : ($allHidden ?? []);
                                 $canSeeSetting = fn($k) => $isAdminUser || !in_array($k, $userHiddenSettings);
                             @endphp
+                        </ul>
+                    </li>
+
+                    <!-- Admin with Dropdown -->
                             @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.practice-scenarios','settings.practice-history','settings.activity','settings.edit-history','settings.deleted','settings.teams','settings.properties','settings.period-lock','settings.backup','settings.export'], fn($k) => !in_array($k, $userHiddenSettings)))
-                            <li class="nav-submenu-label">Admin</li>
-                            @endif
+                    <li class="nav-item-wrapper">
+                        <div class="nav-item-container">
+                            <button
+                                type="button"
+                                class="nav-item nav-item-with-dropdown"
+                                data-page="admin"
+                                onclick="toggleAdminDropdown(event)"
+                                aria-controls="adminSubmenu"
+                                aria-expanded="false"
+                                style="width:100%;border:0;background:transparent;text-align:left;font:inherit;color:#ffffff;cursor:pointer;"
+                            >
+                                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                <span class="sidebar-text">Admin</span>
+                            </button>
+                            <button class="dropdown-toggle-btn" id="adminDropdownToggle" type="button" onclick="toggleAdminDropdown(event)" aria-label="Toggle Admin menu">
+                                <svg class="dropdown-arrow" id="adminArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <ul class="nav-submenu" id="adminSubmenu">
                             @if($canSeeSetting('settings.users'))
                             <li>
                                 <a href="{{ route('settings') }}?panel=users" class="nav-subitem" data-page="settings-users">
@@ -924,6 +949,17 @@
                                 <a href="{{ route('settings') }}?panel=visibility" class="nav-subitem" data-page="settings-visibility">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     <span class="sidebar-text">Page Visibility</span>
+                                </a>
+                            </li>
+                            @endif
+
+                            @if($isAdminUser)
+                            <li>
+                                <a href="{{ route('admin.news-updates.index') }}" class="nav-subitem" data-page="admin-news-updates">
+                                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l6 6v8a2 2 0 01-2 2zM15 4v6h6M7 14h10M7 17h7"/>
+                                    </svg>
+                                    <span class="sidebar-text">News &amp; Updates Posting</span>
                                 </a>
                             </li>
                             @endif
@@ -1009,6 +1045,7 @@
                             @endif
                         </ul>
                     </li>
+                    @endif
                 </ul>
             </nav>
 
@@ -1328,6 +1365,24 @@
             }
         }
 
+        // Admin Dropdown Toggle
+        function toggleAdminDropdown(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const submenu = document.getElementById('adminSubmenu');
+            const arrow = document.getElementById('adminArrow');
+            const trigger = document.querySelector('[data-page="admin"]');
+
+            if (submenu && arrow) {
+                const isOpen = submenu.classList.contains('open');
+
+                submenu.classList.toggle('open', !isOpen);
+                arrow.classList.toggle('open', !isOpen);
+                if (trigger) trigger.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
+                localStorage.setItem('adminDropdownOpen', !isOpen ? 'true' : 'false');
+            }
+        }
+
         // Restore dropdown state on page load
         document.addEventListener('DOMContentLoaded', function() {
             const submenu = document.getElementById('financeSubmenu');
@@ -1368,39 +1423,103 @@
                 formsArrow.classList.add('open');
             }
 
-            // Restore Settings dropdown
+            // Restore Settings and Admin dropdowns independently.
             const settingsSubmenu = document.getElementById('settingsSubmenu');
             const settingsArrow = document.getElementById('settingsArrow');
-            const isSettingsPage = currentPage.includes('/settings');
-            const settingsShouldBeOpen = localStorage.getItem('settingsDropdownOpen') === 'true' || isSettingsPage;
-            if (settingsShouldBeOpen && settingsSubmenu && settingsArrow) {
-                settingsSubmenu.classList.add('open');
-                settingsArrow.classList.add('open');
+            const settingsTrigger = document.querySelector('[data-page="settings"]');
+            const adminSubmenu = document.getElementById('adminSubmenu');
+            const adminArrow = document.getElementById('adminArrow');
+            const adminTrigger = document.querySelector('[data-page="admin"]');
+            const activePanel = new URLSearchParams(window.location.search).get('panel') || 'profile';
+            const isSettingsIndexPage = /\/settings\/?$/.test(currentPage);
+
+            const accountPanels = ['profile', 'employee-info', 'system', 'notes', 'privacy'];
+            const adminPanels = [
+                'users',
+                'visibility',
+                'activity',
+                'deleted',
+                'teams',
+                'properties',
+                'period-lock',
+                'permission-requests'
+            ];
+
+            const isPracticeAdminPage = currentPage.includes('/practice/admin');
+            const isEditHistoryPage = currentPage.includes('/settings/edit-history');
+            const isBackupPage = currentPage.includes('/settings/backup');
+            const isExportPage = currentPage.includes('/admin/export');
+            const isAdminSettingsPage = isSettingsIndexPage && adminPanels.includes(activePanel);
+            const isAdminPage = isPracticeAdminPage
+                || isEditHistoryPage
+                || isBackupPage
+                || isExportPage
+                || isAdminSettingsPage;
+            const isAccountSettingsPage = isSettingsIndexPage && accountPanels.includes(activePanel);
+
+            // Only the correct parent may stay active/open on a Settings or Admin page.
+            if (settingsTrigger) {
+                settingsTrigger.classList.toggle('active', isAccountSettingsPage);
+            }
+            if (adminTrigger) {
+                adminTrigger.classList.toggle('active', isAdminPage);
             }
 
-            // Highlight the active Settings subitem based on ?panel=
-            if (isSettingsPage) {
-                const activePanel = new URLSearchParams(window.location.search).get('panel') || 'profile';
-                document.querySelectorAll('#settingsSubmenu .nav-subitem').forEach(a => {
-                    a.classList.toggle('active', a.getAttribute('data-page') === 'settings-' + activePanel);
-                });
+            if (isAdminPage) {
+                if (settingsSubmenu) settingsSubmenu.classList.remove('open');
+                if (settingsArrow) settingsArrow.classList.remove('open');
+                localStorage.setItem('settingsDropdownOpen', 'false');
             }
 
-            // Practice Scenarios (/practice/admin) and Practice History (/practice/admin/history)
-            // now get their 'active' class rendered server-side via request()->routeIs()
-            // (see the sidebar markup above) — no JS needed for highlighting them.
-            // We still need JS here to auto-open the Settings dropdown when landing
-            // directly on one of these pages (e.g. via a link from elsewhere).
-            const editHistoryLink = document.querySelector('#settingsSubmenu .nav-subitem[data-page="settings-edit-history"]');
-            if (editHistoryLink) {
-                editHistoryLink.classList.toggle('active', currentPage.includes('/settings/edit-history'));
+            if (isAccountSettingsPage) {
+                if (adminSubmenu) adminSubmenu.classList.remove('open');
+                if (adminArrow) adminArrow.classList.remove('open');
+                if (adminTrigger) adminTrigger.setAttribute('aria-expanded', 'false');
+                localStorage.setItem('adminDropdownOpen', 'false');
             }
-            if (currentPage.includes('/practice/admin') || currentPage.includes('/settings/edit-history')) {
-                if (settingsSubmenu && settingsArrow) {
-                    settingsSubmenu.classList.add('open');
-                    settingsArrow.classList.add('open');
+
+            const settingsShouldBeOpen = isAccountSettingsPage
+                || (!isAdminPage && localStorage.getItem('settingsDropdownOpen') === 'true');
+
+            if (settingsSubmenu && settingsArrow) {
+                settingsSubmenu.classList.toggle('open', settingsShouldBeOpen);
+                settingsArrow.classList.toggle('open', settingsShouldBeOpen);
+            }
+
+            document.querySelectorAll('#settingsSubmenu .nav-subitem').forEach(function (link) {
+                const shouldBeActive = isAccountSettingsPage
+                    && link.getAttribute('data-page') === 'settings-' + activePanel;
+                link.classList.toggle('active', shouldBeActive);
+            });
+
+            const adminShouldBeOpen = isAdminPage
+                || (!isAccountSettingsPage && localStorage.getItem('adminDropdownOpen') === 'true');
+
+            if (adminSubmenu && adminArrow) {
+                adminSubmenu.classList.toggle('open', adminShouldBeOpen);
+                adminArrow.classList.toggle('open', adminShouldBeOpen);
+                if (adminTrigger) adminTrigger.setAttribute('aria-expanded', adminShouldBeOpen ? 'true' : 'false');
+            }
+
+            document.querySelectorAll('#adminSubmenu .nav-subitem').forEach(function (link) {
+                const dataPage = link.getAttribute('data-page');
+                let shouldBeActive = false;
+
+                if (isAdminSettingsPage) {
+                    shouldBeActive = dataPage === 'settings-' + activePanel;
+                } else if (isEditHistoryPage) {
+                    shouldBeActive = dataPage === 'settings-edit-history';
+                } else if (isBackupPage) {
+                    shouldBeActive = dataPage === 'settings-backup';
+                } else if (isExportPage) {
+                    shouldBeActive = dataPage === 'settings-export';
                 }
-            }
+
+                // Practice links receive their active state from Blade/sidebar-active.js.
+                if (!dataPage || !dataPage.startsWith('practice-admin')) {
+                    link.classList.toggle('active', shouldBeActive);
+                }
+            });
         });
         
         // Notes Toggle
