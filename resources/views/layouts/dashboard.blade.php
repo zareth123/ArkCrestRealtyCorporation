@@ -912,7 +912,7 @@
                     </li>
 
                     <!-- Admin with Dropdown -->
-                            @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.practice-scenarios','settings.practice-history','settings.activity','settings.edit-history','settings.deleted','settings.teams','settings.properties','settings.period-lock','settings.backup','settings.export'], fn($k) => !in_array($k, $userHiddenSettings)))
+                            @if($isAdminUser || array_filter(['settings.users','settings.visibility','settings.practice-scenarios','settings.practice-history','settings.activity','settings.edit-history','settings.deleted','settings.teams','settings.properties','settings.period-lock','settings.backup','settings.export','admin.news-updates','admin.testimonials','admin.awards'], fn($k) => !in_array($k, $userHiddenSettings)))
                     <li class="nav-item-wrapper">
                         <div class="nav-item-container">
                             <button
@@ -953,13 +953,33 @@
                             </li>
                             @endif
 
-                            @if($isAdminUser)
+                            @if($canSeeSetting('admin.news-updates'))
                             <li>
                                 <a href="{{ route('admin.news-updates.index') }}" class="nav-subitem" data-page="admin-news-updates">
                                     <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l6 6v8a2 2 0 01-2 2zM15 4v6h6M7 14h10M7 17h7"/>
                                     </svg>
                                     <span class="sidebar-text">News &amp; Updates Posting</span>
+                                </a>
+                            </li>
+                            @endif
+                            @if($canSeeSetting('admin.testimonials'))
+                            <li>
+                                <a href="{{ route('admin.testimonials.index') }}" class="nav-subitem" data-page="admin-testimonials">
+                                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8-1.284 0-2.503-.24-3.605-.671L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                    </svg>
+                                    <span class="sidebar-text">Feedback Management</span>
+                                </a>
+                            </li>
+                            @endif
+                            @if($canSeeSetting('admin.awards'))
+                            <li>
+                                <a href="{{ route('admin.awards.index') }}" class="nav-subitem" data-page="admin-awards">
+                                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                    </svg>
+                                    <span class="sidebar-text">Awards Management</span>
                                 </a>
                             </li>
                             @endif

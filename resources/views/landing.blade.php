@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ArkCrest Realty | Welcome</title>
 <meta name="csrf-token" content="{{ csrf_token() }}">
+<link rel="icon" type="image/png" href="{{ asset('images/ArkCrest_Logo.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -436,6 +437,16 @@
     background:var(--cream);
   }
 
+  .testimonial-avatar-initials{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--navy-900);
+    font-weight:700;
+    font-size:14px;
+    background:var(--parchment-line);
+  }
+
   .testimonial-details strong{
     display:block;
     color:var(--navy-900);
@@ -553,6 +564,15 @@
     background-repeat:no-repeat;
     background-position:center;
     background-size:contain;
+  }
+
+  .award-photo{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    object-position:center;
+    border-radius:6px;
+    display:block;
   }
 
   .award-provider{
@@ -942,89 +962,40 @@
       </div>
 
       <div class="testimonials-grid reveal-stagger">
-        <article class="testimonial-card">
-          <div class="testimonial-quote" aria-hidden="true">“</div>
-          <p>
-            ArkCrest made the entire buying process simple and clear.
-            They answered my questions and helped me find a property
-            that matched my budget.
-          </p>
-          <div class="testimonial-person">
-            <img
-              src="https://i.pravatar.cc/120?img=47"
-              alt="Mock customer Maria Santos"
-              class="testimonial-avatar"
-              loading="lazy"
-            >
-            <div class="testimonial-details">
-              <strong>Maria Santos</strong>
-              <span>First-Time Property Buyer</span>
+        @forelse($testimonials as $testimonial)
+          <article class="testimonial-card">
+            <div class="testimonial-quote" aria-hidden="true">&ldquo;</div>
+            <p>{{ $testimonial->quote }}</p>
+            <div class="testimonial-person">
+              @if($testimonial->avatar_url)
+                <img
+                  src="{{ $testimonial->avatar_url }}"
+                  alt="{{ $testimonial->client_name }}"
+                  class="testimonial-avatar"
+                  loading="lazy"
+                >
+              @else
+                <span class="testimonial-avatar testimonial-avatar-initials" aria-hidden="true">{{ $testimonial->initials }}</span>
+              @endif
+              <div class="testimonial-details">
+                <strong>{{ $testimonial->client_name }}</strong>
+                @if($testimonial->client_role)
+                  <span>{{ $testimonial->client_role }}</span>
+                @endif
+              </div>
             </div>
-          </div>
-        </article>
-
-        <article class="testimonial-card">
-          <div class="testimonial-quote" aria-hidden="true">“</div>
-          <p>
-            I appreciated the honest pricing and complete information.
-            Their team guided me from the initial inquiry up to the
-            completion of my documents.
-          </p>
-          <div class="testimonial-person">
-            <img
-              src="https://i.pravatar.cc/120?img=12"
-              alt="Mock customer Daniel Reyes"
-              class="testimonial-avatar"
-              loading="lazy"
-            >
-            <div class="testimonial-details">
-              <strong>Daniel Reyes</strong>
-              <span>Property Investor</span>
+          </article>
+        @empty
+          {{-- fallback: ipapakita ito habang wala pang naka-publish na testimonial --}}
+          <article class="testimonial-card">
+            <div class="testimonial-quote" aria-hidden="true">&ldquo;</div>
+            <p>ArkCrest made the entire buying process simple and clear. They answered my questions and helped me find a property that matched my budget.</p>
+            <div class="testimonial-person">
+              <img src="https://i.pravatar.cc/120?img=47" alt="Mock customer Maria Santos" class="testimonial-avatar" loading="lazy">
+              <div class="testimonial-details"><strong>Maria Santos</strong><span>First-Time Property Buyer</span></div>
             </div>
-          </div>
-        </article>
-
-        <article class="testimonial-card">
-          <div class="testimonial-quote" aria-hidden="true">“</div>
-          <p>
-            The team was professional, responsive, and patient. They
-            helped our family choose a location with good potential
-            for long-term value.
-          </p>
-          <div class="testimonial-person">
-            <img
-              src="https://i.pravatar.cc/120?img=32"
-              alt="Mock customer Angela Cruz"
-              class="testimonial-avatar"
-              loading="lazy"
-            >
-            <div class="testimonial-details">
-              <strong>Angela Cruz</strong>
-              <span>Homebuyer</span>
-            </div>
-          </div>
-        </article>
-
-        <article class="testimonial-card">
-          <div class="testimonial-quote" aria-hidden="true">“</div>
-          <p>
-            ArkCrest gave us confidence throughout the transaction.
-            Everything was explained properly, and we never felt
-            pressured to make a quick decision.
-          </p>
-          <div class="testimonial-person">
-            <img
-              src="https://i.pravatar.cc/120?img=68"
-              alt="Mock customer Roberto Mendoza"
-              class="testimonial-avatar"
-              loading="lazy"
-            >
-            <div class="testimonial-details">
-              <strong>Roberto Mendoza</strong>
-              <span>Business Owner</span>
-            </div>
-          </div>
-        </article>
+          </article>
+        @endforelse
       </div>
     </div>
   </section>
@@ -1059,83 +1030,31 @@
       </div>
 
       <div class="awards-grid reveal-stagger">
+        @forelse($awards as $award)
         <article class="award-card">
           <div class="award-icon-wrap">
-            <div
-              class="award-icon"
-              role="img"
-              aria-label="758 black award emblem"
-            ></div>
+            @if($award->has_image)
+              <img
+                src="{{ $award->image_url }}"
+                alt="{{ $award->title }}"
+                class="award-photo"
+              >
+            @else
+              <div
+                class="award-icon"
+                role="img"
+                aria-label="758 black award emblem"
+              ></div>
+            @endif
           </div>
-          <div class="award-provider">ArkCrest Realty</div>
-          <h3>Top Sales Team of 2025</h3>
+          <div class="award-provider">{{ $award->recipient_name }}</div>
+          <h3>{{ $award->title }}</h3>
         </article>
-        <article class="award-card">
-          <div class="award-icon-wrap">
-            <div
-              class="award-icon"
-              role="img"
-              aria-label="758 black award emblem"
-            ></div>
-          </div>
-          <div class="award-provider">Carl Angel Buakaew</div>
-          <h3>Top 1 Sales Agent of 2025</h3>
-        </article>
-        <article class="award-card">
-          <div class="award-icon-wrap">
-            <div
-              class="award-icon"
-              role="img"
-              aria-label="758 black award emblem"
-            ></div>
-          </div>
-          <div class="award-provider">Krinessa Mojica</div>
-          <h3>Top 2 Sales Agent of 2025</h3>
-        </article>
-        <article class="award-card">
-          <div class="award-icon-wrap">
-            <div
-              class="award-icon"
-              role="img"
-              aria-label="758 black award emblem"
-            ></div>
-          </div>
-          <div class="award-provider">Ma. Cythia Albania</div>
-          <h3>Top 3 Sales Agent of 2025</h3>
-        </article>
-        <article class="award-card">
-          <div class="award-icon-wrap">
-            <div
-              class="award-icon"
-              role="img"
-              aria-label="758 black award emblem"
-            ></div>
-          </div>
-          <div class="award-provider">Evelyn Espina</div>
-          <h3>Top 6 Sales Agent of 2025</h3>
-        </article>
-        <article class="award-card">
-          <div class="award-icon-wrap">
-            <div
-              class="award-icon"
-              role="img"
-              aria-label="758 black award emblem"
-            ></div>
-          </div>
-          <div class="award-provider">Edwin Mojica</div>
-          <h3>Top 7 Sales Agent of 2025</h3>
-        </article>
-        <article class="award-card">
-          <div class="award-icon-wrap">
-            <div
-              class="award-icon"
-              role="img"
-              aria-label="758 black award emblem"
-            ></div>
-          </div>
-          <div class="award-provider">Jossen Fernandez</div>
-          <h3>Top 9 Sales Agent of 2025</h3>
-        </article>
+        @empty
+        <p style="grid-column:1/-1;text-align:center;color:#5b6b80;">
+          Awards will be posted here soon.
+        </p>
+        @endforelse
       </div>
     </div>
   </section>

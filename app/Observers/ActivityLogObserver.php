@@ -63,6 +63,9 @@ class ActivityLogObserver
         \App\Models\Property::class                 => 'Settings',
         \App\Models\PeriodLock::class                => 'Settings',
         \App\Models\User::class                      => 'Settings',
+        \App\Models\NewsPost::class                   => 'News & Updates',
+        \App\Models\Testimonial::class                => 'Feedback Management',
+        \App\Models\Award::class                      => 'Awards Management',
     ];
 
     public function created(Model $model): void

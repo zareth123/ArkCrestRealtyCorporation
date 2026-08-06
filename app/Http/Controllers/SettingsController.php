@@ -35,6 +35,9 @@ class SettingsController extends Controller
     'settings.practice-history',
     'settings.edit-history',
     'settings.properties',
+    'admin.news-updates',
+    'admin.testimonials',
+    'admin.awards',
 ];
 
     public function index()
@@ -738,6 +741,44 @@ private function getDeletedExpenses()
         }
     }
 
+    // If the deleted record behind a 'delete' log entry is still sitting in
+    // the database as a soft-deleted (trashed) row, force-delete it for real
+    // before the log entry disappears — otherwise "permanently delete" in the
+    // Deleted Records panel only removes the audit trail while leaving an
+    // orphaned trashed row (and its files, e.g. an award image or news post
+    // attachment) behind forever with no way to reach it again.
+    private function purgeUnderlyingRecord(ActivityLog $log): void
+    {
+        if ($log->action !== 'delete') {
+            return;
+        }
+
+        $meta = $log->meta;
+        if (!$meta || empty($meta)) {
+            return;
+        }
+
+        $modelClass = $this->resolveModelClass($meta);
+        $recordId = $meta['record_id'] ?? null;
+
+        if (!$modelClass || !$recordId) {
+            return;
+        }
+
+        if (!in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive($modelClass), true)) {
+            return;
+        }
+
+        try {
+            $existing = $modelClass::withTrashed()->find($recordId);
+            if ($existing && $existing->trashed()) {
+                $existing->forceDelete();
+            }
+        } catch (\Exception $e) {
+            report($e);
+        }
+    }
+
     // Reverts an 'update' log entry: writes the pre-edit ("old") values for just the
     // fields that changed back onto the live record. Saving triggers the audit
     // observer again, so the revert itself is automatically logged as a new entry.
@@ -877,6 +918,7 @@ private function getDeletedExpenses()
     {
         if (!auth()->user()->isAdmin()) abort(403);
         $log = ActivityLog::findOrFail($logId);
+        $this->purgeUnderlyingRecord($log);
         $log->delete();
 
         if ($request->wantsJson() || $request->ajax()) {
@@ -949,6 +991,7 @@ private function getDeletedExpenses()
                 if (!$log) {
                     $result = ['success' => false, 'message' => 'Record not found.'];
                 } else {
+                    $this->purgeUnderlyingRecord($log);
                     $log->delete();
                     $result = ['success' => true, 'message' => 'Removed.'];
                 }
@@ -1019,6 +1062,7 @@ private function getDeletedExpenses()
             'settings.period-lock','settings.visibility','settings.activity','settings.deleted',
             'settings.backup','settings.export',
             'settings.practice-scenarios','settings.practice-history','settings.edit-history','settings.properties',
+            'admin.news-updates','admin.testimonials','admin.awards',
         ];
 
         $visiblePages = $request->input('visible_pages', []);

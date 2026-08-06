@@ -443,7 +443,8 @@ document.getElementById('ppInput').addEventListener('keydown', function (e) {
 });
 
 async function ppEndSession() {
-    if (!confirm('End this practice session now?')) return;
+    var ok = window.showConfirmModal ? await window.showConfirmModal('End this practice session now?') : confirm('End this practice session now?');
+    if (!ok) return;
     ppSetSending(true);
     try {
         const res = await fetch(ppEndUrl, {

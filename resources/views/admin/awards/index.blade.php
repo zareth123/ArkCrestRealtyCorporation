@@ -1,11 +1,11 @@
 @extends('layouts.dashboard')
 
-@section('title', 'News & Updates Posting')
+@section('title', 'Awards Management')
 
 @section('content')
 @php
     $__u = auth()->user();
-    if (!$__u || (!$__u->isAdmin() && in_array('admin.news-updates', $__u->hidden_pages ?? []))) {
+    if (!$__u || (!$__u->isAdmin() && in_array('admin.awards', $__u->hidden_pages ?? []))) {
         abort(403);
     }
 @endphp
@@ -14,10 +14,10 @@
     <section class="news-admin-banner">
         <div>
             <span class="news-admin-kicker">Admin Publishing</span>
-            <h1>News &amp; Updates Posting</h1>
-            <p>Create, edit, and publish announcements that automatically appear on the public News &amp; Updates page.</p>
+            <h1>Awards Management</h1>
+            <p>Create, edit, and publish the awards and recognitions shown in the "Our Awards" section of the public landing page.</p>
         </div>
-        <a href="{{ route('news-updates') }}" target="_blank" rel="noopener noreferrer" class="news-admin-public-link">
+        <a href="{{ route('landing') }}#awards" target="_blank" rel="noopener noreferrer" class="news-admin-public-link">
             View Public Page
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7v7m0-7L10 14M5 7v12h12v-5"/>
@@ -25,12 +25,12 @@
         </a>
     </section>
 
-    @if(session('news_success'))
-        <div class="news-admin-alert success">{{ session('news_success') }}</div>
+    @if(session('award_success'))
+        <div class="news-admin-alert success">{{ session('award_success') }}</div>
     @endif
 
-    @if(session('news_error'))
-        <div class="news-admin-alert error">{{ session('news_error') }}</div>
+    @if(session('award_error'))
+        <div class="news-admin-alert error">{{ session('award_error') }}</div>
     @endif
 
     @if($errors->any())
@@ -48,79 +48,87 @@
         <div class="news-admin-panel-head">
             <div>
                 <span class="news-admin-section-number">01</span>
-                <h2>Create a New Post</h2>
+                <h2>Add a New Award</h2>
             </div>
-            <span class="news-admin-hint">Up to 10 images/videos per upload</span>
+            <span class="news-admin-hint">Only "Published" awards appear on the landing page</span>
         </div>
 
-        <form method="POST" action="{{ route('admin.news-updates.store') }}" enctype="multipart/form-data" class="news-post-form" onsubmit="return confirm('Save and post this news update?');">
+        <form method="POST" action="{{ route('admin.awards.store') }}" enctype="multipart/form-data" class="news-post-form" onsubmit="return confirm('Save this award?');">
             @csrf
 
-            <div class="news-admin-field full">
-                <label for="news-title">Post Title</label>
+            <div class="news-admin-field">
+                <label for="award-recipient">Recipient Name</label>
                 <input
-                    id="news-title"
+                    id="award-recipient"
                     type="text"
-                    name="title"
-                    value="{{ old('title') }}"
-                    maxlength="180"
+                    name="recipient_name"
+                    value="{{ old('recipient_name') }}"
+                    maxlength="120"
                     required
-                    placeholder="Enter the news or announcement title"
+                    placeholder="e.g. Carl Angel Buakaew"
                 >
-            </div>
-
-            <div class="news-admin-field full">
-                <label for="news-description">Description</label>
-                <textarea
-                    id="news-description"
-                    name="description"
-                    rows="7"
-                    maxlength="30000"
-                    required
-                    placeholder="Write the complete news or announcement details..."
-                >{{ old('description') }}</textarea>
+                <small>Use the team name (e.g. "ArkCrest Realty") for team-wide awards.</small>
             </div>
 
             <div class="news-admin-field">
-                <label for="news-status">Posting Status</label>
-                <select id="news-status" name="status" required>
+                <label for="award-title">Award Title</label>
+                <input
+                    id="award-title"
+                    type="text"
+                    name="title"
+                    value="{{ old('title') }}"
+                    maxlength="160"
+                    required
+                    placeholder="e.g. Top 1 Sales Agent of 2025"
+                >
+            </div>
+
+            <div class="news-admin-field">
+                <label for="award-status">Posting Status</label>
+                <select id="award-status" name="status" required>
                     <option value="draft" {{ old('status', 'draft') === 'draft' ? 'selected' : '' }}>Save as Draft</option>
                     <option value="published" {{ old('status') === 'published' ? 'selected' : '' }}>Publish</option>
                 </select>
             </div>
 
-            <div class="news-admin-field news-auto-date-note">
-                <label>Post Date &amp; Time</label>
-                <div class="news-auto-date-box">
-                    Automatically recorded when you publish the post.
-                </div>
-                <small>Editing a published post keeps its original posting date and time.</small>
+            <div class="news-admin-field">
+                <label for="award-order">Display Order</label>
+                <input
+                    id="award-order"
+                    type="number"
+                    name="sort_order"
+                    value="{{ old('sort_order', 0) }}"
+                    min="0"
+                    max="9999"
+                >
+                <small>Lower numbers appear first.</small>
             </div>
 
             <div class="news-admin-field full">
-                <label for="news-media">Attach Images or Videos</label>
-                <label class="news-upload-box" for="news-media">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <label for="award-image">Award Image</label>
+                <label class="news-upload-box" for="award-image">
+                    <img class="news-upload-preview" data-preview hidden alt="Selected image preview">
+                    <svg data-upload-icon fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 0116.9 6.1 4.5 4.5 0 0118 15H7zm5-7v8m0-8-3 3m3-3 3 3"/>
                     </svg>
-                    <strong>Select files</strong>
-                    <span>JPG, PNG, GIF, WEBP, MP4, MOV, or WEBM — maximum 100 MB each</span>
-                    <span class="news-selected-files" data-selected-files>No files selected</span>
+                    <strong data-upload-label>Select an image</strong>
+                    <span data-upload-hint>JPG, PNG, GIF, or WEBP — max 25 MB</span>
+                    <span class="news-selected-files" data-selected-files>No file selected</span>
                 </label>
                 <input
-                    id="news-media"
+                    id="award-image"
                     type="file"
-                    name="media[]"
-                    accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm"
-                    multiple
+                    name="image"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
                     hidden
                     data-media-input
                 >
+                <small>If no image is uploaded, the default award emblem will be shown instead.</small>
             </div>
 
             <div class="news-admin-actions full">
                 <button type="reset" class="news-admin-btn secondary">Clear Form</button>
-                <button type="submit" class="news-admin-btn primary">Save News Post</button>
+                <button type="submit" class="news-admin-btn primary">Save Award</button>
             </div>
         </form>
     </section>
@@ -129,49 +137,49 @@
         <div class="news-admin-panel-head">
             <div>
                 <span class="news-admin-section-number">02</span>
-                <h2>All Posts</h2>
+                <h2>All Awards</h2>
             </div>
-            <span class="news-admin-hint">{{ $posts->total() }} total post{{ $posts->total() === 1 ? '' : 's' }}</span>
+            <span class="news-admin-hint">{{ $awards->total() }} total award{{ $awards->total() === 1 ? '' : 's' }}</span>
         </div>
 
-        @forelse($posts as $post)
+        @forelse($awards as $award)
             <article class="news-admin-post-card">
                 <div class="news-admin-post-summary">
                     <div class="news-admin-post-main">
                         <div class="news-admin-post-status-row">
-                            <span class="news-status-badge {{ strtolower($post->publication_state) }}">
-                                {{ $post->publication_state }}
+                            <span class="news-status-badge {{ $award->status === 'published' ? 'published' : 'draft' }}">
+                                {{ $award->status === 'published' ? 'Published' : 'Draft' }}
                             </span>
-                            <span class="news-admin-post-date">
-                                @if($post->published_at)
-                                    {{ $post->published_at->format('M d, Y · g:i A') }}
-                                @else
-                                    Not published
-                                @endif
-                            </span>
+                            <span class="news-admin-post-date">Order: {{ $award->sort_order }}</span>
                         </div>
 
-                        <h3>{{ $post->title }}</h3>
-                        <p>{{ \Illuminate\Support\Str::limit($post->description, 220) }}</p>
+                        <h3>{{ $award->title }}</h3>
+                        <p style="margin-bottom:4px;color:#4a5f78;font-weight:700;">{{ $award->recipient_name }}</p>
 
                         <div class="news-admin-post-meta">
-                            <span>Created {{ $post->created_at->diffForHumans() }}</span>
-                            <span>{{ $post->media->count() }} attachment{{ $post->media->count() === 1 ? '' : 's' }}</span>
-                            @if($post->creator)
-                                <span>By {{ $post->creator->name }}</span>
+                            <span>Created {{ $award->created_at->diffForHumans() }}</span>
+                            @if($award->creator)
+                                <span>By {{ $award->creator->name }}</span>
                             @endif
                         </div>
                     </div>
 
                     <div class="news-admin-post-controls">
-                        <button type="button" class="news-admin-btn secondary small" onclick="toggleNewsEdit({{ $post->id }})">
+                        @if($award->has_image)
+                            <img
+                                src="{{ $award->image_url }}"
+                                alt="{{ $award->title }}"
+                                style="width:44px;height:44px;border-radius:8px;object-fit:cover;margin-right:6px;"
+                            >
+                        @endif
+                        <button type="button" class="news-admin-btn secondary small" onclick="toggleNewsEdit({{ $award->id }})">
                             Edit
                         </button>
                         @if($__u->isAdmin())
                         <form
                             method="POST"
-                            action="{{ route('admin.news-updates.destroy', $post) }}"
-                            onsubmit="return confirm('Delete this news post and all of its attached media permanently?');"
+                            action="{{ route('admin.awards.destroy', $award) }}"
+                            onsubmit="return confirm('Delete this award permanently?');"
                         >
                             @csrf
                             @method('DELETE')
@@ -181,144 +189,125 @@
                     </div>
                 </div>
 
-                @if($post->media->isNotEmpty())
-                    <div class="news-admin-media-strip">
-                        @foreach($post->media as $media)
-                            <div class="news-admin-media-item">
-                                @if($media->media_type === 'image')
-                                    <img src="{{ $media->url }}" alt="{{ $post->title }} attachment">
-                                @else
-                                    <video src="{{ $media->url }}" controls preload="metadata"></video>
-                                @endif
-
-                                <div class="news-admin-media-caption">
-                                    <span title="{{ $media->original_name }}">{{ \Illuminate\Support\Str::limit($media->original_name, 28) }}</span>
-                                    <small>{{ $media->size_label }}</small>
-                                </div>
-
-                                <form
-                                    method="POST"
-                                    action="{{ route('admin.news-updates.media.destroy', $media) }}"
-                                    onsubmit="return confirm('Remove this attachment from the post?');"
-                                >
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="news-media-remove" title="Remove attachment" aria-label="Remove attachment">
-                                        ×
-                                    </button>
-                                </form>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-
-                <div class="news-admin-edit-panel" id="newsEditPanel{{ $post->id }}">
+                <div class="news-admin-edit-panel" id="newsEditPanel{{ $award->id }}">
                     <form
                         method="POST"
-                        action="{{ route('admin.news-updates.update', $post) }}"
+                        action="{{ route('admin.awards.update', $award) }}"
                         enctype="multipart/form-data"
                         class="news-post-form"
                     >
                         @csrf
                         @method('PUT')
 
-                        <div class="news-admin-field full">
-                            <label for="edit-title-{{ $post->id }}">Post Title</label>
+                        <div class="news-admin-field">
+                            <label for="edit-recipient-{{ $award->id }}">Recipient Name</label>
                             <input
-                                id="edit-title-{{ $post->id }}"
+                                id="edit-recipient-{{ $award->id }}"
                                 type="text"
-                                name="title"
-                                value="{{ $post->title }}"
-                                maxlength="180"
+                                name="recipient_name"
+                                value="{{ $award->recipient_name }}"
+                                maxlength="120"
                                 required
                             >
-                        </div>
-
-                        <div class="news-admin-field full">
-                            <label for="edit-description-{{ $post->id }}">Description</label>
-                            <textarea
-                                id="edit-description-{{ $post->id }}"
-                                name="description"
-                                rows="7"
-                                maxlength="30000"
-                                required
-                            >{{ $post->description }}</textarea>
                         </div>
 
                         <div class="news-admin-field">
-                            <label for="edit-status-{{ $post->id }}">Posting Status</label>
-                            <select id="edit-status-{{ $post->id }}" name="status" required>
-                                <option value="draft" {{ $post->status === 'draft' ? 'selected' : '' }}>Save as Draft</option>
-                                <option value="published" {{ $post->status === 'published' ? 'selected' : '' }}>Publish</option>
-                            </select>
-                        </div>
-
-                        <div class="news-admin-field news-auto-date-note">
-                            <label>Post Date &amp; Time</label>
-                            <div class="news-auto-date-box">
-                                @if($post->published_at)
-                                    Posted {{ $post->published_at->format('M d, Y \a\t g:i A') }}
-                                @else
-                                    The date and time will be recorded when this draft is published.
-                                @endif
-                            </div>
-                            <small>Editing does not change the original posting time.</small>
-                        </div>
-
-                        <div class="news-admin-field full">
-                            <label for="edit-media-{{ $post->id }}">Add More Images or Videos</label>
-                            <label class="news-upload-box compact" for="edit-media-{{ $post->id }}">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 5v14m-7-7h14"/>
-                                </svg>
-                                <strong>Add attachments</strong>
-                                <span>Existing attachments will remain unless removed above.</span>
-                                <span class="news-selected-files" data-selected-files>No files selected</span>
-                            </label>
+                            <label for="edit-title-{{ $award->id }}">Award Title</label>
                             <input
-                                id="edit-media-{{ $post->id }}"
-                                type="file"
-                                name="media[]"
-                                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm"
-                                multiple
-                                hidden
-                                data-media-input
+                                id="edit-title-{{ $award->id }}"
+                                type="text"
+                                name="title"
+                                value="{{ $award->title }}"
+                                maxlength="160"
+                                required
                             >
                         </div>
 
+                        <div class="news-admin-field">
+                            <label for="edit-status-{{ $award->id }}">Posting Status</label>
+                            <select id="edit-status-{{ $award->id }}" name="status" required>
+                                <option value="draft" {{ $award->status === 'draft' ? 'selected' : '' }}>Save as Draft</option>
+                                <option value="published" {{ $award->status === 'published' ? 'selected' : '' }}>Publish</option>
+                            </select>
+                        </div>
+
+                        <div class="news-admin-field">
+                            <label for="edit-order-{{ $award->id }}">Display Order</label>
+                            <input
+                                id="edit-order-{{ $award->id }}"
+                                type="number"
+                                name="sort_order"
+                                value="{{ $award->sort_order }}"
+                                min="0"
+                                max="9999"
+                            >
+                        </div>
+
+                        <div class="news-admin-field full">
+                            <label for="edit-image-{{ $award->id }}">Replace Award Image</label>
+                            <label class="news-upload-box" for="edit-image-{{ $award->id }}">
+                                <img class="news-upload-preview" data-preview hidden alt="Selected image preview">
+                                <svg data-upload-icon fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 0116.9 6.1 4.5 4.5 0 0118 15H7zm5-7v8m0-8-3 3m3-3 3 3"/>
+                                </svg>
+                                <strong data-upload-label>Select an image</strong>
+                                <span data-upload-hint>JPG, PNG, GIF, or WEBP — max 25 MB</span>
+                                <span class="news-selected-files" data-selected-files>No file selected</span>
+                            </label>
+                            <input
+                                id="edit-image-{{ $award->id }}"
+                                type="file"
+                                name="image"
+                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                hidden
+                                data-media-input
+                            >
+                            @if($award->has_image)
+                                <small>Uploading a new image replaces the current one.</small>
+                            @endif
+                        </div>
+
                         <div class="news-admin-actions full">
-                            <button type="button" class="news-admin-btn secondary" onclick="toggleNewsEdit({{ $post->id }})">Cancel</button>
+                            @if($award->has_image)
+                                <button
+                                    type="submit"
+                                    form="award-image-destroy-{{ $award->id }}"
+                                    class="news-admin-btn secondary"
+                                    onclick="return confirm('Remove this award image?');"
+                                >Remove Image</button>
+                            @endif
+                            <button type="button" class="news-admin-btn secondary" onclick="toggleNewsEdit({{ $award->id }})">Cancel</button>
                             <button type="submit" class="news-admin-btn primary">Save Changes</button>
                         </div>
                     </form>
+
+                    @if($award->has_image)
+                        <form
+                            id="award-image-destroy-{{ $award->id }}"
+                            method="POST"
+                            action="{{ route('admin.awards.image.destroy', $award) }}"
+                            style="display:none;"
+                        >
+                            @csrf
+                            @method('DELETE')
+                        </form>
+                    @endif
                 </div>
             </article>
         @empty
             <div class="news-admin-empty">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l6 6v8a2 2 0 01-2 2zM15 4v6h6M7 14h10M7 17h7"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                 </svg>
-                <h3>No news posts yet</h3>
-                <p>Create the first post using the form above.</p>
+                <h3>No awards yet</h3>
+                <p>Add your first award using the form above.</p>
             </div>
         @endforelse
 
-        @if($posts->hasPages())
-            <nav class="news-admin-pagination" aria-label="News post pages">
-                @if($posts->onFirstPage())
-                    <span class="disabled">Previous</span>
-                @else
-                    <a href="{{ $posts->previousPageUrl() }}">Previous</a>
-                @endif
-
-                <span>Page {{ $posts->currentPage() }} of {{ $posts->lastPage() }}</span>
-
-                @if($posts->hasMorePages())
-                    <a href="{{ $posts->nextPageUrl() }}">Next</a>
-                @else
-                    <span class="disabled">Next</span>
-                @endif
-            </nav>
+        @if($awards->hasPages())
+            <div class="news-admin-pagination">
+                {{ $awards->links() }}
+            </div>
         @endif
     </section>
 </div>
@@ -471,10 +460,6 @@
     padding:11px 12px;
     transition:border-color .18s ease,box-shadow .18s ease;
 }
-.news-admin-field textarea{
-    resize:vertical;
-    line-height:1.55;
-}
 .news-admin-field input:focus,
 .news-admin-field select:focus,
 .news-admin-field textarea:focus{
@@ -484,16 +469,6 @@
 .news-admin-field small{
     color:#8a99ac;
     font-size:10px;
-}
-.news-auto-date-box{
-    min-height:42px;
-    padding:11px 12px;
-    border:1.5px solid #d9e2ec;
-    border-radius:9px;
-    background:#f8fafc;
-    color:#52657d;
-    font-size:12px;
-    line-height:1.5;
 }
 .news-upload-box{
     display:flex!important;
@@ -513,9 +488,6 @@
 .news-upload-box:hover{
     border-color:#2563eb;
     background:#f1f6ff;
-}
-.news-upload-box.compact{
-    min-height:118px;
 }
 .news-upload-box svg{
     width:34px;
@@ -541,6 +513,18 @@
     white-space:nowrap;
     color:#b17d12!important;
     font-weight:700!important;
+}
+.news-upload-preview[hidden]{
+    display:none;
+}
+.news-upload-preview{
+    width:96px;
+    height:96px;
+    object-fit:cover;
+    border-radius:12px;
+    margin:0 auto 10px;
+    display:block;
+    border:1px solid rgba(0,0,0,.08);
 }
 .news-admin-actions{
     display:flex;
@@ -656,63 +640,6 @@
     gap:8px;
     flex-shrink:0;
 }
-.news-admin-media-strip{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(155px,1fr));
-    gap:12px;
-    padding:0 22px 22px;
-}
-.news-admin-media-item{
-    position:relative;
-    overflow:hidden;
-    border:1px solid #dbe4ee;
-    border-radius:9px;
-    background:#f8fafc;
-}
-.news-admin-media-item img,
-.news-admin-media-item video{
-    display:block;
-    width:100%;
-    height:115px;
-    object-fit:cover;
-    background:#0f1e31;
-}
-.news-admin-media-caption{
-    min-width:0;
-    padding:8px 10px;
-}
-.news-admin-media-caption span,
-.news-admin-media-caption small{
-    display:block;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-}
-.news-admin-media-caption span{
-    color:#33475f;
-    font-size:10px;
-    font-weight:700;
-}
-.news-admin-media-caption small{
-    margin-top:2px;
-    color:#8a99ac;
-    font-size:9px;
-}
-.news-media-remove{
-    position:absolute;
-    top:7px;
-    right:7px;
-    width:26px;
-    height:26px;
-    border:0;
-    border-radius:50%;
-    background:rgba(190,24,24,.92);
-    color:#fff;
-    cursor:pointer;
-    font-size:18px;
-    line-height:1;
-    box-shadow:0 3px 10px rgba(0,0,0,.18);
-}
 .news-admin-edit-panel{
     display:none;
     padding:22px;
@@ -808,16 +735,12 @@
     .news-admin-actions .news-admin-btn{
         width:100%;
     }
-    .news-admin-media-strip{
-        grid-template-columns:1fr;
-        padding:0 16px 16px;
-    }
 }
 </style>
 
 <script>
-function toggleNewsEdit(postId) {
-    var panel = document.getElementById('newsEditPanel' + postId);
+function toggleNewsEdit(id) {
+    var panel = document.getElementById('newsEditPanel' + id);
     if (!panel) return;
 
     panel.classList.toggle('open');
@@ -829,21 +752,33 @@ function toggleNewsEdit(postId) {
 
 document.querySelectorAll('[data-media-input]').forEach(function(input) {
     input.addEventListener('change', function() {
-        var label = input.closest('.news-admin-field').querySelector('[data-selected-files]');
-        if (!label) return;
+        var field = input.closest('.news-admin-field');
+        if (!field) return;
+
+        var label = field.querySelector('[data-selected-files]');
+        var preview = field.querySelector('[data-preview]');
+        var icon = field.querySelector('[data-upload-icon]');
 
         if (!input.files || input.files.length === 0) {
-            label.textContent = 'No files selected';
+            if (label) label.textContent = 'No file selected';
+            if (preview) { preview.hidden = true; preview.removeAttribute('src'); }
+            if (icon) icon.hidden = false;
             return;
         }
 
-        var names = Array.prototype.map.call(input.files, function(file) {
-            return file.name;
-        });
+        var file = input.files[0];
+        if (label) label.textContent = file.name;
 
-        label.textContent = input.files.length + ' selected: ' + names.join(', ');
+        if (preview) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.hidden = false;
+                if (icon) icon.hidden = true;
+            };
+            reader.readAsDataURL(file);
+        }
     });
 });
-
 </script>
 @endsection

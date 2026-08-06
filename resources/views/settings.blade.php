@@ -930,6 +930,11 @@
               'human-resource.employee-data'     => '↳ Employee Data',
               'human-resource.contact-list'      => '↳ ARC Contact List',
             ],
+            'Content Management' => [
+              'admin.news-updates'               => 'News & Updates Posting',
+              'admin.testimonials'               => 'Feedback Management',
+              'admin.awards'                     => 'Awards Management',
+            ],
             'Settings' => [
               'settings.users'                   => 'User Management',
               'settings.visibility'              => 'Page Visibility',

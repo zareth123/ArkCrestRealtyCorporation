@@ -143,6 +143,7 @@ var _hrLogo = "{{ asset('images/ArkCrest_Logo.png') }}";
 var _hrCsrf = document.querySelector('meta[name=csrf-token]').content;
 var _hrFormType = null;
 var _editingFormId = null; // set when editing an existing saved form, so Save updates instead of creating a new one
+var _editingFormOriginalData = null; // snapshot of field values as they were when Edit was opened, used to detect whether anything was actually changed
 
 // Shared department list for the Department dropdowns on all three HR forms.
 window._hrDepartments = @json($hrDepartmentList);
@@ -194,6 +195,7 @@ function openHrForm(type) {
 
     // reset any "view only" / "editing" state from a previous open
     _editingFormId = null;
+    _editingFormOriginalData = null;
     var saveBtn = document.querySelector('#hrFormHeader [onclick="saveHrForm()"]');
     if (saveBtn) saveBtn.style.display = '';
 
@@ -204,6 +206,7 @@ function openHrForm(type) {
 function closeHrForm() {
     document.getElementById('hrFormModal').style.display='none';
     _editingFormId = null;
+    _editingFormOriginalData = null;
 }
 function saveHrForm() {
     var type = document.getElementById('hrFormModal').getAttribute('data-type');
@@ -216,35 +219,51 @@ function saveHrForm() {
     var isEditing = !!_editingFormId;
     var oldId = _editingFormId;
 
-    // Always create the (possibly edited) record via the existing create endpoint.
-    fetch('/api/hr-forms', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':csrf},
-        body: JSON.stringify({type: type, data: fields})
-    }).then(function(r){return r.json();}).then(function(d){
-        if (!d.success) {
-            _showToast('Failed to save the form.', true);
-            return;
-        }
-        var finish = function () {
-            var btn = document.querySelector('#hrFormHeader [onclick="saveHrForm()"]');
-            if (btn) { btn.textContent = isEditing ? '✓ Updated!' : '✓ Saved!'; btn.style.background='rgba(34,197,94,.3)'; setTimeout(function(){ btn.textContent='💾 Save'; btn.style.background='rgba(255,255,255,.2)'; },2000); }
-            _showToast(isEditing ? 'Form updated successfully.' : 'Form saved successfully.');
-            _editingFormId = null;
-            loadSavedForms();
-        };
-        if (isEditing && oldId) {
-            // The new version saved fine — now remove the old version using the existing delete endpoint.
-            // If this cleanup call fails for some reason, the updated form is still safely saved.
-            fetch('/api/hr-forms/'+oldId, {method:'DELETE',headers:{'X-CSRF-TOKEN':csrf}})
-                .then(finish)
-                .catch(finish);
-        } else {
+    // Editing but nothing actually changed — skip the round trip entirely so the
+    // record's "date modified" isn't bumped for a no-op save.
+    if (isEditing && !_hrFormWasActuallyChanged(fields, _editingFormOriginalData)) {
+        var btnNoop = document.querySelector('#hrFormHeader [onclick="saveHrForm()"]');
+        if (btnNoop) { btnNoop.textContent = 'No changes'; setTimeout(function(){ btnNoop.textContent='💾 Save'; },1500); }
+        _showToast('No changes to save.');
+        return;
+    }
+
+    var finish = function () {
+        var btn = document.querySelector('#hrFormHeader [onclick="saveHrForm()"]');
+        if (btn) { btn.textContent = isEditing ? '✓ Updated!' : '✓ Saved!'; btn.style.background='rgba(34,197,94,.3)'; setTimeout(function(){ btn.textContent='💾 Save'; btn.style.background='rgba(255,255,255,.2)'; },2000); }
+        _showToast(isEditing ? 'Form updated successfully.' : 'Form saved successfully.');
+        _editingFormId = null;
+        _editingFormOriginalData = null;
+        loadSavedForms();
+    };
+
+    if (isEditing && oldId) {
+        // Genuine edit: update the existing record in place (PUT) so the backend can set
+        // its own updated_at timestamp only when there's a real change, instead of
+        // deleting and recreating the row (which would make every save look identical to
+        // a brand-new record and lose any real "date modified" signal).
+        fetch('/api/hr-forms/'+oldId, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':csrf},
+            body: JSON.stringify({type: type, data: fields})
+        }).then(function(r){return r.json();}).then(function(d){
+            if (!d.success) { _showToast('Failed to save the form.', true); return; }
             finish();
-        }
-    }).catch(function(){
-        _showToast('Failed to save the form.', true);
-    });
+        }).catch(function(){
+            _showToast('Failed to save the form.', true);
+        });
+    } else {
+        fetch('/api/hr-forms', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':csrf},
+            body: JSON.stringify({type: type, data: fields})
+        }).then(function(r){return r.json();}).then(function(d){
+            if (!d.success) { _showToast('Failed to save the form.', true); return; }
+            finish();
+        }).catch(function(){
+            _showToast('Failed to save the form.', true);
+        });
+    }
 }
 function printHrForm() {
     // Auto-save before printing
@@ -257,28 +276,47 @@ function printHrForm() {
     var csrf = document.querySelector('meta[name=csrf-token]').content;
     var isEditing = !!_editingFormId;
     var oldId = _editingFormId;
+    var changed = !isEditing || _hrFormWasActuallyChanged(fields, _editingFormOriginalData);
 
-    fetch('/api/hr-forms', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json','X-CSRF-TOKEN':csrf},
-        body: JSON.stringify({type: type, data: fields})
-    }).then(function(r){return r.json();}).then(function(d){
-        if (!d.success) {
-            _showToast('Failed to save before printing.', true);
-            return;
-        }
+    var afterSave = function () {
         _editingFormId = null;
-        // If editing, clean up the old record
-        if (isEditing && oldId) {
-            fetch('/api/hr-forms/'+oldId, {method:'DELETE',headers:{'X-CSRF-TOKEN':csrf}})
-                .finally(function(){ loadSavedForms(); _doPrint(); });
-        } else {
-            loadSavedForms();
-            _doPrint();
-        }
-    }).catch(function(){
-        _showToast('Network error. Could not save before printing.', true);
-    });
+        _editingFormOriginalData = null;
+        loadSavedForms();
+        _doPrint();
+    };
+
+    if (!changed) {
+        // Nothing was actually edited — just print, no need to touch the saved record
+        // or its modified date.
+        afterSave();
+        return;
+    }
+
+    if (isEditing && oldId) {
+        // Genuine edit: update the existing record in place so its date-modified
+        // reflects a real change, instead of deleting and recreating it.
+        fetch('/api/hr-forms/'+oldId, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':csrf},
+            body: JSON.stringify({type: type, data: fields})
+        }).then(function(r){return r.json();}).then(function(d){
+            if (!d.success) { _showToast('Failed to save before printing.', true); return; }
+            afterSave();
+        }).catch(function(){
+            _showToast('Network error. Could not save before printing.', true);
+        });
+    } else {
+        fetch('/api/hr-forms', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':csrf},
+            body: JSON.stringify({type: type, data: fields})
+        }).then(function(r){return r.json();}).then(function(d){
+            if (!d.success) { _showToast('Failed to save before printing.', true); return; }
+            afterSave();
+        }).catch(function(){
+            _showToast('Network error. Could not save before printing.', true);
+        });
+    }
 }
 
 // Formats a native <input type="date"> value ("YYYY-MM-DD") into a
@@ -380,7 +418,7 @@ function _restrictNumeric(el){
 // Numeric-only input, used for every Amount/count field on the Voucher form.
 function _numInp(w,field,extraStyle){
     var attr = field ? ' data-field="'+field+'"' : '';
-    return '<input type="text" inputmode="decimal" oninput="_restrictNumeric(this)"'+attr+' style="width:'+(w||'100%')+';border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;'+(extraStyle||'')+'">';
+    return '<input type="text" inputmode="decimal" oninput="_restrictNumeric(this)"'+attr+' style="display:block;width:'+(w||'100%')+';box-sizing:border-box;border:none;border-bottom:1px solid #111;margin-left:0;font-family:inherit;font-size:inherit;outline:none;background:transparent;padding:2px 2px;'+(extraStyle||'')+'">';
 }
 
 function _dayOffCopy(label){
@@ -422,17 +460,19 @@ function hrFormAbsences(){
 function hrFormVoucher(){
     var c=function(label){
         return '<p style="font-style:italic;margin:0 0 4px;font-size:12px;">'+label+'</p>'+
-        '<table style="margin-bottom:14px;font-size:12px;width:100%;"><tr>'+
+        '<table style="margin-bottom:14px;font-size:12px;width:100%;table-layout:fixed;border-collapse:collapse;">'+
+        '<colgroup><col style="width:22%"><col style="width:28%"><col style="width:22%"><col style="width:28%"></colgroup>'+
+        '<tr>'+
         '<td colspan="4" style="text-align:center;padding:6px;">'+
         '<div style="display:flex;align-items:center;justify-content:center;gap:8px;">'+
         '<img src="'+_hrLogo+'" style="width:26px;height:26px;object-fit:contain;">'+
         '<div><strong>ArkCrest Realty Corporation</strong><br>Allowance Voucher ARCS &nbsp;&nbsp; (36-2026)</div></div></td></tr>'+
-        '<tr><td>Employee Name:</td><td><input type="text" data-field="emp_name" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td>'+
-        '<td>Designation:</td><td><input type="text" data-field="designation" style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></td></tr>'+
+        '<tr><td>Employee Name:</td><td><input type="text" data-field="emp_name" style="display:block;width:100%;box-sizing:border-box;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;background:transparent;padding:2px;"></td>'+
+        '<td>Designation:</td><td><input type="text" data-field="designation" style="display:block;width:100%;box-sizing:border-box;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;background:transparent;padding:2px;"></td></tr>'+
         '<tr><td>Pay Period:</td><td><div style="display:flex;align-items:center;gap:4px;">'+
-        '<input type="date" data-field="pay_period_from" style="flex:1;min-width:0;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;">'+
+        '<input type="date" data-field="pay_period_from" style="flex:1;min-width:0;box-sizing:border-box;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;background:transparent;padding:2px;">'+
         '<span style="flex-shrink:0;">to</span>'+
-        '<input type="date" data-field="pay_period_to" style="flex:1;min-width:0;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;"></div></td>'+
+        '<input type="date" data-field="pay_period_to" style="flex:1;min-width:0;box-sizing:border-box;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;background:transparent;padding:2px;"></div></td>'+
         '<td>Department:</td><td>'+_deptSelectFullWidth('department')+'</td></tr>'+
 
         // Earnings/Deductions side-by-side. Days Rendered pairs with Absences,
@@ -464,7 +504,7 @@ function _deptSelectFullWidth(field){
     (window._hrDepartments||[]).forEach(function(d){
         opts += '<option value="'+d+'">'+d+'</option>';
     });
-    return '<select'+attr+' style="width:100%;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;">'+opts+'</select>';
+    return '<select'+attr+' style="display:block;width:100%;box-sizing:border-box;border:none;border-bottom:1px solid #111;font-family:inherit;font-size:inherit;outline:none;background:transparent;padding:2px;">'+opts+'</select>';
 }
 
 /* Keep matching fields in sync across the two printed copies of a form as the user types.
@@ -505,6 +545,33 @@ document.getElementById('hrFormContent').addEventListener('input', function(e){
             <span style="font-size:13px;color:#991b1b;font-weight:600;"><span id="bulk-count-{{ $ftype }}">0</span> selected</span>
             <button onclick="deleteSelectedForms('{{ $ftype }}')" style="padding:6px 14px;background:#dc2626;color:white;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Delete Selected</button>
         </div>
+
+        {{-- Search / Filter toolbar --}}
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+            <div style="position:relative;">
+                <svg width="14" height="14" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;pointer-events:none;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" id="hrSearch-{{ $ftype }}" oninput="renderSavedFormsTable('{{ $ftype }}')" placeholder="Search by title or saved by..." style="width:260px;max-width:100%;padding:8px 10px 8px 32px;border:1.5px solid #d0d5dd;border-radius:8px;font-size:12px;box-sizing:border-box;outline:none;">
+            </div>
+            <div style="position:relative;">
+                <button type="button" onclick="toggleHrFilterMenu('{{ $ftype }}',event)" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#1e4575;background:white;border:1.5px solid #1e4575;border-radius:8px;padding:8px 12px;cursor:pointer;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                    Filter
+                    <span id="hrFilterBadge-{{ $ftype }}" style="display:none;background:#A37929;color:white;font-size:10px;font-weight:700;border-radius:999px;min-width:16px;height:16px;align-items:center;justify-content:center;padding:0 4px;">0</span>
+                </button>
+                <div id="hrFilterMenu-{{ $ftype }}" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:white;border:1.5px solid #d0d5dd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:50;padding:14px;min-width:220px;" onclick="event.stopPropagation()"></div>
+            </div>
+            <div style="position:relative;">
+                <button type="button" onclick="toggleHrSortMenu('{{ $ftype }}',event)" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#1e4575;background:white;border:1.5px solid #1e4575;border-radius:8px;padding:8px 12px;cursor:pointer;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+                    <span id="hrSortLabel-{{ $ftype }}">Sort</span>
+                </button>
+                <div id="hrSortMenu-{{ $ftype }}" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:white;border:1.5px solid #d0d5dd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:50;padding:6px;min-width:200px;" onclick="event.stopPropagation()"></div>
+            </div>
+            <span id="hrResultCount-{{ $ftype }}" style="font-size:11px;color:#94a3b8;white-space:nowrap;"></span>
+            <button type="button" onclick="clearHrFilters('{{ $ftype }}')" style="padding:8px 12px;background:#f1f5f9;border:1.5px solid #d0d5dd;border-radius:8px;font-size:12px;color:#64748b;cursor:pointer;">Clear</button>
+        </div>
+        <div id="hrActiveFilters-{{ $ftype }}" style="display:none;flex-wrap:wrap;gap:8px;margin-bottom:12px;"></div>
+
         <div id="saved-list-{{ $ftype }}" style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">Loading...</div>
     </div>
     @endforeach
@@ -514,6 +581,18 @@ document.getElementById('hrFormContent').addEventListener('input', function(e){
 var _csrf2 = document.querySelector('meta[name=csrf-token]').content;
 var _activeFolder = 'dayoff';
 var _savedFormsCache = {}; // type -> last-fetched list, used by the View button
+
+/* ---------- Search / Filter / Sort state (per folder type) ---------- */
+var _hrFilterState = {
+    dayoff:   {creator:'', from:'', to:''},
+    absences: {creator:'', from:'', to:''},
+    voucher:  {creator:'', from:'', to:''}
+};
+var _hrSortState = {
+    dayoff:   {field:'created_at', dir:'desc'},
+    absences: {field:'created_at', dir:'desc'},
+    voucher:  {field:'created_at', dir:'desc'}
+};
 
 function switchFolder(type) {
     _activeFolder = type;
@@ -537,41 +616,262 @@ function loadSavedForms(type) {
     if (!container) return;
     var bulkBar = document.getElementById('bulk-actions-'+type);
     if (bulkBar) bulkBar.style.display = 'none';
+    container.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">Loading...</div>';
     fetch('/api/hr-forms?type='+type)
     .then(function(r){return r.json();})
     .then(function(list){
         _savedFormsCache[type] = list;
-        if (!list.length) {
-            container.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">No saved forms yet.</div>';
-            return;
-        }
-        container.innerHTML = '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'+
-            '<table style="width:100%;min-width:680px;border-collapse:collapse;font-size:13px;">'+
-            '<thead><tr style="background:#f8fafc;">'+
-            '<th style="padding:8px 12px;border-bottom:1px solid #e2e8f0;width:32px;"><input type="checkbox" id="selectAll-'+type+'" onclick="toggleSelectAll(\''+type+'\')"></th>'+
-            '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #e2e8f0;white-space:nowrap;">Title</th>'+
-            '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #e2e8f0;white-space:nowrap;">Saved By</th>'+
-            '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #e2e8f0;white-space:nowrap;">Date</th>'+
-            '<th style="padding:8px 12px;border-bottom:1px solid #e2e8f0;"></th></tr></thead><tbody>'+
-            list.map(function(f, idx){
-                return '<tr style="border-bottom:1px solid #f1f5f9;">'+
-                    '<td style="padding:10px 12px;"><input type="checkbox" class="row-checkbox-'+type+'" value="'+f.id+'" onclick="updateBulkDeleteBar(\''+type+'\')"></td>'+
-                    '<td style="padding:10px 12px;font-weight:600;color:#0f172a;word-break:break-word;">'+f.title+'</td>'+
-                    '<td style="padding:10px 12px;color:#64748b;white-space:nowrap;">'+f.created_by+'</td>'+
-                    '<td style="padding:10px 12px;color:#94a3b8;font-size:12px;white-space:nowrap;">'+f.created_at+'</td>'+
-                    '<td style="padding:10px 12px;text-align:right;white-space:nowrap;">'+
-                    '<button onclick="viewSavedForm(\''+type+'\','+idx+')" style="padding:4px 10px;background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:6px;">View</button>'+
-                    '<button onclick="editSavedForm(\''+type+'\','+idx+')" style="padding:4px 10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:6px;">Edit</button>'+
-                    '<button onclick="deleteSavedForm('+f.id+',\''+type+'\')" style="padding:4px 10px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Delete</button>'+
-                    '</td></tr>';
-            }).join('')+'</tbody></table></div>';
+        renderSavedFormsTable(type);
+    })
+    .catch(function(){
+        container.innerHTML = '<div style="text-align:center;color:#dc2626;padding:20px;font-size:13px;">Failed to load saved forms.</div>';
     });
 }
 
+/* ---------- Applies the current search box / filter menu / sort choice to the cached list ---------- */
+function _hrGetFilteredList(type) {
+    var list = (_savedFormsCache[type] || []).slice();
+
+    var searchEl = document.getElementById('hrSearch-'+type);
+    var q = searchEl ? searchEl.value.trim().toLowerCase() : '';
+    if (q) {
+        list = list.filter(function (f) {
+            return (f.title || '').toLowerCase().indexOf(q) !== -1 ||
+                   (f.created_by || '').toLowerCase().indexOf(q) !== -1;
+        });
+    }
+
+    var filt = _hrFilterState[type] || {};
+    if (filt.creator) {
+        list = list.filter(function (f) { return f.created_by === filt.creator; });
+    }
+    if (filt.from) {
+        var fromTime = new Date(filt.from).getTime();
+        list = list.filter(function (f) {
+            var t = new Date(f.created_at).getTime();
+            return isNaN(t) || isNaN(fromTime) || t >= fromTime;
+        });
+    }
+    if (filt.to) {
+        var toTime = new Date(filt.to).getTime() + (24 * 60 * 60 * 1000 - 1);
+        list = list.filter(function (f) {
+            var t = new Date(f.created_at).getTime();
+            return isNaN(t) || isNaN(toTime) || t <= toTime;
+        });
+    }
+
+    var sort = _hrSortState[type] || {field: 'created_at', dir: 'desc'};
+    list.sort(function (a, b) {
+        var av, bv;
+        if (sort.field === 'created_at' || sort.field === 'updated_at') {
+            av = new Date(_hrEffectiveDate(a, sort.field)).getTime() || 0;
+            bv = new Date(_hrEffectiveDate(b, sort.field)).getTime() || 0;
+        } else {
+            av = (a[sort.field] || '').toString().toLowerCase();
+            bv = (b[sort.field] || '').toString().toLowerCase();
+        }
+        if (av < bv) return sort.dir === 'asc' ? -1 : 1;
+        if (av > bv) return sort.dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    return list;
+}
+
+// Resolves the date to sort/display by for a given field, so "Date Modified" is
+// accurate: a record only has an updated_at once it has genuinely been edited
+// (saveHrForm/printHrForm only send a PUT when a real change was detected). A record
+// that has never been edited has no updated_at yet, so it falls back to created_at
+// rather than showing a fabricated "modified" time.
+function _hrEffectiveDate(f, field) {
+    if (field === 'updated_at') {
+        return f.updated_at || f.created_at;
+    }
+    return f.created_at;
+}
+
+/* ---------- Renders the saved-forms table for a folder using the current search/filter/sort state ---------- */
+function renderSavedFormsTable(type) {
+    var container = document.getElementById('saved-list-'+type);
+    if (!container) return;
+    var fullList = _savedFormsCache[type] || [];
+    var list = _hrGetFilteredList(type);
+
+    _hrUpdateFilterUi(type);
+    _hrUpdateSortLabel(type);
+    var countEl = document.getElementById('hrResultCount-'+type);
+    if (countEl) countEl.textContent = fullList.length ? (list.length + ' of ' + fullList.length + ' shown') : '';
+
+    if (!fullList.length) {
+        container.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">No saved forms yet.</div>';
+        return;
+    }
+    if (!list.length) {
+        container.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">No forms match your search/filter.</div>';
+        return;
+    }
+
+    function th(label) {
+        return '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #e2e8f0;white-space:nowrap;">'+label+'</th>';
+    }
+
+    container.innerHTML = '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'+
+        '<table style="width:100%;min-width:680px;border-collapse:collapse;font-size:13px;">'+
+        '<thead><tr style="background:#f8fafc;">'+
+        '<th style="padding:8px 12px;border-bottom:1px solid #e2e8f0;width:32px;"><input type="checkbox" id="selectAll-'+type+'" onclick="toggleSelectAll(\''+type+'\')"></th>'+
+        th('Title') + th('Saved By') + th('Date Added') +
+        '<th style="padding:8px 12px;border-bottom:1px solid #e2e8f0;"></th></tr></thead><tbody>'+
+        list.map(function(f){
+            return '<tr style="border-bottom:1px solid #f1f5f9;">'+
+                '<td style="padding:10px 12px;"><input type="checkbox" class="row-checkbox-'+type+'" value="'+f.id+'" onclick="updateBulkDeleteBar(\''+type+'\')"></td>'+
+                '<td style="padding:10px 12px;font-weight:600;color:#0f172a;word-break:break-word;">'+f.title+'</td>'+
+                '<td style="padding:10px 12px;color:#64748b;white-space:nowrap;">'+f.created_by+'</td>'+
+                '<td style="padding:10px 12px;color:#94a3b8;font-size:12px;white-space:nowrap;">'+f.created_at+'</td>'+
+                '<td style="padding:10px 12px;text-align:right;white-space:nowrap;">'+
+                '<button onclick="viewSavedForm(\''+type+'\','+f.id+')" style="padding:4px 10px;background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:6px;">View</button>'+
+                '<button onclick="editSavedForm(\''+type+'\','+f.id+')" style="padding:4px 10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:6px;">Edit</button>'+
+                '<button onclick="deleteSavedForm('+f.id+',\''+type+'\')" style="padding:4px 10px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Delete</button>'+
+                '</td></tr>';
+        }).join('')+'</tbody></table></div>';
+
+    // Re-sync the bulk-delete bar now that the checkbox set has been rebuilt
+    updateBulkDeleteBar(type);
+}
+
+/* ---------- Sort dropdown (Date Added / Date Modified, each Ascending/Descending) ---------- */
+var HR_SORT_OPTIONS = [
+    {field: 'created_at', dir: 'desc', label: 'Date Added (Newest First)'},
+    {field: 'created_at', dir: 'asc',  label: 'Date Added (Oldest First)'},
+
+    {field: 'updated_at', dir: 'desc', label: 'Date Modified (Newest First)'},
+    {field: 'updated_at', dir: 'asc',  label: 'Date Modified (Oldest First)'}
+];
+
+function toggleHrSortMenu(type, e) {
+    if (e) e.stopPropagation();
+    var menu = document.getElementById('hrSortMenu-'+type);
+    if (!menu) return;
+    var isOpen = menu.style.display === 'block';
+    document.querySelectorAll('[id^="hrFilterMenu-"], [id^="hrSortMenu-"]').forEach(function (m) { m.style.display = 'none'; });
+    if (!isOpen) {
+        _renderHrSortMenu(type);
+        menu.style.display = 'block';
+    }
+}
+document.addEventListener('click', function () {
+    document.querySelectorAll('[id^="hrSortMenu-"]').forEach(function (m) { m.style.display = 'none'; });
+});
+
+function _renderHrSortMenu(type) {
+    var menu = document.getElementById('hrSortMenu-'+type);
+    if (!menu) return;
+    var current = _hrSortState[type] || {field: 'created_at', dir: 'desc'};
+    menu.innerHTML = HR_SORT_OPTIONS.map(function (o) {
+        var isActive = current.field === o.field && current.dir === o.dir;
+        return '<div onclick="setHrSortOption(\''+type+'\',\''+o.field+'\',\''+o.dir+'\')" style="display:flex;align-items:center;gap:8px;padding:9px 10px;font-size:13px;font-weight:'+(isActive ? '700' : '500')+';color:'+(isActive ? '#1e4575' : '#344054')+';border-radius:6px;cursor:pointer;white-space:nowrap;'+(isActive ? 'background:#eef2f7;' : '')+'" onmouseover="this.style.background=\'#eef2f7\'" onmouseout="this.style.background=\''+(isActive ? '#eef2f7' : '')+'\'">'+
+            '<span style="width:14px;color:#A37929;font-weight:700;">'+(isActive ? '✓' : '')+'</span>'+o.label+'</div>';
+    }).join('');
+}
+
+function setHrSortOption(type, field, dir) {
+    _hrSortState[type] = {field: field, dir: dir};
+    document.querySelectorAll('[id^="hrSortMenu-"]').forEach(function (m) { m.style.display = 'none'; });
+    renderSavedFormsTable(type);
+}
+
+function _hrUpdateSortLabel(type) {
+    var s = _hrSortState[type] || {field: 'created_at', dir: 'desc'};
+    var match = HR_SORT_OPTIONS.filter(function (o) { return o.field === s.field && o.dir === s.dir; })[0];
+    var labelEl = document.getElementById('hrSortLabel-'+type);
+    if (labelEl) labelEl.textContent = 'Sort: ' + (match ? match.label : 'Date Added');
+}
+
+/* ---------- Filter dropdown (Saved By + Date range) ---------- */
+function toggleHrFilterMenu(type, e) {
+    if (e) e.stopPropagation();
+    var menu = document.getElementById('hrFilterMenu-'+type);
+    if (!menu) return;
+    var isOpen = menu.style.display === 'block';
+    document.querySelectorAll('[id^="hrFilterMenu-"], [id^="hrSortMenu-"]').forEach(function (m) { m.style.display = 'none'; });
+    if (!isOpen) {
+        _renderHrFilterMenu(type);
+        menu.style.display = 'block';
+    }
+}
+document.addEventListener('click', function () {
+    document.querySelectorAll('[id^="hrFilterMenu-"], [id^="hrSortMenu-"]').forEach(function (m) { m.style.display = 'none'; });
+});
+
+function _renderHrFilterMenu(type) {
+    var menu = document.getElementById('hrFilterMenu-'+type);
+    if (!menu) return;
+    var filt = _hrFilterState[type] || (_hrFilterState[type] = {creator: '', from: '', to: ''});
+
+    var creators = [];
+    (_savedFormsCache[type] || []).forEach(function (f) {
+        if (f.created_by && creators.indexOf(f.created_by) === -1) creators.push(f.created_by);
+    });
+    var opts = '<option value="">All</option>' + creators.map(function (c) {
+        return '<option value="'+c+'"'+(filt.creator === c ? ' selected' : '')+'>'+c+'</option>';
+    }).join('');
+
+    menu.innerHTML =
+        '<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Saved By</div>'+
+        '<select onchange="_hrSetFilter(\''+type+'\',\'creator\',this.value)" style="width:100%;padding:6px 8px;border:1.5px solid #d0d5dd;border-radius:6px;font-size:12px;margin-bottom:12px;box-sizing:border-box;">'+opts+'</select>'+
+        '<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Date Range</div>'+
+        '<div style="display:flex;gap:6px;">'+
+        '<input type="date" value="'+(filt.from || '')+'" onchange="_hrSetFilter(\''+type+'\',\'from\',this.value)" style="flex:1;min-width:0;padding:6px;border:1.5px solid #d0d5dd;border-radius:6px;font-size:12px;box-sizing:border-box;">'+
+        '<input type="date" value="'+(filt.to || '')+'" onchange="_hrSetFilter(\''+type+'\',\'to\',this.value)" style="flex:1;min-width:0;padding:6px;border:1.5px solid #d0d5dd;border-radius:6px;font-size:12px;box-sizing:border-box;">'+
+        '</div>';
+}
+function _hrSetFilter(type, key, value) {
+    var filt = _hrFilterState[type] || (_hrFilterState[type] = {creator: '', from: '', to: ''});
+    filt[key] = value;
+    renderSavedFormsTable(type);
+}
+function _hrClearFilter(type, key) {
+    var filt = _hrFilterState[type] || {};
+    filt[key] = '';
+    renderSavedFormsTable(type);
+}
+function clearHrFilters(type) {
+    _hrFilterState[type] = {creator: '', from: '', to: ''};
+    var s = document.getElementById('hrSearch-'+type);
+    if (s) s.value = '';
+    renderSavedFormsTable(type);
+}
+function _hrUpdateFilterUi(type) {
+    var filt = _hrFilterState[type] || {};
+    var active = [];
+    if (filt.creator) active.push({key: 'creator', label: 'Saved By: ' + filt.creator});
+    if (filt.from) active.push({key: 'from', label: 'From: ' + filt.from});
+    if (filt.to) active.push({key: 'to', label: 'To: ' + filt.to});
+
+    var badge = document.getElementById('hrFilterBadge-'+type);
+    if (badge) {
+        badge.style.display = active.length ? 'inline-flex' : 'none';
+        badge.textContent = active.length;
+    }
+
+    var row = document.getElementById('hrActiveFilters-'+type);
+    if (row) {
+        if (!active.length) {
+            row.style.display = 'none';
+            row.innerHTML = '';
+        } else {
+            row.style.display = 'flex';
+            row.innerHTML = active.map(function (a) {
+                return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f5f7fa;border:1.5px solid #d0d5dd;border-radius:8px;padding:5px 8px 5px 12px;font-size:12px;color:#344054;">'+a.label+
+                    '<button type="button" onclick="_hrClearFilter(\''+type+'\',\''+a.key+'\')" style="background:none;border:none;color:#8a9bad;cursor:pointer;font-size:14px;line-height:1;">&times;</button></span>';
+            }).join('');
+        }
+    }
+}
+
 /* ---------- View ---------- */
-function viewSavedForm(type, idx) {
+function viewSavedForm(type, id) {
     var list = _savedFormsCache[type] || [];
-    var f = list[idx];
+    var f = list.find(function (x) { return x.id === id; });
     if (!f) return;
     openHrForm(type);
     document.getElementById('hrFormTitle').textContent = (f.title || '') + ' — View Only';
@@ -592,12 +892,15 @@ function viewSavedForm(type, idx) {
 }
 
 /* ---------- Edit ---------- */
-function editSavedForm(type, idx) {
+function editSavedForm(type, id) {
     var list = _savedFormsCache[type] || [];
-    var f = list[idx];
+    var f = list.find(function (x) { return x.id === id; });
     if (!f) return;
     openHrForm(type); // opens a fresh, fully-editable form and resets _editingFormId to null
     _editingFormId = f.id; // now mark it as an edit so Save updates this record instead of creating a new one
+    // Snapshot the data as it stood before this edit, so saveHrForm() can tell whether
+    // anything was actually changed before it touches the record's modified date.
+    _editingFormOriginalData = JSON.parse(JSON.stringify(f.data || {}));
     document.getElementById('hrFormTitle').textContent = (f.title || '') + ' — Editing';
     setTimeout(function() {
         var inputs = document.querySelectorAll('#hrFormContent input, #hrFormContent textarea, #hrFormContent select');
@@ -607,6 +910,27 @@ function editSavedForm(type, idx) {
             if (data[key] !== undefined) el.value = data[key];
         });
     }, 100);
+}
+
+// True only if at least one field value actually differs from the snapshot taken when
+// Edit was opened. Used so an Edit+Save that changes nothing doesn't get treated as a
+// real modification (and doesn't bump the record's "date modified").
+function _hrFormWasActuallyChanged(currentFields, originalData) {
+    originalData = originalData || {};
+    var keys = Object.keys(currentFields);
+    for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        var newVal = (currentFields[k] === undefined || currentFields[k] === null) ? '' : String(currentFields[k]);
+        var oldVal = (originalData[k] === undefined || originalData[k] === null) ? '' : String(originalData[k]);
+        if (newVal !== oldVal) return true;
+    }
+    // Also catch fields that existed before but were removed/blanked out and aren't
+    // present in the current field set at all.
+    var origKeys = Object.keys(originalData);
+    for (var j = 0; j < origKeys.length; j++) {
+        if (!(origKeys[j] in currentFields) && String(originalData[origKeys[j]] || '') !== '') return true;
+    }
+    return false;
 }
 
 /* ---------- Single delete ---------- */

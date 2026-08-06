@@ -37,12 +37,16 @@
         const isBackupPage = currentPath.includes('/settings/backup');
         const isExportPage = currentPath.includes('/admin/export');
         const isNewsUpdatesPostingPage = currentPath.includes('/admin/news-updates');
+        const isTestimonialsPage = currentPath.includes('/admin/testimonials');
+        const isAwardsPage = currentPath.includes('/admin/awards');
         const isAdminPage = isAdminSettingsPage
             || isPracticeAdminPage
             || isEditHistoryPage
             || isBackupPage
             || isExportPage
-            || isNewsUpdatesPostingPage;
+            || isNewsUpdatesPostingPage
+            || isTestimonialsPage
+            || isAwardsPage;
 
         const navItems = document.querySelectorAll('.nav-item[data-page], .nav-subitem[data-page]');
         if (!navItems || navItems.length === 0) return;
@@ -143,6 +147,10 @@
             } else if (page === 'settings-export' && isExportPage) {
                 isActive = true;
             } else if (page === 'admin-news-updates' && isNewsUpdatesPostingPage) {
+                isActive = true;
+            } else if (page === 'admin-testimonials' && isTestimonialsPage) {
+                isActive = true;
+            } else if (page === 'admin-awards' && isAwardsPage) {
                 isActive = true;
             } else if (page === 'practice-admin' && isPracticeAdminPage && !currentPath.includes('/practice/admin/history')) {
                 isActive = true;

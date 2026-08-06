@@ -29,6 +29,28 @@ class CheckPageVisibility
         'human-resource'               => 'human-resource',
         'hr.employee-data'             => 'human-resource.employee-data',
         'hr.contact-list'              => 'human-resource.contact-list',
+
+        // Content management (News & Updates, Feedback, Awards) — every
+        // action route is mapped, not just the index, so a staff member
+        // without visibility can't bypass the check by hitting the
+        // store/update/destroy endpoints directly.
+        'admin.news-updates.index'          => 'admin.news-updates',
+        'admin.news-updates.store'          => 'admin.news-updates',
+        'admin.news-updates.update'         => 'admin.news-updates',
+        'admin.news-updates.destroy'        => 'admin.news-updates',
+        'admin.news-updates.media.destroy'  => 'admin.news-updates',
+
+        'admin.testimonials.index'          => 'admin.testimonials',
+        'admin.testimonials.store'          => 'admin.testimonials',
+        'admin.testimonials.update'         => 'admin.testimonials',
+        'admin.testimonials.destroy'        => 'admin.testimonials',
+        'admin.testimonials.avatar.destroy' => 'admin.testimonials',
+
+        'admin.awards.index'                => 'admin.awards',
+        'admin.awards.store'                => 'admin.awards',
+        'admin.awards.update'               => 'admin.awards',
+        'admin.awards.destroy'              => 'admin.awards',
+        'admin.awards.image.destroy'        => 'admin.awards',
     ];
 
     public function handle(Request $request, Closure $next)

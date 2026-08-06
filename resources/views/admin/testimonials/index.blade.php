@@ -1,11 +1,11 @@
 @extends('layouts.dashboard')
 
-@section('title', 'News & Updates Posting')
+@section('title', 'Feedback Management')
 
 @section('content')
 @php
     $__u = auth()->user();
-    if (!$__u || (!$__u->isAdmin() && in_array('admin.news-updates', $__u->hidden_pages ?? []))) {
+    if (!$__u || (!$__u->isAdmin() && in_array('admin.testimonials', $__u->hidden_pages ?? []))) {
         abort(403);
     }
 @endphp
@@ -14,10 +14,10 @@
     <section class="news-admin-banner">
         <div>
             <span class="news-admin-kicker">Admin Publishing</span>
-            <h1>News &amp; Updates Posting</h1>
-            <p>Create, edit, and publish announcements that automatically appear on the public News &amp; Updates page.</p>
+            <h1>Feedback Management</h1>
+            <p>Create, edit, and publish the client feedback shown in the "Words from our clients" section of the public landing page.</p>
         </div>
-        <a href="{{ route('news-updates') }}" target="_blank" rel="noopener noreferrer" class="news-admin-public-link">
+        <a href="{{ route('landing') }}#testimonials" target="_blank" rel="noopener noreferrer" class="news-admin-public-link">
             View Public Page
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7v7m0-7L10 14M5 7v12h12v-5"/>
@@ -25,12 +25,12 @@
         </a>
     </section>
 
-    @if(session('news_success'))
-        <div class="news-admin-alert success">{{ session('news_success') }}</div>
+    @if(session('testimonial_success'))
+        <div class="news-admin-alert success">{{ session('testimonial_success') }}</div>
     @endif
 
-    @if(session('news_error'))
-        <div class="news-admin-alert error">{{ session('news_error') }}</div>
+    @if(session('testimonial_error'))
+        <div class="news-admin-alert error">{{ session('testimonial_error') }}</div>
     @endif
 
     @if($errors->any())
@@ -48,79 +48,97 @@
         <div class="news-admin-panel-head">
             <div>
                 <span class="news-admin-section-number">01</span>
-                <h2>Create a New Post</h2>
+                <h2>Add New Feedback</h2>
             </div>
-            <span class="news-admin-hint">Up to 10 images/videos per upload</span>
+            <span class="news-admin-hint">Only "Published" feedback appears on the landing page (max 4 shown)</span>
         </div>
 
-        <form method="POST" action="{{ route('admin.news-updates.store') }}" enctype="multipart/form-data" class="news-post-form" onsubmit="return confirm('Save and post this news update?');">
+        <form method="POST" action="{{ route('admin.testimonials.store') }}" enctype="multipart/form-data" class="news-post-form" onsubmit="return confirm('Save this feedback?');">
             @csrf
 
-            <div class="news-admin-field full">
-                <label for="news-title">Post Title</label>
+            <div class="news-admin-field">
+                <label for="testimonial-name">Client Name</label>
                 <input
-                    id="news-title"
+                    id="testimonial-name"
                     type="text"
-                    name="title"
-                    value="{{ old('title') }}"
-                    maxlength="180"
+                    name="client_name"
+                    value="{{ old('client_name') }}"
+                    maxlength="120"
                     required
-                    placeholder="Enter the news or announcement title"
+                    placeholder="e.g. Maria Santos"
+                >
+            </div>
+
+            <div class="news-admin-field">
+                <label for="testimonial-role">Client Role / Title</label>
+                <input
+                    id="testimonial-role"
+                    type="text"
+                    name="client_role"
+                    value="{{ old('client_role') }}"
+                    maxlength="120"
+                    placeholder="e.g. First-Time Property Buyer"
                 >
             </div>
 
             <div class="news-admin-field full">
-                <label for="news-description">Description</label>
+                <label for="testimonial-quote">Feedback / Quote</label>
                 <textarea
-                    id="news-description"
-                    name="description"
-                    rows="7"
-                    maxlength="30000"
+                    id="testimonial-quote"
+                    name="quote"
+                    rows="5"
+                    maxlength="2000"
                     required
-                    placeholder="Write the complete news or announcement details..."
-                >{{ old('description') }}</textarea>
+                    placeholder="Write the client's feedback..."
+                >{{ old('quote') }}</textarea>
             </div>
 
             <div class="news-admin-field">
-                <label for="news-status">Posting Status</label>
-                <select id="news-status" name="status" required>
+                <label for="testimonial-status">Posting Status</label>
+                <select id="testimonial-status" name="status" required>
                     <option value="draft" {{ old('status', 'draft') === 'draft' ? 'selected' : '' }}>Save as Draft</option>
                     <option value="published" {{ old('status') === 'published' ? 'selected' : '' }}>Publish</option>
                 </select>
             </div>
 
-            <div class="news-admin-field news-auto-date-note">
-                <label>Post Date &amp; Time</label>
-                <div class="news-auto-date-box">
-                    Automatically recorded when you publish the post.
-                </div>
-                <small>Editing a published post keeps its original posting date and time.</small>
+            <div class="news-admin-field">
+                <label for="testimonial-order">Display Order</label>
+                <input
+                    id="testimonial-order"
+                    type="number"
+                    name="sort_order"
+                    value="{{ old('sort_order', 0) }}"
+                    min="0"
+                    max="9999"
+                >
+                <small>Lower numbers appear first.</small>
             </div>
 
             <div class="news-admin-field full">
-                <label for="news-media">Attach Images or Videos</label>
-                <label class="news-upload-box" for="news-media">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <label for="testimonial-avatar">Client Photo</label>
+                <label class="news-upload-box" for="testimonial-avatar">
+                    <img class="news-upload-preview" data-preview hidden alt="Selected photo preview">
+                    <svg data-upload-icon fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 0116.9 6.1 4.5 4.5 0 0118 15H7zm5-7v8m0-8-3 3m3-3 3 3"/>
                     </svg>
-                    <strong>Select files</strong>
-                    <span>JPG, PNG, GIF, WEBP, MP4, MOV, or WEBM — maximum 100 MB each</span>
-                    <span class="news-selected-files" data-selected-files>No files selected</span>
+                    <strong data-upload-label>Select a photo</strong>
+                    <span data-upload-hint>JPG, PNG, GIF, or WEBP — max 25 MB</span>
+                    <span class="news-selected-files" data-selected-files>No file selected</span>
                 </label>
                 <input
-                    id="news-media"
+                    id="testimonial-avatar"
                     type="file"
-                    name="media[]"
-                    accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm"
-                    multiple
+                    name="avatar"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
                     hidden
                     data-media-input
                 >
+                <small>If no photo is uploaded, the client's initials will be shown instead.</small>
             </div>
 
             <div class="news-admin-actions full">
                 <button type="reset" class="news-admin-btn secondary">Clear Form</button>
-                <button type="submit" class="news-admin-btn primary">Save News Post</button>
+                <button type="submit" class="news-admin-btn primary">Save Feedback</button>
             </div>
         </form>
     </section>
@@ -129,49 +147,52 @@
         <div class="news-admin-panel-head">
             <div>
                 <span class="news-admin-section-number">02</span>
-                <h2>All Posts</h2>
+                <h2>All Feedback</h2>
             </div>
-            <span class="news-admin-hint">{{ $posts->total() }} total post{{ $posts->total() === 1 ? '' : 's' }}</span>
+            <span class="news-admin-hint">{{ $testimonials->total() }} total feedback {{ $testimonials->total() === 1 ? 'entry' : 'entries' }}</span>
         </div>
 
-        @forelse($posts as $post)
+        @forelse($testimonials as $testimonial)
             <article class="news-admin-post-card">
                 <div class="news-admin-post-summary">
                     <div class="news-admin-post-main">
                         <div class="news-admin-post-status-row">
-                            <span class="news-status-badge {{ strtolower($post->publication_state) }}">
-                                {{ $post->publication_state }}
+                            <span class="news-status-badge {{ $testimonial->status === 'published' ? 'published' : 'draft' }}">
+                                {{ $testimonial->status === 'published' ? 'Published' : 'Draft' }}
                             </span>
-                            <span class="news-admin-post-date">
-                                @if($post->published_at)
-                                    {{ $post->published_at->format('M d, Y · g:i A') }}
-                                @else
-                                    Not published
-                                @endif
-                            </span>
+                            <span class="news-admin-post-date">Order: {{ $testimonial->sort_order }}</span>
                         </div>
 
-                        <h3>{{ $post->title }}</h3>
-                        <p>{{ \Illuminate\Support\Str::limit($post->description, 220) }}</p>
+                        <h3>{{ $testimonial->client_name }}</h3>
+                        @if($testimonial->client_role)
+                            <p style="margin-bottom:4px;color:#4a5f78;font-weight:700;">{{ $testimonial->client_role }}</p>
+                        @endif
+                        <p>{{ \Illuminate\Support\Str::limit($testimonial->quote, 220) }}</p>
 
                         <div class="news-admin-post-meta">
-                            <span>Created {{ $post->created_at->diffForHumans() }}</span>
-                            <span>{{ $post->media->count() }} attachment{{ $post->media->count() === 1 ? '' : 's' }}</span>
-                            @if($post->creator)
-                                <span>By {{ $post->creator->name }}</span>
+                            <span>Created {{ $testimonial->created_at->diffForHumans() }}</span>
+                            @if($testimonial->creator)
+                                <span>By {{ $testimonial->creator->name }}</span>
                             @endif
                         </div>
                     </div>
 
                     <div class="news-admin-post-controls">
-                        <button type="button" class="news-admin-btn secondary small" onclick="toggleNewsEdit({{ $post->id }})">
+                        @if($testimonial->has_avatar)
+                            <img
+                                src="{{ $testimonial->avatar_url }}"
+                                alt="{{ $testimonial->client_name }}"
+                                style="width:44px;height:44px;border-radius:50%;object-fit:cover;margin-right:6px;"
+                            >
+                        @endif
+                        <button type="button" class="news-admin-btn secondary small" onclick="toggleNewsEdit({{ $testimonial->id }})">
                             Edit
                         </button>
                         @if($__u->isAdmin())
                         <form
                             method="POST"
-                            action="{{ route('admin.news-updates.destroy', $post) }}"
-                            onsubmit="return confirm('Delete this news post and all of its attached media permanently?');"
+                            action="{{ route('admin.testimonials.destroy', $testimonial) }}"
+                            onsubmit="return confirm('Delete this feedback permanently?');"
                         >
                             @csrf
                             @method('DELETE')
@@ -181,144 +202,135 @@
                     </div>
                 </div>
 
-                @if($post->media->isNotEmpty())
-                    <div class="news-admin-media-strip">
-                        @foreach($post->media as $media)
-                            <div class="news-admin-media-item">
-                                @if($media->media_type === 'image')
-                                    <img src="{{ $media->url }}" alt="{{ $post->title }} attachment">
-                                @else
-                                    <video src="{{ $media->url }}" controls preload="metadata"></video>
-                                @endif
-
-                                <div class="news-admin-media-caption">
-                                    <span title="{{ $media->original_name }}">{{ \Illuminate\Support\Str::limit($media->original_name, 28) }}</span>
-                                    <small>{{ $media->size_label }}</small>
-                                </div>
-
-                                <form
-                                    method="POST"
-                                    action="{{ route('admin.news-updates.media.destroy', $media) }}"
-                                    onsubmit="return confirm('Remove this attachment from the post?');"
-                                >
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="news-media-remove" title="Remove attachment" aria-label="Remove attachment">
-                                        ×
-                                    </button>
-                                </form>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-
-                <div class="news-admin-edit-panel" id="newsEditPanel{{ $post->id }}">
+                <div class="news-admin-edit-panel" id="newsEditPanel{{ $testimonial->id }}">
                     <form
                         method="POST"
-                        action="{{ route('admin.news-updates.update', $post) }}"
+                        action="{{ route('admin.testimonials.update', $testimonial) }}"
                         enctype="multipart/form-data"
                         class="news-post-form"
                     >
                         @csrf
                         @method('PUT')
 
-                        <div class="news-admin-field full">
-                            <label for="edit-title-{{ $post->id }}">Post Title</label>
+                        <div class="news-admin-field">
+                            <label for="edit-name-{{ $testimonial->id }}">Client Name</label>
                             <input
-                                id="edit-title-{{ $post->id }}"
+                                id="edit-name-{{ $testimonial->id }}"
                                 type="text"
-                                name="title"
-                                value="{{ $post->title }}"
-                                maxlength="180"
+                                name="client_name"
+                                value="{{ $testimonial->client_name }}"
+                                maxlength="120"
                                 required
                             >
-                        </div>
-
-                        <div class="news-admin-field full">
-                            <label for="edit-description-{{ $post->id }}">Description</label>
-                            <textarea
-                                id="edit-description-{{ $post->id }}"
-                                name="description"
-                                rows="7"
-                                maxlength="30000"
-                                required
-                            >{{ $post->description }}</textarea>
                         </div>
 
                         <div class="news-admin-field">
-                            <label for="edit-status-{{ $post->id }}">Posting Status</label>
-                            <select id="edit-status-{{ $post->id }}" name="status" required>
-                                <option value="draft" {{ $post->status === 'draft' ? 'selected' : '' }}>Save as Draft</option>
-                                <option value="published" {{ $post->status === 'published' ? 'selected' : '' }}>Publish</option>
-                            </select>
-                        </div>
-
-                        <div class="news-admin-field news-auto-date-note">
-                            <label>Post Date &amp; Time</label>
-                            <div class="news-auto-date-box">
-                                @if($post->published_at)
-                                    Posted {{ $post->published_at->format('M d, Y \a\t g:i A') }}
-                                @else
-                                    The date and time will be recorded when this draft is published.
-                                @endif
-                            </div>
-                            <small>Editing does not change the original posting time.</small>
-                        </div>
-
-                        <div class="news-admin-field full">
-                            <label for="edit-media-{{ $post->id }}">Add More Images or Videos</label>
-                            <label class="news-upload-box compact" for="edit-media-{{ $post->id }}">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 5v14m-7-7h14"/>
-                                </svg>
-                                <strong>Add attachments</strong>
-                                <span>Existing attachments will remain unless removed above.</span>
-                                <span class="news-selected-files" data-selected-files>No files selected</span>
-                            </label>
+                            <label for="edit-role-{{ $testimonial->id }}">Client Role / Title</label>
                             <input
-                                id="edit-media-{{ $post->id }}"
-                                type="file"
-                                name="media[]"
-                                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm"
-                                multiple
-                                hidden
-                                data-media-input
+                                id="edit-role-{{ $testimonial->id }}"
+                                type="text"
+                                name="client_role"
+                                value="{{ $testimonial->client_role }}"
+                                maxlength="120"
                             >
                         </div>
 
+                        <div class="news-admin-field full">
+                            <label for="edit-quote-{{ $testimonial->id }}">Feedback / Quote</label>
+                            <textarea
+                                id="edit-quote-{{ $testimonial->id }}"
+                                name="quote"
+                                rows="5"
+                                maxlength="2000"
+                                required
+                            >{{ $testimonial->quote }}</textarea>
+                        </div>
+
+                        <div class="news-admin-field">
+                            <label for="edit-status-{{ $testimonial->id }}">Posting Status</label>
+                            <select id="edit-status-{{ $testimonial->id }}" name="status" required>
+                                <option value="draft" {{ $testimonial->status === 'draft' ? 'selected' : '' }}>Save as Draft</option>
+                                <option value="published" {{ $testimonial->status === 'published' ? 'selected' : '' }}>Publish</option>
+                            </select>
+                        </div>
+
+                        <div class="news-admin-field">
+                            <label for="edit-order-{{ $testimonial->id }}">Display Order</label>
+                            <input
+                                id="edit-order-{{ $testimonial->id }}"
+                                type="number"
+                                name="sort_order"
+                                value="{{ $testimonial->sort_order }}"
+                                min="0"
+                                max="9999"
+                            >
+                        </div>
+
+                        <div class="news-admin-field full">
+                            <label for="edit-avatar-{{ $testimonial->id }}">Replace Client Photo</label>
+                            <label class="news-upload-box" for="edit-avatar-{{ $testimonial->id }}">
+                                <img class="news-upload-preview" data-preview hidden alt="Selected photo preview">
+                                <svg data-upload-icon fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 0116.9 6.1 4.5 4.5 0 0118 15H7zm5-7v8m0-8-3 3m3-3 3 3"/>
+                                </svg>
+                                <strong data-upload-label>Select a photo</strong>
+                                <span data-upload-hint>JPG, PNG, GIF, or WEBP — max 25 MB</span>
+                                <span class="news-selected-files" data-selected-files>No file selected</span>
+                            </label>
+                            <input
+                                id="edit-avatar-{{ $testimonial->id }}"
+                                type="file"
+                                name="avatar"
+                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                hidden
+                                data-media-input
+                            >
+                            @if($testimonial->has_avatar)
+                                <small>Uploading a new photo replaces the current one.</small>
+                            @endif
+                        </div>
+
                         <div class="news-admin-actions full">
-                            <button type="button" class="news-admin-btn secondary" onclick="toggleNewsEdit({{ $post->id }})">Cancel</button>
+                            @if($testimonial->has_avatar)
+                                <button
+                                    type="submit"
+                                    form="testimonial-avatar-destroy-{{ $testimonial->id }}"
+                                    class="news-admin-btn secondary"
+                                    onclick="return confirm('Remove this client photo?');"
+                                >Remove Photo</button>
+                            @endif
+                            <button type="button" class="news-admin-btn secondary" onclick="toggleNewsEdit({{ $testimonial->id }})">Cancel</button>
                             <button type="submit" class="news-admin-btn primary">Save Changes</button>
                         </div>
                     </form>
+
+                    @if($testimonial->has_avatar)
+                        <form
+                            id="testimonial-avatar-destroy-{{ $testimonial->id }}"
+                            method="POST"
+                            action="{{ route('admin.testimonials.avatar.destroy', $testimonial) }}"
+                            style="display:none;"
+                        >
+                            @csrf
+                            @method('DELETE')
+                        </form>
+                    @endif
                 </div>
             </article>
         @empty
             <div class="news-admin-empty">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l6 6v8a2 2 0 01-2 2zM15 4v6h6M7 14h10M7 17h7"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8-1.284 0-2.503-.24-3.605-.671L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
                 </svg>
-                <h3>No news posts yet</h3>
-                <p>Create the first post using the form above.</p>
+                <h3>No feedback yet</h3>
+                <p>Add your first client feedback using the form above.</p>
             </div>
         @endforelse
 
-        @if($posts->hasPages())
-            <nav class="news-admin-pagination" aria-label="News post pages">
-                @if($posts->onFirstPage())
-                    <span class="disabled">Previous</span>
-                @else
-                    <a href="{{ $posts->previousPageUrl() }}">Previous</a>
-                @endif
-
-                <span>Page {{ $posts->currentPage() }} of {{ $posts->lastPage() }}</span>
-
-                @if($posts->hasMorePages())
-                    <a href="{{ $posts->nextPageUrl() }}">Next</a>
-                @else
-                    <span class="disabled">Next</span>
-                @endif
-            </nav>
+        @if($testimonials->hasPages())
+            <div class="news-admin-pagination">
+                {{ $testimonials->links() }}
+            </div>
         @endif
     </section>
 </div>
@@ -656,63 +668,6 @@
     gap:8px;
     flex-shrink:0;
 }
-.news-admin-media-strip{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(155px,1fr));
-    gap:12px;
-    padding:0 22px 22px;
-}
-.news-admin-media-item{
-    position:relative;
-    overflow:hidden;
-    border:1px solid #dbe4ee;
-    border-radius:9px;
-    background:#f8fafc;
-}
-.news-admin-media-item img,
-.news-admin-media-item video{
-    display:block;
-    width:100%;
-    height:115px;
-    object-fit:cover;
-    background:#0f1e31;
-}
-.news-admin-media-caption{
-    min-width:0;
-    padding:8px 10px;
-}
-.news-admin-media-caption span,
-.news-admin-media-caption small{
-    display:block;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-}
-.news-admin-media-caption span{
-    color:#33475f;
-    font-size:10px;
-    font-weight:700;
-}
-.news-admin-media-caption small{
-    margin-top:2px;
-    color:#8a99ac;
-    font-size:9px;
-}
-.news-media-remove{
-    position:absolute;
-    top:7px;
-    right:7px;
-    width:26px;
-    height:26px;
-    border:0;
-    border-radius:50%;
-    background:rgba(190,24,24,.92);
-    color:#fff;
-    cursor:pointer;
-    font-size:18px;
-    line-height:1;
-    box-shadow:0 3px 10px rgba(0,0,0,.18);
-}
 .news-admin-edit-panel{
     display:none;
     padding:22px;
@@ -813,11 +768,23 @@
         padding:0 16px 16px;
     }
 }
+.news-upload-preview{
+    width:96px;
+    height:96px;
+    object-fit:cover;
+    border-radius:12px;
+    margin:0 auto 10px;
+    display:block;
+    border:1px solid rgba(0,0,0,.08);
+}
+.news-upload-preview[hidden]{
+    display:none;
+}
 </style>
 
 <script>
-function toggleNewsEdit(postId) {
-    var panel = document.getElementById('newsEditPanel' + postId);
+function toggleNewsEdit(id) {
+    var panel = document.getElementById('newsEditPanel' + id);
     if (!panel) return;
 
     panel.classList.toggle('open');
@@ -829,21 +796,33 @@ function toggleNewsEdit(postId) {
 
 document.querySelectorAll('[data-media-input]').forEach(function(input) {
     input.addEventListener('change', function() {
-        var label = input.closest('.news-admin-field').querySelector('[data-selected-files]');
-        if (!label) return;
+        var field = input.closest('.news-admin-field');
+        if (!field) return;
+
+        var label = field.querySelector('[data-selected-files]');
+        var preview = field.querySelector('[data-preview]');
+        var icon = field.querySelector('[data-upload-icon]');
 
         if (!input.files || input.files.length === 0) {
-            label.textContent = 'No files selected';
+            if (label) label.textContent = 'No file selected';
+            if (preview) { preview.hidden = true; preview.removeAttribute('src'); }
+            if (icon) icon.hidden = false;
             return;
         }
 
-        var names = Array.prototype.map.call(input.files, function(file) {
-            return file.name;
-        });
+        var file = input.files[0];
+        if (label) label.textContent = file.name;
 
-        label.textContent = input.files.length + ' selected: ' + names.join(', ');
+        if (preview) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.hidden = false;
+                if (icon) icon.hidden = true;
+            };
+            reader.readAsDataURL(file);
+        }
     });
 });
-
 </script>
 @endsection
