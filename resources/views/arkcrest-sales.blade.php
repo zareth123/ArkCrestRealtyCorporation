@@ -229,7 +229,7 @@ function onTermsChange(id, netTcp) {
     }).then(r => r.json()).then(data => {
         if (data.success) {
             document.getElementById('arc-' + id).textContent = data.formatted;
-            arcTotals[id] = data.arkcrest_commission;
+            arcTotals[id] = parseFloat(data.arkcrest_commission) || 0;
             updateTotal();
             var rowEl = document.getElementById('row-' + id);
             if (rowEl) {
@@ -254,7 +254,7 @@ function saveRate(id, netTcp) {
     .then(data => {
         if (data.success) {
             document.getElementById('arc-' + id).textContent = data.formatted;
-            arcTotals[id] = data.arkcrest_commission;
+            arcTotals[id] = parseFloat(data.arkcrest_commission) || 0;
             updateTotal();
             var rowEl = document.getElementById('row-' + id);
             if (rowEl) {
@@ -268,7 +268,11 @@ function saveRate(id, netTcp) {
 }
 
 function updateTotal() {
-    const total = Object.values(arcTotals).reduce((a, b) => a + b, 0);
+    // parseFloat guards against arcTotals ever holding a string value again
+    // (e.g. if a future response shape changes) — without this, a single
+    // string in the mix turns the whole reduce into string concatenation
+    // instead of addition, producing a garbled run-together number.
+    const total = Object.values(arcTotals).reduce((a, b) => a + (parseFloat(b) || 0), 0);
     const fmt = '₱' + total.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
     document.getElementById('arcTotalDisplay').textContent = fmt;
     document.getElementById('arcFooterTotal').textContent = fmt;
