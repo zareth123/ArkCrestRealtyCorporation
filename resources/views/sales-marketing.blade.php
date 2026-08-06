@@ -552,20 +552,36 @@
                 <h3 class="card-title-modern">Top Performers</h3>
                 <p class="card-subtitle-modern">Based on client database records &mdash; {{ \Carbon\Carbon::parse($dateFrom)->format('M d') }} – {{ \Carbon\Carbon::parse($dateTo)->format('M d, Y') }}</p>
             </div>
+            @if($topPerformers->isNotEmpty())
+            <div id="performerRankToggle" role="group" aria-label="Rank top performers by" style="display:flex;gap:2px;background:#f1f5f9;border-radius:8px;padding:3px;">
+                <button type="button" class="performer-rank-btn is-active" data-rank-by="sales" aria-pressed="true" style="padding:6px 12px;border:0;border-radius:6px;background:white;color:#1e4575;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 1px 4px rgba(15,23,42,.12);">By Sales</button>
+                <button type="button" class="performer-rank-btn" data-rank-by="units" aria-pressed="false" style="padding:6px 12px;border:0;border-radius:6px;background:transparent;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">By Units</button>
+            </div>
+            @endif
         </div>
         <div class="card-body-modern">
             {{-- Always show flat top performers from client database --}}
             @if($topPerformers->isEmpty())
                 <p style="color:#6b7280;text-align:center;padding:20px 0;">No sales data for this period.</p>
             @else
-            @php $maxVal = $topPerformers->max('total_sales') ?: 1; @endphp
-            <div style="display:flex;flex-direction:column;gap:14px">
-                @foreach($topPerformers as $i => $agent)
-                @php $pct = round(($agent->total_sales / $maxVal) * 100); @endphp
-                <div>
+            @php
+                $maxSales = $topPerformers->max('total_sales') ?: 1;
+                $maxUnits = $topPerformers->max('units') ?: 1;
+            @endphp
+            <div id="performerList" style="display:flex;flex-direction:column;gap:14px">
+                @foreach($topPerformers as $agent)
+                @php
+                    // Round to 1 decimal so small-but-real differences between
+                    // agents remain visible, then enforce a minimum visible
+                    // width so an outlier performer doesn't flatten everyone
+                    // else's bar down to 0%.
+                    $salesPct = $agent->total_sales > 0 ? max(round(($agent->total_sales / $maxSales) * 100, 1), 3) : 0;
+                    $unitsPct = $agent->units > 0 ? max(round(($agent->units / $maxUnits) * 100, 1), 3) : 0;
+                @endphp
+                <div class="performer-row" data-sales="{{ $agent->total_sales }}" data-units="{{ $agent->units }}" data-sales-pct="{{ $salesPct }}" data-units-pct="{{ $unitsPct }}">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
                         <div style="display:flex;align-items:center;gap:10px">
-                            <span style="width:24px;height:24px;background:#1e4575;color:white;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">{{ $i+1 }}</span>
+                            <span class="performer-rank-badge" style="width:24px;height:24px;background:#1e4575;color:white;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0"></span>
                             <span style="font-weight:600;color:#111827;font-size:14px">{{ $agent->agent_name }}</span>
                             <span style="font-size:11px;color:#6b7280">{{ $agent->units }} {{ $agent->units == 1 ? 'unit' : 'units' }}</span>
                             @if($agent->position)
@@ -577,11 +593,52 @@
                         </div>
                     </div>
                     <div style="background:#f3f4f6;border-radius:999px;height:10px;overflow:hidden">
-                        <div style="height:100%;width:{{ $pct }}%;background:linear-gradient(90deg,#1e4575,#2563eb);border-radius:999px"></div>
+                        <div class="performer-bar" style="height:100%;width:{{ $salesPct }}%;background:linear-gradient(90deg,#1e4575,#2563eb);border-radius:999px"></div>
                     </div>
                 </div>
                 @endforeach
             </div>
+            <script>
+            (function() {
+                var list = document.getElementById('performerList');
+                var toggle = document.getElementById('performerRankToggle');
+                if (!list || !toggle) return;
+
+                function applyOrder(rankBy) {
+                    var rows = Array.prototype.slice.call(list.querySelectorAll('.performer-row'));
+
+                    rows.sort(function(a, b) {
+                        var aVal = Number(a.getAttribute('data-' + rankBy)) || 0;
+                        var bVal = Number(b.getAttribute('data-' + rankBy)) || 0;
+                        return bVal - aVal;
+                    });
+
+                    rows.forEach(function(row, index) {
+                        list.appendChild(row);
+                        row.querySelector('.performer-rank-badge').textContent = index + 1;
+                        row.querySelector('.performer-bar').style.width = row.getAttribute('data-' + rankBy + '-pct') + '%';
+                    });
+                }
+
+                toggle.addEventListener('click', function(event) {
+                    var button = event.target.closest('.performer-rank-btn');
+                    if (!button) return;
+
+                    toggle.querySelectorAll('.performer-rank-btn').forEach(function(btn) {
+                        var isActive = btn === button;
+                        btn.classList.toggle('is-active', isActive);
+                        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                        btn.style.background = isActive ? 'white' : 'transparent';
+                        btn.style.color = isActive ? '#1e4575' : '#64748b';
+                        btn.style.boxShadow = isActive ? '0 1px 4px rgba(15,23,42,.12)' : 'none';
+                    });
+
+                    applyOrder(button.getAttribute('data-rank-by'));
+                });
+
+                applyOrder('sales');
+            })();
+            </script>
             @endif
         </div>
     </div>

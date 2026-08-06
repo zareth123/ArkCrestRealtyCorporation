@@ -1001,6 +1001,327 @@
   }
 }
 
+
+/* -------- NEWS ARTICLE DETAIL + MEDIA CAROUSEL -------- */
+.news-card-read-more{
+  position:relative;
+  display:inline-block;
+  margin-top:auto;
+  padding-top:26px;
+  color:#111820;
+  font-size:14px;
+  font-weight:500;
+  line-height:1.5;
+}
+.news-card-read-more::after{
+  content:'';
+  position:absolute;
+  left:0;
+  bottom:-5px;
+  width:100%;
+  height:2px;
+  background:var(--news-accent);
+  transform-origin:left;
+  transition:transform .2s ease;
+}
+.news-card-read-more:hover::after{ transform:scaleX(.72); }
+
+.news-detail-shell{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 350px;
+  align-items:start;
+  gap:28px;
+}
+.news-detail-main{
+  min-width:0;
+  overflow:hidden;
+  background:#fff;
+  box-shadow:0 1px 0 rgba(13,26,43,.04);
+}
+.news-detail-back{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:18px;
+  color:#53606d;
+  font-size:12px;
+  font-weight:600;
+}
+.news-detail-back svg{ width:16px; height:16px; }
+.news-detail-back:hover{ color:var(--clay); }
+
+.news-detail-carousel{
+  position:relative;
+  overflow:hidden;
+  background:#101d2b;
+}
+.news-detail-slides{
+  position:relative;
+  min-height:520px;
+}
+.news-detail-slide{
+  width:100%;
+  min-height:520px;
+  margin:0;
+  background:#101d2b;
+}
+.news-detail-slide[hidden]{ display:none !important; }
+.news-detail-slide img,
+.news-detail-slide video{
+  display:block;
+  width:100%;
+  height:520px;
+  object-fit:contain;
+  background:#101d2b;
+}
+.news-detail-media-placeholder{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:520px;
+  padding:40px;
+  color:rgba(255,255,255,.72);
+  text-align:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  background:
+    linear-gradient(135deg,rgba(156,128,84,.28),rgba(187,90,42,.17)),
+    #132840;
+}
+.news-carousel-button{
+  position:absolute;
+  top:50%;
+  z-index:5;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:46px;
+  height:46px;
+  border:1px solid rgba(255,255,255,.36);
+  border-radius:50%;
+  color:#fff;
+  background:rgba(8,24,41,.72);
+  cursor:pointer;
+  transform:translateY(-50%);
+  backdrop-filter:blur(7px);
+  transition:background .2s ease, transform .2s ease;
+}
+.news-carousel-button:hover{
+  background:rgba(8,24,41,.94);
+  transform:translateY(-50%) scale(1.05);
+}
+.news-carousel-button svg{ width:22px; height:22px; }
+.news-carousel-prev{ left:18px; }
+.news-carousel-next{ right:18px; }
+.news-carousel-footer{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:42px 18px 16px;
+  color:#fff;
+  background:linear-gradient(180deg,transparent,rgba(3,12,22,.78));
+  pointer-events:none;
+}
+.news-carousel-counter{
+  flex-shrink:0;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.6px;
+}
+.news-carousel-dots{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:7px;
+  pointer-events:auto;
+}
+.news-carousel-dot{
+  width:8px;
+  height:8px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:rgba(255,255,255,.48);
+  cursor:pointer;
+  transition:width .2s ease, border-radius .2s ease, background .2s ease;
+}
+.news-carousel-dot.is-active{
+  width:24px;
+  border-radius:999px;
+  background:#fff;
+}
+.news-detail-copy{ padding:46px 52px 56px; }
+.news-detail-copy h1{
+  max-width:850px;
+  margin-top:16px;
+  color:#071828;
+  font-family:'Inter',sans-serif;
+  font-size:clamp(31px,4vw,49px);
+  font-weight:600;
+  line-height:1.13;
+  letter-spacing:-1px;
+  overflow-wrap:anywhere;
+}
+.news-detail-description{
+  margin-top:28px;
+  color:#3f4c58;
+  font-size:15px;
+  line-height:1.9;
+}
+
+.news-detail-sidebar{
+  position:sticky;
+  top:108px;
+  min-width:0;
+  background:#fff;
+  box-shadow:0 1px 0 rgba(13,26,43,.04);
+}
+.news-sidebar-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:22px 22px 18px;
+  border-bottom:1px solid #e7e9eb;
+}
+.news-sidebar-head h2{
+  color:#0d1a2b;
+  font-family:'Inter',sans-serif;
+  font-size:18px;
+  font-weight:700;
+}
+.news-sidebar-head a{
+  color:var(--clay);
+  font-size:11px;
+  font-weight:700;
+}
+.news-sidebar-list{ display:grid; }
+.news-sidebar-item{
+  display:grid;
+  grid-template-columns:126px minmax(0,1fr);
+  gap:13px;
+  padding:15px;
+  border-bottom:1px solid #eceeef;
+  transition:background .2s ease;
+}
+.news-sidebar-item:last-child{ border-bottom:0; }
+.news-sidebar-item:hover{ background:#f8f8f7; }
+.news-sidebar-thumb{
+  position:relative;
+  min-height:84px;
+  overflow:hidden;
+  background:#132840;
+}
+.news-sidebar-thumb img,
+.news-sidebar-thumb video{
+  display:block;
+  width:100%;
+  height:84px;
+  object-fit:cover;
+  background:#132840;
+}
+.news-sidebar-video-badge{
+  position:absolute;
+  right:6px;
+  bottom:6px;
+  padding:3px 6px;
+  border-radius:999px;
+  color:#fff;
+  background:rgba(8,24,41,.8);
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+}
+.news-sidebar-placeholder{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  height:84px;
+  padding:8px;
+  color:rgba(255,255,255,.72);
+  text-align:center;
+  font-size:8px;
+  letter-spacing:.7px;
+  text-transform:uppercase;
+  background:
+    linear-gradient(135deg,rgba(156,128,84,.25),rgba(187,90,42,.15)),
+    #132840;
+}
+.news-sidebar-copy{ min-width:0; }
+.news-sidebar-copy h3{
+  display:-webkit-box;
+  overflow:hidden;
+  color:#0d1a2b;
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  font-weight:700;
+  line-height:1.35;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+}
+.news-sidebar-copy p{
+  margin-top:8px;
+  color:#77818c;
+  font-size:9px;
+  line-height:1.4;
+}
+.news-sidebar-empty{
+  padding:28px 22px;
+  color:#66717e;
+  font-size:12px;
+  line-height:1.65;
+}
+
+@media(max-width:1080px){
+  .news-detail-shell{ grid-template-columns:minmax(0,1fr) 310px; }
+  .news-sidebar-item{ grid-template-columns:105px minmax(0,1fr); }
+  .news-sidebar-thumb,
+  .news-sidebar-thumb img,
+  .news-sidebar-thumb video,
+  .news-sidebar-placeholder{ height:74px; min-height:74px; }
+}
+@media(max-width:900px){
+  .news-detail-shell{ grid-template-columns:1fr; }
+  .news-detail-sidebar{ position:static; }
+  .news-sidebar-list{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .news-sidebar-item:nth-child(odd):last-child{ grid-column:1 / -1; }
+}
+@media(max-width:660px){
+  .news-detail-slides,
+  .news-detail-slide,
+  .news-detail-media-placeholder{ min-height:320px; }
+  .news-detail-slide img,
+  .news-detail-slide video{ height:320px; }
+  .news-detail-copy{ padding:32px 24px 40px; }
+  .news-detail-copy h1{ font-size:30px; }
+  .news-carousel-button{ width:40px; height:40px; }
+  .news-carousel-prev{ left:10px; }
+  .news-carousel-next{ right:10px; }
+  .news-sidebar-list{ grid-template-columns:1fr; }
+  .news-sidebar-item:nth-child(odd):last-child{ grid-column:auto; }
+}
+@media(max-width:420px){
+  .news-detail-slides,
+  .news-detail-slide,
+  .news-detail-media-placeholder{ min-height:250px; }
+  .news-detail-slide img,
+  .news-detail-slide video{ height:250px; }
+  .news-detail-copy h1{ font-size:26px; }
+  .news-detail-description{ font-size:14px; }
+  .news-sidebar-item{ grid-template-columns:112px minmax(0,1fr); }
+}
+
 </style>
 </head>
 <body>
@@ -1139,86 +1460,232 @@
   </nav>
 
 
+
   <main class="latest-news-page">
     <div class="wrap">
-      <header class="latest-news-header reveal">
-        <h1>Latest News</h1>
-        <p>Official ArkCrest Realty announcements, property highlights, recognitions, activities, and community updates.</p>
-      </header>
+      @php
+        $requestedPostId = (int) request()->query('post', 0);
+        $selectedPost = $requestedPostId
+          ? $posts->getCollection()->first(function ($item) use ($requestedPostId) {
+              return (int) $item->id === $requestedPostId;
+            })
+          : null;
 
-      @if($posts->count() === 0)
-        <section class="latest-news-empty reveal">
-          <h2>No posts yet.</h2>
-          <p>Published News &amp; Updates posts will appear here.</p>
-        </section>
-      @else
-        <section class="latest-news-grid reveal-stagger" aria-label="Published News and Updates">
-          @foreach($posts as $post)
-            @php
-              $primaryMedia = $post->media->first();
-              $extraMediaCount = max(0, $post->media->count() - 1);
-            @endphp
+        $otherPosts = $selectedPost
+          ? $posts->getCollection()->reject(function ($item) use ($selectedPost) {
+              return (int) $item->id === (int) $selectedPost->id;
+            })->take(8)
+          : collect();
 
-            <article class="latest-news-card" id="news-post-{{ $post->id }}">
-              <div class="latest-news-card-media">
-                @if($primaryMedia)
-                  <figure>
-                    @if($primaryMedia->media_type === 'image')
-                      <img src="{{ $primaryMedia->url }}" alt="{{ $post->title }}" loading="lazy">
-                    @else
-                      <video src="{{ $primaryMedia->url }}" controls preload="metadata"></video>
-                    @endif
-                  </figure>
+        $allNewsUrl = route('news-updates');
+        if (request()->filled('page')) {
+          $allNewsUrl .= '?page=' . (int) request()->query('page');
+        }
+      @endphp
 
-                  @if($extraMediaCount > 0)
-                    <span class="latest-news-media-count">+{{ $extraMediaCount }} media</span>
-                  @endif
-                @else
-                  <div class="latest-news-placeholder">ArkCrest Realty Update</div>
-                @endif
-              </div>
+      @if($selectedPost)
+        <a href="{{ $allNewsUrl }}" class="news-detail-back">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Back to all news
+        </a>
 
-              <div class="latest-news-card-copy">
-                <div class="latest-news-meta">
-                  <span>{{ $post->published_at->format('D M d Y') }}</span>
-                  <span class="latest-news-meta-divider" aria-hidden="true"></span>
-                  <span>ArkCrest Update</span>
+        <section class="news-detail-shell" aria-label="Selected news update">
+          <article class="news-detail-main">
+            @if($selectedPost->media->count() > 0)
+              <div class="news-detail-carousel" data-news-carousel tabindex="0" aria-label="Media for {{ $selectedPost->title }}">
+                <div class="news-detail-slides">
+                  @foreach($selectedPost->media as $mediaIndex => $media)
+                    <figure
+                      class="news-detail-slide"
+                      data-carousel-slide
+                      data-slide-index="{{ $mediaIndex }}"
+                      @if($mediaIndex !== 0) hidden @endif
+                    >
+                      @if($media->media_type === 'image')
+                        <img
+                          src="{{ $media->url }}"
+                          alt="{{ $selectedPost->title }} media {{ $mediaIndex + 1 }}"
+                          @if($mediaIndex === 0) fetchpriority="high" @else loading="lazy" @endif
+                        >
+                      @else
+                        <video
+                          src="{{ $media->url }}"
+                          controls
+                          playsinline
+                          preload="metadata"
+                        ></video>
+                      @endif
+                    </figure>
+                  @endforeach
                 </div>
 
-                <h2>{{ $post->title }}</h2>
-                <p class="latest-news-excerpt">
-                  {{ \Illuminate\Support\Str::limit($post->description, 150) }}
-                </p>
+                @if($selectedPost->media->count() > 1)
+                  <button type="button" class="news-carousel-button news-carousel-prev" data-carousel-prev aria-label="Show previous media">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                  </button>
 
-                <details class="latest-news-details">
-                  <summary aria-label="Toggle the full update for {{ $post->title }}">
-                    <span class="sr-only">Toggle full update</span>
-                  </summary>
-                  <div class="latest-news-details-content">
-                    {!! nl2br(e($post->description)) !!}
+                  <button type="button" class="news-carousel-button news-carousel-next" data-carousel-next aria-label="Show next media">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </button>
+
+                  <div class="news-carousel-footer">
+                    <span class="news-carousel-counter" data-carousel-counter>1 / {{ $selectedPost->media->count() }}</span>
+                    <div class="news-carousel-dots" aria-label="Choose media">
+                      @foreach($selectedPost->media as $mediaIndex => $media)
+                        <button
+                          type="button"
+                          class="news-carousel-dot{{ $mediaIndex === 0 ? ' is-active' : '' }}"
+                          data-carousel-dot="{{ $mediaIndex }}"
+                          aria-label="Show media {{ $mediaIndex + 1 }}"
+                          aria-current="{{ $mediaIndex === 0 ? 'true' : 'false' }}"
+                        ></button>
+                      @endforeach
+                    </div>
                   </div>
-                </details>
+                @endif
               </div>
-            </article>
-          @endforeach
+            @else
+              <div class="news-detail-media-placeholder">ArkCrest Realty Update</div>
+            @endif
+
+            <div class="news-detail-copy">
+              <div class="latest-news-meta">
+                <span>{{ $selectedPost->published_at->format('D M d Y') }}</span>
+                <span class="latest-news-meta-divider" aria-hidden="true"></span>
+                <span>ArkCrest Update</span>
+              </div>
+
+              <h1>{{ $selectedPost->title }}</h1>
+              <div class="news-detail-description">
+                {!! nl2br(e($selectedPost->description)) !!}
+              </div>
+            </div>
+          </article>
+
+          <aside class="news-detail-sidebar" aria-label="Other news posts">
+            <div class="news-sidebar-head">
+              <h2>Other News</h2>
+              <a href="{{ $allNewsUrl }}">View all</a>
+            </div>
+
+            @if($otherPosts->count() > 0)
+              <div class="news-sidebar-list">
+                @foreach($otherPosts as $otherPost)
+                  @php
+                    $otherPrimaryMedia = $otherPost->media->first();
+                  @endphp
+                  <a
+                    href="{{ request()->fullUrlWithQuery(['post' => $otherPost->id]) }}"
+                    class="news-sidebar-item"
+                    aria-label="Read {{ $otherPost->title }}"
+                  >
+                    <div class="news-sidebar-thumb">
+                      @if($otherPrimaryMedia)
+                        @if($otherPrimaryMedia->media_type === 'image')
+                          <img src="{{ $otherPrimaryMedia->url }}" alt="" loading="lazy">
+                        @else
+                          <video src="{{ $otherPrimaryMedia->url }}" muted playsinline preload="metadata"></video>
+                          <span class="news-sidebar-video-badge">Video</span>
+                        @endif
+                      @else
+                        <div class="news-sidebar-placeholder">ArkCrest Update</div>
+                      @endif
+                    </div>
+                    <div class="news-sidebar-copy">
+                      <h3>{{ $otherPost->title }}</h3>
+                      <p>{{ $otherPost->published_at->format('M d, Y') }}</p>
+                    </div>
+                  </a>
+                @endforeach
+              </div>
+            @else
+              <p class="news-sidebar-empty">There are no other published posts on this page yet.</p>
+            @endif
+          </aside>
         </section>
+      @else
+        <header class="latest-news-header reveal">
+          <h1>Latest News</h1>
+          <p>Official ArkCrest Realty announcements, property highlights, recognitions, activities, and community updates.</p>
+        </header>
 
-        @if($posts->hasPages())
-          <nav class="latest-news-pagination" aria-label="News and Updates pages">
-            @if($posts->onFirstPage())
-              <span class="disabled">Previous</span>
-            @else
-              <a href="{{ $posts->previousPageUrl() }}">Previous</a>
-            @endif
+        @if($posts->count() === 0)
+          <section class="latest-news-empty reveal">
+            <h2>No posts yet.</h2>
+            <p>Published News &amp; Updates posts will appear here.</p>
+          </section>
+        @else
+          <section class="latest-news-grid reveal-stagger" aria-label="Published News and Updates">
+            @foreach($posts as $post)
+              @php
+                $primaryMedia = $post->media->first();
+                $extraMediaCount = max(0, $post->media->count() - 1);
+              @endphp
 
-            <span>Page {{ $posts->currentPage() }} of {{ $posts->lastPage() }}</span>
+              <article class="latest-news-card" id="news-post-{{ $post->id }}">
+                <div class="latest-news-card-media">
+                  @if($primaryMedia)
+                    <figure>
+                      @if($primaryMedia->media_type === 'image')
+                        <img src="{{ $primaryMedia->url }}" alt="{{ $post->title }}" loading="lazy">
+                      @else
+                        <video src="{{ $primaryMedia->url }}" muted playsinline preload="metadata"></video>
+                      @endif
+                    </figure>
 
-            @if($posts->hasMorePages())
-              <a href="{{ $posts->nextPageUrl() }}">Next</a>
-            @else
-              <span class="disabled">Next</span>
-            @endif
-          </nav>
+                    @if($extraMediaCount > 0)
+                      <span class="latest-news-media-count">+{{ $extraMediaCount }} media</span>
+                    @endif
+                  @else
+                    <div class="latest-news-placeholder">ArkCrest Realty Update</div>
+                  @endif
+                </div>
+
+                <div class="latest-news-card-copy">
+                  <div class="latest-news-meta">
+                    <span>{{ $post->published_at->format('D M d Y') }}</span>
+                    <span class="latest-news-meta-divider" aria-hidden="true"></span>
+                    <span>ArkCrest Update</span>
+                  </div>
+
+                  <h2>{{ $post->title }}</h2>
+                  <p class="latest-news-excerpt">
+                    {{ \Illuminate\Support\Str::limit($post->description, 150) }}
+                  </p>
+
+                  <a
+                    href="{{ request()->fullUrlWithQuery(['post' => $post->id]) }}"
+                    class="news-card-read-more"
+                    aria-label="Read the full update: {{ $post->title }}"
+                  >Read More</a>
+                </div>
+              </article>
+            @endforeach
+          </section>
+
+          @if($posts->hasPages())
+            <nav class="latest-news-pagination" aria-label="News and Updates pages">
+              @if($posts->onFirstPage())
+                <span class="disabled">Previous</span>
+              @else
+                <a href="{{ $posts->previousPageUrl() }}">Previous</a>
+              @endif
+
+              <span>Page {{ $posts->currentPage() }} of {{ $posts->lastPage() }}</span>
+
+              @if($posts->hasMorePages())
+                <a href="{{ $posts->nextPageUrl() }}">Next</a>
+              @else
+                <span class="disabled">Next</span>
+              @endif
+            </nav>
+          @endif
         @endif
       @endif
     </div>
@@ -1385,6 +1852,95 @@
 
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') menus.forEach(closeMenu);
+    });
+  })();
+  </script>
+
+
+  <script>
+  (function () {
+    var carousels = document.querySelectorAll('[data-news-carousel]');
+
+    Array.prototype.forEach.call(carousels, function (carousel) {
+      var slides = Array.prototype.slice.call(carousel.querySelectorAll('[data-carousel-slide]'));
+      var dots = Array.prototype.slice.call(carousel.querySelectorAll('[data-carousel-dot]'));
+      var previousButton = carousel.querySelector('[data-carousel-prev]');
+      var nextButton = carousel.querySelector('[data-carousel-next]');
+      var counter = carousel.querySelector('[data-carousel-counter]');
+      var currentIndex = 0;
+      var touchStartX = null;
+
+      if (slides.length < 2) return;
+
+      function pauseVideos() {
+        slides.forEach(function (slide) {
+          var video = slide.querySelector('video');
+          if (video && !video.paused) video.pause();
+        });
+      }
+
+      function showSlide(index) {
+        if (index < 0) index = slides.length - 1;
+        if (index >= slides.length) index = 0;
+
+        pauseVideos();
+        currentIndex = index;
+
+        slides.forEach(function (slide, slideIndex) {
+          slide.hidden = slideIndex !== currentIndex;
+        });
+
+        dots.forEach(function (dot, dotIndex) {
+          var active = dotIndex === currentIndex;
+          dot.classList.toggle('is-active', active);
+          dot.setAttribute('aria-current', active ? 'true' : 'false');
+        });
+
+        if (counter) counter.textContent = (currentIndex + 1) + ' / ' + slides.length;
+      }
+
+      if (previousButton) {
+        previousButton.addEventListener('click', function () {
+          showSlide(currentIndex - 1);
+        });
+      }
+
+      if (nextButton) {
+        nextButton.addEventListener('click', function () {
+          showSlide(currentIndex + 1);
+        });
+      }
+
+      dots.forEach(function (dot) {
+        dot.addEventListener('click', function () {
+          showSlide(parseInt(dot.getAttribute('data-carousel-dot'), 10) || 0);
+        });
+      });
+
+      carousel.addEventListener('keydown', function (event) {
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          showSlide(currentIndex - 1);
+        }
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          showSlide(currentIndex + 1);
+        }
+      });
+
+      carousel.addEventListener('touchstart', function (event) {
+        touchStartX = event.changedTouches[0].clientX;
+      }, { passive:true });
+
+      carousel.addEventListener('touchend', function (event) {
+        if (touchStartX === null) return;
+        var difference = event.changedTouches[0].clientX - touchStartX;
+        touchStartX = null;
+        if (Math.abs(difference) < 45) return;
+        showSlide(difference > 0 ? currentIndex - 1 : currentIndex + 1);
+      }, { passive:true });
+
+      showSlide(0);
     });
   })();
   </script>
